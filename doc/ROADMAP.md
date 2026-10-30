@@ -1,0 +1,93 @@
+# Didi — Roadmap
+
+Règle : on ne passe à la phase suivante que si la précédente est **stable, testée et performante**.
+
+---
+
+## Phase 0 — Fondations et validations techniques
+
+- ✅ Structure du dépôt, lint, formatage, CI (tests TS, tests Rust, vérification Svelte).
+- ✅ **Prototype tablette** : mesurer pression, inclinaison, événements coalescés et latence via Pointer Events.
+- ✅ **Prototype tablette côté Rust** : même mesure en lecture native. Sous Linux, le natif est retenu (voir `DECISIONS.md`). Windows et macOS restent à évaluer.
+- **Prototype rendu** : mesurer les performances de PixiJS dans la webview (tamponnage massif dans une texture).
+- Choix final de la source d'entrée par OS, et de la bibliothèque UI.
+
+**Terminé quand** : chaque choix technique repose sur des mesures réelles.
+
+## Phase 1 — Modèle de document
+
+- Document, calques raster en tuiles, modes de fusion de base.
+- Registre de commandes et historique undo/redo (diffs de tuiles).
+- Tests unitaires et tests par propriétés (suites d'actions aléatoires puis annulation).
+
+**Terminé quand** : le cœur fonctionne sans UI ni rendu, avec une bonne couverture de tests.
+
+## Phase 2 — Canvas et viewport
+
+- Affichage du document avec PixiJS, mises à jour partielles par tuile.
+- Zoom, déplacement, rotation, grille de pixels à fort zoom.
+
+**Terminé quand** : 60 fps sur une grande toile avec de nombreux calques, mémoire mesurée.
+
+## Phase 3 — Saisie et moteur de pinceau
+
+- Abstraction de la source d'entrée, stabilisation, interpolation.
+- Pinceau peinture (pression → taille/opacité, courbe de pression).
+- Pinceau pixel (pixel-perfect, sans antialiasing).
+- Gomme et pipette.
+- Actions associables aux boutons du stylet et au mode gomme (gomme, roue, déplacer…), car chaque pilote les envoie différemment.
+- Pinceaux définis comme fichiers dès le départ.
+- Tests par rejeu de traits enregistrés et comparaison d'images.
+
+**Terminé quand** : latence imperceptible et rendu sans régression.
+
+## Phase 4 — Interface minimale
+
+- Système de thème par tokens, chargé depuis un fichier.
+- Barre d'outils, panneau calques, sélecteur de couleur, réglages du pinceau.
+- Raccourcis configurables et palette de commandes.
+- **Roue rapide v1** : roue personnalisable (pinceaux, couleurs, outils, commandes, sous-roues), définie comme un fichier.
+- Disposition fixe, avec des panneaux conçus pour passer à Dockview plus tard.
+
+## Phase 5 — Fichiers et robustesse
+
+- Format `.didi`, sauvegarde et chargement dans un worker.
+- Sauvegarde automatique, récupération après crash, export PNG.
+- Tests d'aller-retour, de migration et de fichiers corrompus.
+
+**Jalon v0.1** : un logiciel de dessin simple, utilisable au quotidien.
+
+## Phase 6 — Pont Godot v1
+
+- Plugin éditeur Godot connecté à Didi par WebSocket.
+- Lier un document à une texture du projet : mise à jour en direct dans l'éditeur, écriture du PNG sur disque.
+- « Éditer dans Didi » depuis Godot, synchronisation dans les deux sens.
+
+**Jalon v0.2** : dessiner et voir le résultat dans Godot en direct.
+
+## Phase 7 — Pont Godot v2
+
+- Capture de la scène comme calque de référence pour dessiner en contexte.
+- Normal maps et aperçu avec les lumières de la scène.
+- Mise à jour en direct dans le jeu en cours d'exécution.
+- Export vers SpriteFrames et TileSet.
+
+## Phase 8 — Animation et pixel art
+
+- Timeline, onion skin, tags d'animation.
+- Palettes indexées.
+
+## Phase 9 — Extensibilité
+
+- API de plugins stable et documentée, avec sandbox et permissions.
+- Import/export de packs de pinceaux, de roues et de thèmes (une roue embarque les pinceaux qu'elle utilise).
+- Les plugins peuvent ajouter leurs propres éléments à la roue.
+- Import `.kra` et `.ase`.
+- Asset store.
+
+---
+
+## En continu
+
+- Budgets de performance vérifiés en CI : temps par frame, latence de saisie, mémoire.
+- Documentation tenue à jour à chaque phase.
