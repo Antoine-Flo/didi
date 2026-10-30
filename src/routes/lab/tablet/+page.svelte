@@ -1,22 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
+  import { isTauri } from "@tauri-apps/api/core";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { InputStats, type InputReport, type InputSample } from "$lib/lab/input-stats";
-
-  /** Pen event sent by the Rust side (see src-tauri/src/tablet.rs). */
-  interface PenEvent {
-    phase: "down" | "move" | "up";
-    x: number;
-    y: number;
-    pressure: number;
-    tiltX: number;
-    tiltY: number;
-    button: number;
-    source: string;
-    time: number;
-    sentAt: number;
-  }
+  import { subscribeNativePen, type PenEvent } from "$lib/lab/pen-input";
 
   type Source = "dom" | "native";
 
@@ -202,11 +189,7 @@
     resize();
     window.addEventListener("resize", resize);
 
-    if (native) {
-      const channel = new Channel<PenEvent>();
-      channel.onmessage = onNative;
-      invoke("tablet_subscribe", { channel });
-    }
+    if (native) subscribeNativePen(onNative);
 
     // Update the live readout at most once per frame.
     let frame = requestAnimationFrame(function tick() {

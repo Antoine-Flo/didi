@@ -9,8 +9,9 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - ✅ Structure du dépôt, lint, formatage, CI (tests TS, tests Rust, vérification Svelte).
 - ✅ **Prototype tablette** : mesurer pression, inclinaison, événements coalescés et latence via Pointer Events.
 - ✅ **Prototype tablette côté Rust** : même mesure en lecture native. Sous Linux, le natif est retenu (voir `DECISIONS.md`). Windows et macOS restent à évaluer.
-- **Prototype rendu** : mesurer les performances de PixiJS dans la webview (tamponnage massif dans une texture).
-- Choix final de la source d'entrée par OS, et de la bibliothèque UI.
+- ✅ **Prototype rendu** : mesurer les performances de PixiJS dans la webview (tamponnage massif dans une texture).
+- ✅ **Prototype relecture GPU → CPU** : peinture sur le GPU, copie CPU par tuile mise à jour en fin de trait.
+- ✅ Choix de la source d’entrée sous Linux et de la bibliothèque UI (Bits UI).
 
 **Terminé quand** : chaque choix technique repose sur des mesures réelles.
 
@@ -55,6 +56,9 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - Sauvegarde automatique, récupération après crash, export PNG.
 - Tests d'aller-retour, de migration et de fichiers corrompus.
 
+- Vérification des performances sur une machine modeste (GPU intégré).
+- **Windows** : pages de test tablette et rendu sur WebView2, puis build et test complet.
+
 **Jalon v0.1** : un logiciel de dessin simple, utilisable au quotidien.
 
 ## Phase 6 — Pont Godot v1
@@ -84,6 +88,12 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - Les plugins peuvent ajouter leurs propres éléments à la roue.
 - Import `.kra` et `.ase`.
 - Asset store.
+
+## Phase 10 — Publication Steam
+
+- Intégration Steamworks, builds Windows, Linux (Steam Deck) et macOS.
+- Steam Workshop pour le partage de pinceaux, roues, thèmes et plugins.
+- Test sur macOS (entrée tablette dans WebKit, lecture native si nécessaire).
 
 ---
 

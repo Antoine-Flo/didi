@@ -9,6 +9,9 @@
     <li>
       <a href={resolve("/lab/tablet")}>Tablette : pression, inclinaison, fréquence, latence</a>
     </li>
+    <li>
+      <a href={resolve("/lab/render")}>Rendu : tamponnage PixiJS, calques, temps de frame</a>
+    </li>
   </ul>
 </main>
 
