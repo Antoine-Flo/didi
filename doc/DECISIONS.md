@@ -4,6 +4,18 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 ---
 
+## Modes de fusion : la norme W3C comme référence
+
+**Date** : 2026-10-31 · **Phase** : 1
+
+**Constat** : dans PixiJS, les modes normal, écran et addition suivent la norme, mais le mode produit (multiply) donne du noir sur un fond transparent, et incrustation, assombrir et éclaircir passent par des filtres séparés.
+
+**Décision** : la composition CPU (`src/lib/core/compositing.ts`) suit la spécification W3C Compositing and Blending (comme Photoshop, Krita et les navigateurs), en alpha prémultiplié, avec un arrondi sur 8 bits après chaque calque comme sur le GPU. L'addition est une somme plafonnée, comme sur le GPU. Le rendu GPU de la phase 2 devra correspondre à cette référence, vérifié par comparaison d'images.
+
+**Notes** :
+
+- Performance mesurée : environ 0,75 s pour 2 calques pleins en 4096 × 4096. Suffisant pour l'export et l'envoi vers Godot (en arrière-plan) ; l'affichage reste sur le GPU.
+
 ## Pixels : GPU pour peindre, copie CPU par tuile
 
 **Date** : 2026-10-30 · **Phase** : 0

@@ -1,4 +1,4 @@
-import { TileStore } from "./tiles";
+import type { TileStore } from "./tiles";
 
 export const BLEND_MODES = [
   "normal",
@@ -28,6 +28,29 @@ export interface Layer extends LayerProps {
   readonly id: string;
   readonly tiles: TileStore;
 }
+
+/** Read-only access to a layer's pixels. */
+export type ReadonlyTileStore = Pick<
+  TileStore,
+  | "width"
+  | "height"
+  | "cols"
+  | "rows"
+  | "bounds"
+  | "tileCount"
+  | "memoryBytes"
+  | "getTile"
+  | "keys"
+  | "tilesIn"
+  | "readRegion"
+  | "snapshot"
+>;
+
+/** A layer as seen from outside the drawing: settings and pixels can only be read. */
+export type ReadonlyLayer = Readonly<LayerProps> & {
+  readonly id: string;
+  readonly tiles: ReadonlyTileStore;
+};
 
 export const LAYER_PROP_KEYS: readonly (keyof LayerProps)[] = [
   "name",

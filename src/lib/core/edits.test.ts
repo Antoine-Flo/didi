@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { Drawing } from "./drawing";
-import { addLayer, moveLayer, removeLayer, updateLayer, writePixels, type Edit } from "./edits";
+import {
+  addLayer,
+  group,
+  moveLayer,
+  removeLayer,
+  updateLayer,
+  writePixels,
+  type Edit,
+} from "./edits";
 import { capture, expectSameState, fill, pattern, randomEdit } from "./test-utils";
 
 describe("edits", () => {
@@ -61,6 +69,29 @@ describe("edits", () => {
     d.updateLayer(layer.id, { locked: true });
     paint.revert(d);
     expect(layer.tiles.tileCount).toBe(0);
+  });
+
+  it("a group undoes and redoes any sequence of edits as one (property)", () => {
+    fc.assert(
+      fc.property(fc.array(randomEdit, { minLength: 2, maxLength: 20 }), (ops) => {
+        const d = new Drawing(300, 260);
+        const initial = capture(d);
+        const edits: Edit[] = [];
+        for (const op of ops) {
+          const edit = op(d);
+          if (!edit) continue;
+          edit.apply(d);
+          edits.push(edit);
+        }
+        const final = capture(d);
+        const all = group("Groupe", edits);
+        all.revert(d);
+        expectSameState(capture(d), initial);
+        all.apply(d);
+        expectSameState(capture(d), final);
+      }),
+      { numRuns: 200 },
+    );
   });
 
   it("undoing everything in reverse order restores the initial state, redoing restores the final one (property)", () => {

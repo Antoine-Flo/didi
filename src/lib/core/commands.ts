@@ -1,9 +1,8 @@
 // Command registry: every user action is a named command.
 //
 // Shortcuts, menus, the quick wheel and plugins all go through here. Params must be
-// JSON-serializable, so they can be stored in keymaps and wheels.
-
-import type { Edit } from "./edits";
+// JSON-serializable, so they can be stored in keymaps and wheels. Undoable commands push
+// their edits to the history themselves.
 
 export interface Command<Ctx, P = void> {
   /** Namespaced id, e.g. "layer.add" or "myplugin.doThing". */
@@ -12,8 +11,7 @@ export interface Command<Ctx, P = void> {
   readonly title: string;
   /** Whether the command can run now. Defaults to true. */
   enabled?(ctx: Ctx, params: P): boolean;
-  /** Performs the command. Returns an edit if the action is undoable. */
-  run(ctx: Ctx, params: P): Edit | void;
+  run(ctx: Ctx, params: P): void;
 }
 
 const ID_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
@@ -22,14 +20,8 @@ export class CommandRegistry<Ctx> {
   // Params are checked by each command's own types at definition time.
   private commands = new Map<string, Command<Ctx, never>>();
 
-  /**
-   * @param context passed to every command.
-   * @param commit receives the edits produced by commands (applies them and records history).
-   */
-  constructor(
-    private readonly context: Ctx,
-    private readonly commit: (edit: Edit) => void,
-  ) {}
+  /** @param context passed to every command. */
+  constructor(private readonly context: Ctx) {}
 
   /** Registers a command. Returns a function that unregisters it. */
   register<P>(command: Command<Ctx, P>): () => void {
@@ -62,8 +54,7 @@ export class CommandRegistry<Ctx> {
   execute(id: string, params?: unknown): boolean {
     const command = this.require(id);
     if (!(command.enabled?.(this.context, params as never) ?? true)) return false;
-    const edit = command.run(this.context, params as never);
-    if (edit) this.commit(edit);
+    command.run(this.context, params as never);
     return true;
   }
 

@@ -6,13 +6,37 @@
 import type { Drawing } from "./drawing";
 import type { Rect } from "./geometry";
 import type { Layer, LayerProps } from "./layer";
-import type { TileSnapshot } from "./tiles";
+import { TILE_SIZE, type TileSnapshot } from "./tiles";
 
 export interface Edit {
   /** Shown in the history, e.g. "Ajouter un calque". */
   readonly label: string;
   apply(drawing: Drawing): void;
   revert(drawing: Drawing): void;
+  /** Estimate of the memory this edit can keep alive, in bytes. Defaults to 0. */
+  bytes?(): number;
+}
+
+const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
+
+function snapshotBytes(snapshot: TileSnapshot | undefined): number {
+  let count = 0;
+  for (const tile of snapshot?.values() ?? []) if (tile) count++;
+  return count * TILE_BYTES;
+}
+
+/** Several edits undone and redone as one step. */
+export function group(label: string, edits: readonly Edit[]): Edit {
+  return {
+    label,
+    apply(d) {
+      for (const edit of edits) edit.apply(d);
+    },
+    revert(d) {
+      for (let i = edits.length - 1; i >= 0; i--) edits[i].revert(d);
+    },
+    bytes: () => edits.reduce((sum, edit) => sum + (edit.bytes?.() ?? 0), 0),
+  };
 }
 
 /** Adds a layer at `index`, on top by default. */
@@ -27,6 +51,7 @@ export function addLayer(layer: Layer, index?: number): Edit {
     revert(d) {
       d.removeLayer(layer.id);
     },
+    bytes: () => layer.tiles.memoryBytes,
   };
 }
 
@@ -40,6 +65,7 @@ export function removeLayer(id: string): Edit {
     revert(d) {
       d.addLayer(removed.layer, removed.index);
     },
+    bytes: () => removed?.layer.tiles.memoryBytes ?? 0,
   };
 }
 
@@ -96,5 +122,6 @@ export function writePixels(
     revert(d) {
       d.restorePixels(id, before);
     },
+    bytes: () => snapshotBytes(before) + snapshotBytes(after),
   };
 }

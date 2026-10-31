@@ -17,15 +17,17 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 
 ## Phase 1 — Modèle de document
 
-- Document, calques raster en tuiles, modes de fusion de base.
-- Registre de commandes et historique undo/redo (diffs de tuiles).
-- Tests unitaires et tests par propriétés (suites d'actions aléatoires puis annulation).
+- ✅ Dessin, calques raster en tuiles, modes de fusion de base (composition CPU de référence).
+- ✅ Registre de commandes, historique undo/redo (diffs de tuiles, groupes, limites), calque actif.
+- ✅ Notifications de changement précises (calques, propriétés, tuiles).
+- ✅ Tests unitaires et tests par propriétés (suites d'actions aléatoires puis annulation).
 
 **Terminé quand** : le cœur fonctionne sans UI ni rendu, avec une bonne couverture de tests.
 
 ## Phase 2 — Canvas et viewport
 
 - Affichage du document avec PixiJS, mises à jour partielles par tuile.
+- Modes de fusion GPU alignés sur la composition CPU de référence (vérifié par comparaison d'images).
 - Zoom, déplacement, rotation, grille de pixels à fort zoom.
 
 **Terminé quand** : 60 fps sur une grande toile avec de nombreux calques, mémoire mesurée.

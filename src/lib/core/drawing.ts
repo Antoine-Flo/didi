@@ -1,8 +1,10 @@
 // A drawing: canvas size and a stack of layers.
 //
 // Every mutation returns what is needed to undo it, so commands and history can be built
-// on top without knowing the internals.
+// on top without knowing the internals. Every mutation is also notified to subscribers,
+// precisely enough for a renderer to update only what changed.
 
+import { Emitter } from "./emitter";
 import type { Rect } from "./geometry";
 import {
   DEFAULT_LAYER_PROPS,
@@ -10,6 +12,7 @@ import {
   validateLayerProps,
   type Layer,
   type LayerProps,
+  type ReadonlyLayer,
 } from "./layer";
 import { TileStore, assertCanvasSize, tileKey, type TileSnapshot } from "./tiles";
 
@@ -18,10 +21,19 @@ export interface RemovedLayer {
   index: number;
 }
 
+export type DrawingChange =
+  | { type: "layer-added"; id: string; index: number }
+  | { type: "layer-removed"; id: string; index: number }
+  | { type: "layer-moved"; id: string; from: number; to: number }
+  | { type: "layer-updated"; id: string; keys: (keyof LayerProps)[] }
+  /** Keys of the tiles whose pixels changed. */
+  | { type: "pixels-changed"; id: string; tiles: number[] };
+
 export class Drawing {
   /** Layers from bottom to top. */
   private stack: Layer[] = [];
   private nextId = 1;
+  private changes = new Emitter<DrawingChange>();
 
   constructor(
     readonly width: number,
@@ -30,13 +42,18 @@ export class Drawing {
     assertCanvasSize(width, height);
   }
 
-  /** Layers from bottom to top. */
-  get layers(): readonly Readonly<Layer>[] {
+  /** Layers from bottom to top. Change them only through the drawing's methods. */
+  get layers(): readonly ReadonlyLayer[] {
     return this.stack;
   }
 
-  getLayer(id: string): Readonly<Layer> {
+  getLayer(id: string): ReadonlyLayer {
     return this.stack[this.indexOf(id)];
+  }
+
+  /** Calls `listener` after every change. Returns a function that unsubscribes. */
+  subscribe(listener: (change: DrawingChange) => void): () => void {
+    return this.changes.subscribe(listener);
   }
 
   indexOf(id: string): number {
@@ -45,7 +62,7 @@ export class Drawing {
     return index;
   }
 
-  /** Creates an empty layer, not yet added to the document. */
+  /** Creates an empty layer, not yet added to the drawing. */
   createLayer(props: Partial<LayerProps> = {}): Layer {
     validateLayerProps(props);
     let id = `layer-${this.nextId++}`;
@@ -69,12 +86,14 @@ export class Drawing {
     assertIndex(index, this.stack.length + 1);
     validateLayerProps(layer);
     this.stack.splice(index, 0, layer);
+    this.changes.emit({ type: "layer-added", id: layer.id, index });
   }
 
   /** Removes a layer. Undo with `addLayer(removed.layer, removed.index)`. */
   removeLayer(id: string): RemovedLayer {
     const index = this.indexOf(id);
     const [layer] = this.stack.splice(index, 1);
+    this.changes.emit({ type: "layer-removed", id, index });
     return { layer, index };
   }
 
@@ -84,6 +103,7 @@ export class Drawing {
     assertIndex(index, this.stack.length);
     const [layer] = this.stack.splice(from, 1);
     this.stack.splice(index, 0, layer);
+    if (from !== index) this.changes.emit({ type: "layer-moved", id, from, to: index });
     return from;
   }
 
@@ -97,6 +117,8 @@ export class Drawing {
       Object.assign(previous, { [key]: layer[key] });
       Object.assign(layer, { [key]: changes[key] });
     }
+    const keys = Object.keys(previous) as (keyof LayerProps)[];
+    if (keys.length > 0) this.changes.emit({ type: "layer-updated", id, keys });
     return previous;
   }
 
@@ -110,7 +132,8 @@ export class Drawing {
     const before = layer.tiles.snapshot(
       layer.tiles.tilesIn(rect).map(({ tx, ty }) => tileKey(tx, ty)),
     );
-    layer.tiles.writeRegion(rect, data);
+    const tiles = layer.tiles.writeRegion(rect, data);
+    if (tiles.length > 0) this.changes.emit({ type: "pixels-changed", id, tiles });
     return before;
   }
 
@@ -121,7 +144,8 @@ export class Drawing {
   restorePixels(id: string, snapshot: TileSnapshot): TileSnapshot {
     const tiles = this.stack[this.indexOf(id)].tiles;
     const before = tiles.snapshot(snapshot.keys());
-    tiles.restore(snapshot);
+    const keys = tiles.restore(snapshot);
+    if (keys.length > 0) this.changes.emit({ type: "pixels-changed", id, tiles: keys });
     return before;
   }
 }
