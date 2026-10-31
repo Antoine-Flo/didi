@@ -30,4 +30,21 @@ export default ts.config(
       },
     },
   },
+  {
+    // The core must stay independent from UI, rendering and platform.
+    files: ["src/lib/core/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["pixi.js", "svelte", "svelte/*", "@tauri-apps/*", "$app/*", "$lib/*"],
+              message: "src/lib/core must not depend on UI, rendering or platform code.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
