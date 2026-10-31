@@ -1,14 +1,8 @@
 import type { TileStore } from "./tiles";
 
-export const BLEND_MODES = [
-  "normal",
-  "multiply",
-  "screen",
-  "overlay",
-  "darken",
-  "lighten",
-  "add",
-] as const;
+// Only the modes the GPU renders exactly like the CPU reference. Others (multiply,
+// overlay…) can come back once they are implemented on both sides.
+export const BLEND_MODES = ["normal", "screen", "add"] as const;
 
 export type BlendMode = (typeof BLEND_MODES)[number];
 

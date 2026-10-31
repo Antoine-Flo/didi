@@ -13,16 +13,9 @@ import { TILE_SIZE } from "./tiles";
 /** Blend function on non-premultiplied channels in [0, 1]: backdrop, source. */
 type BlendFn = (cb: number, cs: number) => number;
 
-const hardLight: BlendFn = (cb, cs) =>
-  cs <= 0.5 ? cb * 2 * cs : cb + (2 * cs - 1) - cb * (2 * cs - 1);
-
 const BLEND: Record<Exclude<BlendMode, "add">, BlendFn> = {
   normal: (_, cs) => cs,
-  multiply: (cb, cs) => cb * cs,
   screen: (cb, cs) => cb + cs - cb * cs,
-  overlay: (cb, cs) => hardLight(cs, cb),
-  darken: (cb, cs) => Math.min(cb, cs),
-  lighten: (cb, cs) => Math.max(cb, cs),
 };
 
 export interface CompositeOptions {

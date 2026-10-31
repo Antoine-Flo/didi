@@ -24,7 +24,10 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
         // Above the active layer by default.
         const index =
           params?.index ?? (active ? drawing.indexOf(active.id) + 1 : drawing.layers.length);
-        const layer = drawing.createLayer(params?.props);
+        const layer = drawing.createLayer({
+          name: `Calque ${drawing.layers.length + 1}`,
+          ...params?.props,
+        });
         editor.history.push(addLayer(layer, index));
         editor.setActiveLayer(layer.id);
       },

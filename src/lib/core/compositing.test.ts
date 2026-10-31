@@ -36,11 +36,7 @@ function expectClose(actual: number[], expected: number[], tolerance = 1) {
 /** Blend functions written independently from the implementation, on straight colors. */
 const MODEL: Record<Exclude<BlendMode, "add">, (b: number, s: number) => number> = {
   normal: (_, s) => s,
-  multiply: (b, s) => b * s,
   screen: (b, s) => 1 - (1 - b) * (1 - s),
-  overlay: (b, s) => (b < 0.5 ? 2 * b * s : 1 - 2 * (1 - b) * (1 - s)),
-  darken: (b, s) => (b < s ? b : s),
-  lighten: (b, s) => (b > s ? b : s),
 };
 
 describe("composite", () => {
@@ -95,11 +91,7 @@ describe("composite", () => {
     const source = pm(100, 150, 250, 255);
     const result = (blendMode: BlendMode) =>
       pixel(stack([{ color: backdrop }, { color: source, props: { blendMode } }]));
-    expectClose(result("multiply"), [78, 59, 49, 255]);
     expectClose(result("screen"), [222, 191, 251, 255]);
-    expectClose(result("darken"), [100, 100, 50, 255]);
-    expectClose(result("lighten"), [200, 150, 250, 255]);
-    expectClose(result("overlay"), [188, 118, 98, 255]);
     expectClose(result("add"), [255, 250, 255, 255]);
   });
 

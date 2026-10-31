@@ -26,6 +26,8 @@ export class Editor {
     this.history.subscribe(() => this.keepActiveLayerValid());
     this.commands = new CommandRegistry<Editor>(this);
     registerEditorCommands(this.commands);
+    // Start on the top layer, like most drawing apps.
+    this.activeIndex = drawing.layers.length - 1;
     this.keepActiveLayerValid();
   }
 

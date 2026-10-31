@@ -1,35 +1,11 @@
 <script lang="ts">
-  import { resolve } from "$app/paths";
+  import EditorApp from "$lib/app/EditorApp.svelte";
+  import { Drawing } from "$lib/core/drawing";
+  import { Editor } from "$lib/core/editor";
+
+  const editor = new Editor(new Drawing(2048, 2048));
+  editor.commands.execute("layer.add");
+  editor.history.clear();
 </script>
 
-<main>
-  <h1>Didi</h1>
-  <h2>Lab</h2>
-  <ul>
-    <li>
-      <a href={resolve("/lab/tablet")}>Tablette : pression, inclinaison, fréquence, latence</a>
-    </li>
-    <li>
-      <a href={resolve("/lab/render")}>Rendu : tamponnage PixiJS, calques, temps de frame</a>
-    </li>
-  </ul>
-</main>
-
-<style>
-  :global(html, body) {
-    margin: 0;
-    background: #1d1d1f;
-    color: #ccc;
-    font:
-      13px/1.5 system-ui,
-      sans-serif;
-  }
-
-  main {
-    padding: 24px;
-  }
-
-  a {
-    color: #8ab4f8;
-  }
-</style>
+<EditorApp {editor} />

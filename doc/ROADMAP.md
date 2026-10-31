@@ -26,9 +26,10 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 
 ## Phase 2 — Canvas et viewport
 
-- Affichage du document avec PixiJS, mises à jour partielles par tuile.
-- Modes de fusion GPU alignés sur la composition CPU de référence (vérifié par comparaison d'images).
-- Zoom, déplacement, rotation, grille de pixels à fort zoom.
+- ✅ Affichage du document avec PixiJS, mises à jour partielles par tuile.
+- ✅ Modes de fusion limités à ceux qui sont exacts sur le GPU (normal, écran, addition). Les autres plus tard, si besoin.
+- ✅ Zoom, déplacement, rotation. Import d'image (glisser-déposer).
+- ✅ Grille de pixels à fort zoom (×8), damier propre en rotation, tuiles hors écran ignorées (culling).
 
 **Terminé quand** : 60 fps sur une grande toile avec de nombreux calques, mémoire mesurée.
 

@@ -10,7 +10,9 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 **Constat** : dans PixiJS, les modes normal, écran et addition suivent la norme, mais le mode produit (multiply) donne du noir sur un fond transparent, et incrustation, assombrir et éclaircir passent par des filtres séparés.
 
-**Décision** : la composition CPU (`src/lib/core/compositing.ts`) suit la spécification W3C Compositing and Blending (comme Photoshop, Krita et les navigateurs), en alpha prémultiplié, avec un arrondi sur 8 bits après chaque calque comme sur le GPU. L'addition est une somme plafonnée, comme sur le GPU. Le rendu GPU de la phase 2 devra correspondre à cette référence, vérifié par comparaison d'images.
+**Décision** : la composition CPU (`src/lib/core/compositing.ts`) suit la spécification W3C Compositing and Blending (comme Photoshop, Krita et les navigateurs), en alpha prémultiplié, avec un arrondi sur 8 bits après chaque calque comme sur le GPU. L'addition est une somme plafonnée, comme sur le GPU.
+
+**Mise à jour (phase 2)** : seuls les modes normal, écran et addition sont proposés, car les fonctions de mélange GPU de PixiJS donnent exactement les formules de la référence. Produit, incrustation, assombrir et éclaircir sont retirés plutôt que laissés approximatifs : ce n'est pas une priorité pour du dessin de jeu vidéo. Ils reviendront implémentés des deux côtés (shader GPU + CPU) et vérifiés par comparaison d'images.
 
 **Notes** :
 
