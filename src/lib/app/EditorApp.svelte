@@ -2,22 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { isTauri } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { resolve } from "$app/paths";
-  import {
-    Brush,
-    Compass,
-    Eraser,
-    Grid2x2,
-    ImagePlus,
-    Pipette,
-    Maximize,
-    Redo2,
-    RotateCcw,
-    RotateCw,
-    Undo2,
-    ZoomIn,
-    ZoomOut,
-  } from "@lucide/svelte";
+  import { Brush, Eraser, Grid2x2, Pipette } from "@lucide/svelte";
   import "#lib/app/shell/ui.css";
   import BrushBrowser from "#lib/app/panels/BrushBrowser.svelte";
   import CanvasView, {
@@ -29,7 +14,8 @@
   import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
   import LayersPanel from "#lib/app/panels/LayersPanel.svelte";
   import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
-  import Slider from "#lib/app/widgets/Slider.svelte";
+  import StatusBar from "#lib/app/panels/StatusBar.svelte";
+  import ToolBar from "#lib/app/panels/ToolBar.svelte";
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
@@ -41,14 +27,7 @@
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
-  import {
-    sizeFromSlider,
-    sliderFromSize,
-    defaultToolOptions,
-    TOOLS,
-    MAX_PIXEL_SIZE,
-    type ToolId,
-  } from "#lib/app/canvas/tools.js";
+  import { defaultToolOptions, TOOLS, type ToolId } from "#lib/app/canvas/tools.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
   import { loadMyPaint } from "#lib/mypaint/engine.js";
@@ -193,14 +172,6 @@
     return keys.length ? `${title} (${keys[0]})` : title;
   }
 
-  /** CPU memory of layer pixels and of the history (estimate, tiles can be shared). */
-  const memory = $derived.by(() => {
-    void version;
-    const pixels = editor.drawing.layers.reduce((sum, l) => sum + l.tiles.memoryBytes, 0);
-    return { pixels, history: editor.history.bytes };
-  });
-  const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
-
   onMount(() => {
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
@@ -288,8 +259,6 @@
     e.preventDefault();
     run(binding.command, binding.params);
   }
-
-  const degrees = (radians: number) => Math.round((radians * 180) / Math.PI);
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
@@ -346,105 +315,8 @@
     </section>
   </aside>
 
-  <div class="panel bar top" bind:this={top}>
-    <div class="group">
-      <button class="icon" title={tip("file.importImage")} onclick={() => run("file.importImage")}
-        ><ImagePlus size={16} /></button
-      >
-
-      <button
-        class="icon"
-        title={tip("history.undo")}
-        disabled={!enabled("history.undo")}
-        onclick={() => run("history.undo")}
-      >
-        <Undo2 size={16} />
-      </button>
-      <button
-        class="icon"
-        title={tip("history.redo")}
-        disabled={!enabled("history.redo")}
-        onclick={() => run("history.redo")}
-      >
-        <Redo2 size={16} />
-      </button>
-    </div>
-
-    <div class="group options">
-      {#if tool === "brush" || tool === "eraser"}
-        {@const settings = tool === "brush" ? options.brush : options.eraser}
-        <Slider
-          label="Size"
-          min={0}
-          max={1}
-          step={0.001}
-          value={sliderFromSize(settings.size)}
-          display="{settings.size} px"
-          oninput={(v) => (settings.size = sizeFromSlider(v))}
-        />
-        <Slider
-          label="Opacity"
-          value={settings.opacity}
-          display="{Math.round(settings.opacity * 100)}%"
-          oninput={(v) => (settings.opacity = v)}
-        />
-      {:else if tool === "pixel"}
-        <Slider
-          label="Size"
-          min={1}
-          max={MAX_PIXEL_SIZE}
-          step={1}
-          value={options.pixel.size}
-          display="{options.pixel.size} px"
-          oninput={(v) => (options.pixel.size = v)}
-        />
-        <Slider
-          label="Opacity"
-          value={options.pixel.opacity}
-          display="{Math.round(options.pixel.opacity * 100)}%"
-          oninput={(v) => (options.pixel.opacity = v)}
-        />
-        <label class="check" title="Removes L-shaped corners (1 px brush)">
-          <input type="checkbox" bind:checked={options.pixel.pixelPerfect} /> Pixel-perfect
-        </label>
-      {:else}
-        <span class="hint">Click on the canvas to pick a color.</span>
-      {/if}
-    </div>
-
-    <div class="group">
-      <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}
-        ><ZoomOut size={16} /></button
-      >
-
-      <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}
-        >{Math.round(camera.zoom * 100)}%</button
-      >
-
-      <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}
-        ><ZoomIn size={16} /></button
-      >
-
-      <button class="icon" title={tip("view.fit")} onclick={() => run("view.fit")}
-        ><Maximize size={16} /></button
-      >
-
-      <button class="icon" title={tip("view.rotateLeft")} onclick={() => run("view.rotateLeft")}
-        ><RotateCcw size={16} /></button
-      >
-
-      <button class="icon" title={tip("view.rotateRight")} onclick={() => run("view.rotateRight")}
-        ><RotateCw size={16} /></button
-      >
-
-      <button
-        class="icon"
-        title="{tip('view.resetRotation')} · {degrees(camera.rotation)}°"
-        onclick={() => run("view.resetRotation")}
-      >
-        <Compass size={16} />
-      </button>
-    </div>
+  <div class="bar top" bind:this={top}>
+    <ToolBar {tool} bind:options {camera} {tip} {run} {enabled} />
   </div>
 
   <aside class="panel right" bind:this={right}>
@@ -459,21 +331,9 @@
     <LayersPanel {editor} {version} {tip} {run} />
   </aside>
 
-  <footer class="panel bar bottom" bind:this={bottom}>
-    <span>{editor.drawing.width} × {editor.drawing.height} px</span>
-    <span>{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
-    {#if session.busy}<span>{session.busy}</span>{/if}
-    {#if error}<span class="error">{error}</span>{/if}
-    <span class="spacer"></span>
-    {#if stats}
-      <span title="Frames per second">{Math.round(stats.fps)} fps</span>
-      <span title="Tiles on the GPU">{stats.tiles} tiles</span>
-    {/if}
-    <span title="Memory of the pixels / of the history (estimate)"
-      >{mb(memory.pixels)} · history {mb(memory.history)}</span
-    >
-    <a href={resolve("lab")}>Lab</a>
-  </footer>
+  <div class="bar bottom" bind:this={bottom}>
+    <StatusBar {editor} {version} {cursor} busy={session.busy} {error} {stats} />
+  </div>
 
   <input
     bind:this={paletteInput}
@@ -559,14 +419,11 @@
     min-height: 0;
   }
 
+  /* The bars above and below the canvas, between the side panels. */
   .bar {
     position: absolute;
     left: calc(var(--left-width) + 2 * var(--space));
     right: calc(var(--right-width) + 2 * var(--space));
-    display: flex;
-    align-items: center;
-    gap: var(--space);
-    padding: 0 calc(var(--space) / 2);
   }
 
   .top {
@@ -574,60 +431,8 @@
     height: calc(var(--control-height) + var(--space));
   }
 
-  .group {
-    display: flex;
-    align-items: center;
-    flex: none;
-  }
-
-  .options {
-    flex: 1;
-    gap: calc(var(--space) * 2);
-    min-width: 0;
-    padding: 0 var(--space);
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-  }
-
-  .options :global(.slider) {
-    flex: 1;
-    max-width: 240px;
-  }
-
-  .check {
-    display: flex;
-    align-items: center;
-    gap: calc(var(--space) / 2);
-    white-space: nowrap;
-  }
-
-  .zoom {
-    width: 4.5em;
-    padding: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
   .bottom {
     bottom: var(--space);
     height: var(--control-height);
-    padding: 0 var(--space);
-    gap: calc(var(--space) * 2);
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .spacer {
-    flex: 1;
-  }
-
-  .bottom a {
-    color: var(--text-muted);
-  }
-
-  .error {
-    overflow: hidden;
-    color: var(--danger);
-    text-overflow: ellipsis;
   }
 </style>

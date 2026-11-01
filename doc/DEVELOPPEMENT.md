@@ -67,7 +67,7 @@ Dans `src/lib/app/`, chaque test est à côté du fichier qu'il teste :
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `shell/`     | La fenêtre et l'apparence : barre de titre, thème (`theme.ts`), styles de base (`ui.css`).                                           |
 | `widgets/`   | Composants génériques, sans logique métier (`Select`, `Slider`).                                                                     |
-| `panels/`    | Les panneaux flottants : pinceaux, couleur, palette, calques.                                                                        |
+| `panels/`    | Les panneaux flottants : pinceaux, couleur, palette, calques, barre d'outils (`ToolBar`) et barre d'état (`StatusBar`).              |
 | `dialogs/`   | Ce qui s'ouvre par-dessus : écran de démarrage, confirmation, palette de commandes.                                                  |
 | `canvas/`    | La toile et la peinture : affichage (`CanvasView.svelte`), liaison entre le stylet et le moteur (`painter.ts`), outils (`tools.ts`). |
 | `commands/`  | Commandes de l'interface (`app-commands.ts`) et raccourcis (`keymap.ts`, `default-keymap.ts`).                                       |
