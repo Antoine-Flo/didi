@@ -51,25 +51,28 @@
 </AlertDialog.Root>
 
 <style>
+  /* Below the title bar, which stays usable. */
   :global(.dialog-overlay) {
     position: fixed;
-    inset: 0;
+    inset: var(--titlebar-height) 0 0;
     z-index: 50;
     background: var(--overlay);
   }
 
+  /* Centered below the title bar by the layout, not by a transform: a translation of half
+     a pixel blurs the text. */
   :global(.dialog) {
     position: fixed;
-    top: 50%;
-    left: 50%;
+    inset: var(--titlebar-height) 0 0;
     z-index: 51;
     display: flex;
     flex-direction: column;
     gap: var(--space);
     width: min(400px, 90vw);
+    height: fit-content;
+    margin: auto;
     padding: calc(var(--space) * 2);
     background: var(--popup);
-    transform: translate(-50%, -50%);
   }
 
   :global(.dialog-title) {

@@ -183,18 +183,20 @@
 </Dialog.Root>
 
 <style>
+  /* Centered below the title bar by the layout, not by a transform: a translation of half
+     a pixel blurs the text. */
   :global(.start) {
     position: fixed;
-    top: 50%;
-    left: 50%;
+    inset: var(--titlebar-height) 0 0;
     z-index: 51;
     display: grid;
     grid-template-columns: 1fr 1fr;
     width: min(760px, 92vw);
+    height: fit-content;
     max-height: 90vh;
+    margin: auto;
     overflow: hidden;
     background: var(--popup);
-    transform: translate(-50%, -50%);
   }
 
   section {

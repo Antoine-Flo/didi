@@ -62,20 +62,24 @@
 </Dialog.Root>
 
 <style>
+  /* Below the title bar, which stays usable. */
   :global(.palette-overlay) {
     position: fixed;
-    inset: 0;
+    inset: var(--titlebar-height) 0 0;
     z-index: 50;
     background: var(--overlay);
   }
 
+  /* Centered by the layout, not by a transform: a translation of half a pixel blurs the
+     text. */
   :global(.palette) {
     position: fixed;
     top: 15vh;
-    left: 50%;
+    right: 0;
+    left: 0;
     z-index: 51;
     width: min(520px, 90vw);
-    transform: translateX(-50%);
+    margin: 0 auto;
     overflow: hidden;
     background: var(--popup);
     border: 1px solid var(--border);

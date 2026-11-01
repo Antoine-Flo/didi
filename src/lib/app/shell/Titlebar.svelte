@@ -60,8 +60,10 @@
 <style>
   .titlebar {
     position: relative;
-    /* Above dialogs and their overlay: the window stays movable and closable. */
+    /* Above dialogs and their overlay: the window stays movable and closable. Clickable
+       even while a dialog is open, when Bits UI turns off pointer events on the page. */
     z-index: 70;
+    pointer-events: auto;
     display: flex;
     flex: none;
     align-items: stretch;
