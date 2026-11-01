@@ -15,6 +15,8 @@ import type { MybBrush } from "./myb";
 const MP_TILE = 64;
 /** 1.0 in libmypaint's 15-bit fixed point. */
 const ONE = 1 << 15;
+/** 8-bit channel → libmypaint's 15-bit fixed point. */
+const TO_15_BITS = Uint16Array.from({ length: 256 }, (_, v) => Math.round((v * ONE) / 255));
 const MAX_DIRTY = 4096;
 /** Number of smudge buckets per brush, as in MyPaint. */
 const SMUDGE_BUCKETS = 256;
@@ -300,20 +302,20 @@ export class MyPaintStroke {
   /** Fills a libmypaint tile from the layer, as it was before the stroke. */
   loadTile(tx: number, ty: number, buffer: number) {
     const out = this.mp.mod.HEAPU16.subarray(buffer >> 1, (buffer >> 1) + MP_TILE * MP_TILE * 4);
-    out.fill(0);
     const { width, height } = this.drawing;
-    for (let y = 0; y < MP_TILE; y++) {
-      const py = ty * MP_TILE + y;
-      if (py < 0 || py >= height) continue;
-      for (let x = 0; x < MP_TILE; x++) {
-        const px = tx * MP_TILE + x;
-        if (px < 0 || px >= width) continue;
-        const src = this.sourceTile(px, py);
-        if (!src) continue;
-        const i = ((py % TILE_SIZE) * TILE_SIZE + (px % TILE_SIZE)) * 4;
-        const o = (y * MP_TILE + x) * 4;
-        for (let c = 0; c < 4; c++) out[o + c] = Math.round((src[i + c] * ONE) / 255);
-      }
+    const x0 = tx * MP_TILE;
+    const y0 = ty * MP_TILE;
+    // Layer tiles are a multiple of libmypaint's: this tile lies in a single layer tile.
+    const outside = x0 < 0 || y0 < 0 || x0 >= width || y0 >= height;
+    const src = outside ? undefined : this.sourceTile(x0, y0);
+    const w = Math.min(MP_TILE, width - x0);
+    const h = Math.min(MP_TILE, height - y0);
+    if (!src || w < MP_TILE || h < MP_TILE) out.fill(0);
+    if (!src) return;
+    for (let y = 0; y < h; y++) {
+      const i = (((y0 % TILE_SIZE) + y) * TILE_SIZE + (x0 % TILE_SIZE)) * 4;
+      const o = y * MP_TILE * 4;
+      for (let n = 0; n < w * 4; n++) out[o + n] = TO_15_BITS[src[i + n]];
     }
   }
 
@@ -349,19 +351,18 @@ export class MyPaintStroke {
     const w = Math.min(MP_TILE, width - x0);
     const h = Math.min(MP_TILE, height - y0);
     for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const s = (y * MP_TILE + x) * 4;
-        const o = ((y0 - lty * TILE_SIZE + y) * TILE_SIZE + (x0 - ltx * TILE_SIZE + x)) * 4;
+      let s = y * MP_TILE * 4;
+      let o = ((y0 - lty * TILE_SIZE + y) * TILE_SIZE + (x0 - ltx * TILE_SIZE)) * 4;
+      for (let x = 0; x < w; x++, s += 4, o += 4) {
         // Mix between the pixel before the stroke and the brush result (premultiplied).
-        const mix = (c: number) => {
-          const painted = (src[s + c] * 255) / ONE;
-          const old = before ? before[o + c] : 0;
-          return Math.round(old + (painted - old) * k);
-        };
-        const a = Math.min(255, mix(3));
+        const oldA = before ? before[o + 3] : 0;
+        const a = Math.min(255, Math.round(oldA + ((src[s + 3] * 255) / ONE - oldA) * k));
         out[o + 3] = a;
         // Keep the premultiplied invariant despite rounding: no channel above alpha.
-        for (let c = 0; c < 3; c++) out[o + c] = Math.min(a, mix(c));
+        for (let c = 0; c < 3; c++) {
+          const old = before ? before[o + c] : 0;
+          out[o + c] = Math.min(a, Math.round(old + ((src[s + c] * 255) / ONE - old) * k));
+        }
       }
     }
     return key;

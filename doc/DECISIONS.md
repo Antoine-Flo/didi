@@ -4,6 +4,75 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 ---
 
+## Pinceaux : file d'attente et budget par frame (comme MyPaint)
+
+**Date** : 2026-11-01 · **Phase** : 4
+
+**Constat** : chaque événement du stylet était peint tout de suite, sur le fil principal. Avec un airbrush géant et un geste rapide, un seul événement coûtait jusqu'à 290 ms (pinceau de 1 000 px, 300 px entre deux événements) : l'interface gelait, puis le trait sautait.
+
+**Décision** : comme MyPaint, les points attendent dans une file, avec leur heure d'origine (la vitesse vue par libmypaint ne change pas). À chaque frame, on en peint pendant 8 ms environ, puis on affiche. Le trait suit le stylet avec du retard au lieu de geler l'interface. Après le lever du stylet, la file continue de se vider ; le trait devient une étape d'historique une fois entièrement peint. Échap l'annule à tout moment ; une commande (Ctrl+Z…) termine d'abord le trait en cours.
+
+**Notes** :
+
+- Un segment trop coûteux (longueur × taille du pinceau) est découpé en sous-segments interpolés (position, pression, inclinaison, heure). Sans effet sous ~40 px de pinceau.
+- Copie des tuiles optimisée (chargement par tuile au lieu de par pixel, table de conversion) : pixels identiques, vérifié par empreinte, et comparaison MyPaint inchangée.
+- Mesures (CPU rapide, airbrush) : à 200 px, frames de ~10 ms ; à 500 px, ~20 ms ; à 1 000 px, ~65-80 ms, car une seule empreinte de 1 000 px coûte à elle seule ~60 ms. Les pinceaux géants restent donc lents (~12 fps), mais sans gel ni saut.
+- Testé : SIMD WebAssembly (`-msimd128`), pixels identiques mais seulement ~20 % plus rapide ; non retenu (risque de WebView sans SIMD).
+- Si besoin plus tard : peindre dans un worker, pour que l'interface reste à 60 fps même avec un pinceau géant.
+
+## Palettes : fichier JSON dans le dossier de données
+
+**Date** : 2026-11-01 · **Phase** : 4
+
+**Décision** : les palettes de l'utilisateur sont globales (pas liées à un document) et enregistrées automatiquement dans `palettes.json`, dans le dossier de données de l'app (`~/.local/share/<identifiant>/` sous Linux). Format lisible et versionné : `{ "version": 1, "active": 0, "palettes": [{ "name": "PICO-8", "colors": ["#000000", …] }] }`. Import des fichiers `.hex` de Lospec (une couleur `rrggbb` par ligne).
+
+**Notes** :
+
+- Côté Rust, deux commandes (`data_read`, `data_write`) n'acceptent qu'un nom de fichier simple : le front ne peut rien lire ni écrire hors de ce dossier. L'écriture est atomique (fichier temporaire puis renommage).
+- Un fichier illisible n'est jamais écrasé en silence : il est copié dans `palettes-unreadable.json` et l'utilisateur est prévenu.
+- Hors de Tauri (serveur de dev), le stockage passe par `localStorage`.
+- Phase 5 : décider si un `.didi` embarque aussi ses palettes (voir la roadmap).
+- Le sélecteur de couleur travaille en HSV (code maison, testé), comme Krita et Procreate. culori n'est pas utilisé pour l'instant.
+
+## Interface : panneaux flottants, style sobre
+
+**Date** : 2026-11-01 · **Phase** : 4
+
+**Décision** : la toile occupe toute la fenêtre ; les panneaux flottent au-dessus, décalés du bord d'une unité d'espacement (comme Blender). Style sobre, inspiré de Godot 4 et d'Ableton : gris neutres, sélection en gris clair plutôt qu'en couleur, accent discret réservé au focus, coins légèrement arrondis, une seule taille de police, espacements tous dérivés d'une unité (`--space`) et une hauteur de contrôle commune (`--control-height`).
+
+**Notes** :
+
+- Les styles de base (`src/lib/app/ui.css`) sont enveloppés dans `:where()` : n'importe quelle classe d'un composant les remplace.
+- « Ajuster à la fenêtre » et le zoom au clavier se centrent sur la zone visible entre les panneaux, pas sur toute la fenêtre.
+- Pas de `<select>` natif : les menus déroulants sont ceux de Bits UI (`Select.svelte`). Le menu natif de WebKitGTK ouvre un popup GTK qui détonne et provoque un avertissement sous Wayland (« Tried to map a popup with a non-top most parent »).
+- Pendant qu'un menu est ouvert, et 250 ms après sa fermeture, un contact sur la toile ne dessine pas (`dismissal.ts`) : le clic qui ferme le menu ne doit pas laisser de trait.
+
+## Interface en anglais, sans traduction pour l'instant
+
+**Date** : 2026-11-01 · **Phase** : 4
+
+**Décision** : tous les textes visibles (interface, messages, noms de calques et d'étapes d'historique, pages de test) sont en anglais. Aucune traduction : les pinceaux gardent leur nom d'origine (`2B pencil`, pas « Crayon 2B »). La localisation viendra plus tard, d'un seul tenant. La documentation reste en français.
+
+## Raccourcis : keymap maison, tout passe par les commandes
+
+**Date** : 2026-11-01 · **Phase** : 4
+
+**Décision** : chaque action de l'interface est une commande du registre (`tool.brush`, `view.zoomIn`, `layer.moveUp`…). Boutons, raccourcis et palette de commandes ne font qu'exécuter des commandes. Les raccourcis sont une liste de données (`src/lib/app/default-keymap.ts` : touches → commande + paramètres), sans hotkeys-js.
+
+**Pourquoi** : une seule source pour les actions (raccourcis, palette, future roue, plugins). Un keymap en données pourra être chargé depuis un fichier sans changer le code.
+
+**Notes** :
+
+- Les touches sont reconnues par le caractère tapé (`KeyboardEvent.key`), pas par leur position : les raccourcis suivent la disposition du clavier (AZERTY…). Pour les chiffres et symboles, Maj et AltGr font partie de la frappe et ne sont pas des modificateurs : « 0 » marche en AZERTY, « [ » aussi.
+- Les commandes qui exigent des paramètres (`layer.move`, `layer.update`…) sont marquées `needsParams` et n'apparaissent pas dans la palette ; elles ont des variantes sans paramètres (`layer.moveUp`).
+- Aucune commande ne s'exécute pendant un trait.
+
+## Thème : tokens CSS
+
+**Date** : 2026-11-01 · **Phase** : 4
+
+**Décision** : les composants n'utilisent que des variables CSS (`--panel`, `--text`, `--selected`…) définies par un thème (`src/lib/app/theme.ts`). Un seul thème sombre par défaut pour l'instant, en données, pour pouvoir le charger depuis un fichier plus tard.
+
 ## Précision des calques : 8 bits
 
 **Date** : 2026-10-31 · **Phase** : 3

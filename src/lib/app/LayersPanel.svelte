@@ -1,15 +1,29 @@
 <script lang="ts">
   import { ArrowDown, ArrowUp, Eye, EyeOff, Lock, LockOpen, Plus, Trash2 } from "@lucide/svelte";
+  import Select from "$lib/app/Select.svelte";
+  import Slider from "$lib/app/Slider.svelte";
   import type { Editor } from "$lib/core/editor";
   import { BLEND_MODES, type BlendMode, type LayerProps } from "$lib/core/layer";
 
-  /** `version` changes whenever the editor changes, to refresh the panel. */
-  let { editor, version }: { editor: Editor; version: number } = $props();
+  let {
+    editor,
+    version,
+    tip,
+    run,
+  }: {
+    editor: Editor;
+    /** Changes whenever the editor changes, to refresh the panel. */
+    version: number;
+    /** Tooltip of a command, with its shortcut. */
+    tip: (command: string) => string;
+    /** Runs a command (unless a stroke is in progress). */
+    run: (command: string) => void;
+  } = $props();
 
   const BLEND_LABELS: Record<BlendMode, string> = {
     normal: "Normal",
-    screen: "Écran",
-    add: "Addition",
+    screen: "Screen",
+    add: "Add",
   };
 
   // Top layer first, like every drawing app.
@@ -47,12 +61,21 @@
     editor.commands.execute("layer.update", { id, changes });
   }
 
+  // Double-click on a name to rename the layer.
+  let renaming = $state<string | null>(null);
+  function rename(id: string, input: HTMLInputElement) {
+    if (renaming !== id) return;
+    renaming = null;
+    const name = input.value.trim();
+    if (name) update(id, { name });
+  }
+
   // Dragging the opacity slider makes one undo step.
   let dragging = false;
   function startOpacity() {
     if (dragging) return;
     dragging = true;
-    editor.history.begin("Opacité du calque");
+    editor.history.begin("Layer opacity");
   }
   function endOpacity() {
     if (!dragging) return;
@@ -61,21 +84,100 @@
   }
 </script>
 
-<div class="panel">
+<section class="section layers">
+  <div class="header">
+    <span class="section-title">Layers</span>
+    <div class="actions">
+      <button class="icon" title={tip("layer.add")} onclick={() => run("layer.add")}>
+        <Plus size={16} />
+      </button>
+      <button
+        class="icon"
+        title={tip("layer.moveUp")}
+        disabled={!active || active.index >= count - 1}
+        onclick={() => run("layer.moveUp")}
+      >
+        <ArrowUp size={16} />
+      </button>
+      <button
+        class="icon"
+        title={tip("layer.moveDown")}
+        disabled={!active || active.index <= 0}
+        onclick={() => run("layer.moveDown")}
+      >
+        <ArrowDown size={16} />
+      </button>
+      <button
+        class="icon"
+        title={tip("layer.remove")}
+        disabled={!active}
+        onclick={() => run("layer.remove")}
+      >
+        <Trash2 size={16} />
+      </button>
+    </div>
+  </div>
+
+  {#if active}
+    <div class="props">
+      <div class="blend">
+        <span class="label">Blend</span>
+        <Select
+          items={BLEND_MODES.map((mode) => ({ value: mode, label: BLEND_LABELS[mode] }))}
+          value={active.blendMode}
+          onchange={(mode) => update(active.id, { blendMode: mode as BlendMode })}
+        />
+      </div>
+      <Slider
+        label="Opacity"
+        min={0}
+        max={100}
+        step={1}
+        value={Math.round(active.opacity * 100)}
+        display="{Math.round(active.opacity * 100)}%"
+        onstart={startOpacity}
+        onend={endOpacity}
+        oninput={(v) => update(active.id, { opacity: v / 100 })}
+      />
+    </div>
+  {/if}
+
   <ul>
     {#each layers as layer (layer.id)}
       <li class:active={layer.active}>
         <button
           class="icon"
-          title={layer.visible ? "Masquer" : "Afficher"}
+          class:off={!layer.visible}
+          title={layer.visible ? "Hide" : "Show"}
           onclick={() => update(layer.id, { visible: !layer.visible })}
         >
           {#if layer.visible}<Eye size={16} />{:else}<EyeOff size={16} />{/if}
         </button>
-        <button class="name" onclick={() => editor.setActiveLayer(layer.id)}>{layer.name}</button>
+        {#if renaming === layer.id}
+          <!-- svelte-ignore a11y_autofocus -->
+          <input
+            type="text"
+            value={layer.name}
+            autofocus
+            onfocus={(e) => e.currentTarget.select()}
+            onblur={(e) => rename(layer.id, e.currentTarget)}
+            onkeydown={(e) => {
+              if (e.key === "Enter") rename(layer.id, e.currentTarget);
+              if (e.key === "Escape") renaming = null;
+            }}
+          />
+        {:else}
+          <button
+            class="name"
+            title="Double-click to rename"
+            onclick={() => editor.commands.execute("layer.select", { id: layer.id })}
+            ondblclick={() => (renaming = layer.id)}>{layer.name}</button
+          >
+        {/if}
         <button
           class="icon"
-          title={layer.locked ? "Déverrouiller" : "Verrouiller"}
+          class:off={!layer.locked}
+          title={layer.locked ? "Unlock" : "Lock"}
           onclick={() => update(layer.id, { locked: !layer.locked })}
         >
           {#if layer.locked}<Lock size={16} />{:else}<LockOpen size={16} />{/if}
@@ -83,127 +185,81 @@
       </li>
     {/each}
   </ul>
-
-  <div class="actions">
-    <button
-      class="icon"
-      title="Nouveau calque"
-      onclick={() => editor.commands.execute("layer.add")}
-    >
-      <Plus size={16} />
-    </button>
-    <button
-      class="icon"
-      title="Monter"
-      disabled={!active || active.index >= count - 1}
-      onclick={() => active && editor.commands.execute("layer.move", { index: active.index + 1 })}
-    >
-      <ArrowUp size={16} />
-    </button>
-    <button
-      class="icon"
-      title="Descendre"
-      disabled={!active || active.index <= 0}
-      onclick={() => active && editor.commands.execute("layer.move", { index: active.index - 1 })}
-    >
-      <ArrowDown size={16} />
-    </button>
-    <button
-      class="icon"
-      title="Supprimer"
-      disabled={!active}
-      onclick={() => editor.commands.execute("layer.remove")}
-    >
-      <Trash2 size={16} />
-    </button>
-  </div>
-
-  {#if active}
-    <div class="props">
-      <label>
-        Nom
-        <input
-          type="text"
-          value={active.name}
-          onchange={(e) => {
-            const name = e.currentTarget.value.trim();
-            if (name) update(active.id, { name });
-            else e.currentTarget.value = active.name;
-          }}
-        />
-      </label>
-      <label>
-        Opacité {Math.round(active.opacity * 100)} %
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={Math.round(active.opacity * 100)}
-          onpointerdown={startOpacity}
-          onpointerup={endOpacity}
-          onpointercancel={endOpacity}
-          oninput={(e) => update(active.id, { opacity: Number(e.currentTarget.value) / 100 })}
-        />
-      </label>
-      <label>
-        Fusion
-        <select
-          value={active.blendMode}
-          onchange={(e) => update(active.id, { blendMode: e.currentTarget.value as BlendMode })}
-        >
-          {#each BLEND_MODES as mode (mode)}
-            <option value={mode}>{BLEND_LABELS[mode]}</option>
-          {/each}
-        </select>
-      </label>
-    </div>
-  {/if}
-</div>
+</section>
 
 <style>
-  .panel {
+  .layers {
+    min-height: 0;
+    --slider-label-width: 4.5em;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .actions {
+    display: flex;
+  }
+
+  .props {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+  }
+
+  .blend {
+    display: flex;
+    align-items: center;
+    gap: var(--space);
+  }
+
+  .blend .label {
+    width: 4.5em;
+    color: var(--text-muted);
+  }
+
+  .blend :global(.select-trigger) {
+    flex: 1;
   }
 
   ul {
+    min-height: 0;
     margin: 0;
     padding: 0;
+    overflow-y: auto;
     list-style: none;
   }
 
   li {
     display: flex;
     align-items: center;
+    border-radius: var(--radius-small);
   }
 
   li.active {
-    background: #3a4a66;
+    background: var(--selected);
+  }
+
+  .name,
+  li input {
+    flex: 1;
+    min-width: 0;
   }
 
   .name {
-    flex: 1;
-    text-align: left;
     overflow: hidden;
+    padding: 0 calc(var(--space) / 2);
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .actions {
-    display: flex;
-    gap: 2px;
+  .name:hover:not(:disabled) {
+    background: none;
   }
 
-  .props {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  .off {
+    color: var(--text-faint);
   }
 </style>

@@ -118,4 +118,38 @@ describe("Editor", () => {
     expect(editor.commands.isEnabled("layer.move", { index: 5 })).toBe(false);
     expect(editor.commands.isEnabled("layer.move", { index: 0 })).toBe(true);
   });
+
+  it("moves the active layer up and down, within bounds", () => {
+    const editor = setup(["A", "B", "C"]);
+    editor.commands.execute("layer.select", { id: editor.drawing.layers[1].id });
+    expect(editor.commands.execute("layer.moveUp")).toBe(true);
+    expect(names(editor)).toEqual(["A", "C", "B"]);
+    expect(editor.commands.isEnabled("layer.moveUp")).toBe(false);
+    editor.commands.execute("layer.moveDown");
+    editor.commands.execute("layer.moveDown");
+    expect(names(editor)).toEqual(["B", "A", "C"]);
+    expect(editor.commands.isEnabled("layer.moveDown")).toBe(false);
+    expect(editor.activeLayer?.name).toBe("B");
+  });
+
+  it("selects layers by id, above and below", () => {
+    const editor = setup(["A", "B", "C"]);
+    expect(editor.commands.isEnabled("layer.selectAbove")).toBe(false);
+    editor.commands.execute("layer.selectBelow");
+    expect(editor.activeLayer?.name).toBe("B");
+    editor.commands.execute("layer.select", { id: editor.drawing.layers[0].id });
+    expect(editor.activeLayer?.name).toBe("A");
+    expect(editor.commands.isEnabled("layer.selectBelow")).toBe(false);
+    expect(editor.commands.isEnabled("layer.select", { id: "nope" })).toBe(false);
+    expect(editor.commands.isEnabled("layer.moveUp")).toBe(true);
+    expect(new Editor(new Drawing(10, 10)).commands.isEnabled("layer.selectAbove")).toBe(false);
+  });
+
+  it("can run every command that needs no params without params", () => {
+    const editor = setup(["A", "B"]);
+    for (const command of editor.commands.list().filter((c) => !c.needsParams)) {
+      expect(() => editor.commands.isEnabled(command.id)).not.toThrow();
+      expect(() => editor.commands.execute(command.id)).not.toThrow();
+    }
+  });
 });

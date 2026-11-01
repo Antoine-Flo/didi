@@ -22,12 +22,12 @@ describe("History", () => {
     const { drawing, history, id } = setup();
     history.push(updateLayer(id, { opacity: 0.5 }));
     expect(opacityOf(drawing, id)).toBe(0.5);
-    expect(history.undoLabel).toBe("Modifier le calque");
+    expect(history.undoLabel).toBe("Edit layer");
 
     expect(history.undo()).toBe(true);
     expect(opacityOf(drawing, id)).toBe(1);
     expect(history.canUndo).toBe(false);
-    expect(history.redoLabel).toBe("Modifier le calque");
+    expect(history.redoLabel).toBe("Edit layer");
 
     expect(history.redo()).toBe(true);
     expect(opacityOf(drawing, id)).toBe(0.5);
@@ -49,12 +49,12 @@ describe("History", () => {
 
   it("groups edits into one step", () => {
     const { drawing, history, id } = setup();
-    history.begin("Opacité");
+    history.begin("Opacity");
     for (const opacity of [0.9, 0.7, 0.4]) history.push(updateLayer(id, { opacity }));
     expect(opacityOf(drawing, id)).toBe(0.4);
     history.end();
     expect(history.steps).toBe(1);
-    expect(history.undoLabel).toBe("Opacité");
+    expect(history.undoLabel).toBe("Opacity");
     history.undo();
     expect(opacityOf(drawing, id)).toBe(1);
     history.redo();

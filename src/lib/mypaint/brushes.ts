@@ -21,29 +21,29 @@ const files = import.meta.glob("./brushes/*/*.myb", {
   eager: true,
 }) as Record<string, string>;
 
-/** A first selection, with French names, shown before the packs. */
-export const ESSENTIALS: Record<string, string> = {
-  "deevad/basic_digital_brush": "Pinceau numérique",
-  "deevad/2B_pencil": "Crayon 2B",
-  "deevad/liner": "Encreur",
-  "deevad/airbrush": "Aérographe",
-  "classic/charcoal": "Fusain",
-  "deevad/chalk": "Craie",
-  "deevad/watercolor_glazing": "Aquarelle",
-  "deevad/basic_digital_brush_smudging": "Pinceau mélangeur",
-  "deevad/blending": "Estompe",
-  "deevad/large_hard_eraser": "Gomme dure",
-  "deevad/kneaded_eraser": "Gomme mie de pain",
-};
+/** A first selection, shown before the packs. */
+export const ESSENTIALS: string[] = [
+  "deevad/basic_digital_brush",
+  "deevad/2B_pencil",
+  "deevad/liner",
+  "deevad/airbrush",
+  "classic/charcoal",
+  "deevad/chalk",
+  "deevad/watercolor_glazing",
+  "deevad/basic_digital_brush_smudging",
+  "deevad/blending",
+  "deevad/large_hard_eraser",
+  "deevad/kneaded_eraser",
+];
 
 export const PACKS: Record<string, string> = {
   deevad: "David Revoy",
-  classic: "Classiques",
-  tanda: "Tanda (huile, acrylique, aquarelle)",
+  classic: "Classic",
+  tanda: "Tanda (oil, acrylic, watercolor)",
   ramon: "Ramón Miranda",
   kaerhon_v1: "Kaerhon",
   Dieterle: "Dieterle",
-  experimental: "Expérimentaux",
+  experimental: "Experimental",
 };
 
 /** "8B_Pencil_1" → "8B Pencil 1". */
@@ -61,7 +61,7 @@ export const BUNDLED_BRUSHES: BundledBrush[] = Object.entries(files)
     const radius = Math.exp(myb.settings.radius_logarithmic?.base_value ?? Math.log(2));
     return {
       id,
-      name: ESSENTIALS[id] ?? prettify(name),
+      name: prettify(name),
       pack,
       eraser: (myb.settings.eraser?.base_value ?? 0) > 0.5,
       nativeSize: Math.round(radius * 2 * 10) / 10,
@@ -72,6 +72,10 @@ export const BUNDLED_BRUSHES: BundledBrush[] = Object.entries(files)
 
 const byId = new Map(BUNDLED_BRUSHES.map((b) => [b.id, b]));
 
+export function findBundledBrush(id: string): BundledBrush | undefined {
+  return byId.get(id);
+}
+
 export function bundledBrush(id: string): BundledBrush {
   const brush = byId.get(id);
   if (!brush) throw new Error(`Unknown brush ${id}`);
@@ -81,10 +85,10 @@ export function bundledBrush(id: string): BundledBrush {
 /** Groups for a brush menu: essentials first, then each pack. */
 export function brushGroups(eraser: boolean): { label: string; brushes: BundledBrush[] }[] {
   const keep = (b: BundledBrush) => b.eraser === eraser;
-  const essentials = Object.keys(ESSENTIALS).map(bundledBrush).filter(keep);
+  const essentials = ESSENTIALS.map(bundledBrush).filter(keep);
   const packs = Object.keys(PACKS).map((pack) => ({
     label: PACKS[pack],
     brushes: BUNDLED_BRUSHES.filter((b) => b.pack === pack && keep(b)),
   }));
-  return [{ label: "Essentiels", brushes: essentials }, ...packs].filter((g) => g.brushes.length);
+  return [{ label: "Essentials", brushes: essentials }, ...packs].filter((g) => g.brushes.length);
 }

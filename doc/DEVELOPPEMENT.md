@@ -19,25 +19,31 @@ Si l'interface perd ses styles ou que des fichiers renvoient des 404 après de g
 
 ## Organisation
 
-| Dossier             | Contenu                                                                                                                                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/core/`     | Le cœur, en TypeScript pur, sans interface ni rendu : tuiles, dessin, calques, historique, commandes, notifications, composition, crayon pixel. Une règle de lint y interdit tout import de Svelte, PixiJS ou Tauri. |
-| `src/lib/mypaint/`  | Le moteur de pinceau (libmypaint en WebAssembly), la lecture des `.myb` et les pinceaux fournis.                                                                                                                     |
-| `src/lib/render/`   | L'affichage avec PixiJS : caméra (zoom, rotation), tuiles, grille, contour du pinceau.                                                                                                                               |
-| `src/lib/app/`      | L'éditeur : interface Svelte, outils, liaison entre le stylet et le moteur (`painter.ts`).                                                                                                                           |
-| `src/lib/platform/` | Ce qui dépend du système : entrée tablette native.                                                                                                                                                                   |
-| `src/lib/lab/`      | Utilitaires des pages de test.                                                                                                                                                                                       |
-| `src/routes/lab/`   | Pages de test : tablette, rendu, stress (lien « Lab » en bas de l'éditeur).                                                                                                                                          |
-| `src-tauri/`        | Partie Rust : lecture native du stylet sous Linux (`tablet.rs`).                                                                                                                                                     |
-| `native/mypaint/`   | Compilation de libmypaint en WebAssembly.                                                                                                                                                                            |
-| `tools/`            | Outils de développement (comparaison avec MyPaint).                                                                                                                                                                  |
+| Dossier             | Contenu                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/core/`     | Le cœur, en TypeScript pur, sans interface ni rendu : tuiles, dessin, calques, historique, commandes, notifications, composition, crayon pixel, couleurs et palettes. Une règle de lint y interdit tout import de Svelte, PixiJS ou Tauri. |
+| `src/lib/mypaint/`  | Le moteur de pinceau (libmypaint en WebAssembly), la lecture des `.myb` et les pinceaux fournis.                                                                                                                                           |
+| `src/lib/render/`   | L'affichage avec PixiJS : caméra (zoom, rotation), tuiles, grille, contour du pinceau.                                                                                                                                                     |
+| `src/lib/app/`      | L'éditeur : interface Svelte, outils, liaison entre le stylet et le moteur (`painter.ts`), commandes de l'interface (`app-commands.ts`), raccourcis (`keymap.ts`, `default-keymap.ts`), thème (`theme.ts`).                                |
+| `src/lib/platform/` | Ce qui dépend du système : entrée tablette native, fichiers de données de l'utilisateur (`storage.ts`).                                                                                                                                    |
+| `src/lib/lab/`      | Utilitaires des pages de test.                                                                                                                                                                                                             |
+| `src/routes/lab/`   | Pages de test : tablette, rendu, stress (lien « Lab » en bas de l'éditeur).                                                                                                                                                                |
+| `src-tauri/`        | Partie Rust : lecture native du stylet sous Linux (`tablet.rs`), fichiers de données (`storage.rs`).                                                                                                                                       |
+| `native/mypaint/`   | Compilation de libmypaint en WebAssembly.                                                                                                                                                                                                  |
+| `tools/`            | Outils de développement (comparaison avec MyPaint).                                                                                                                                                                                        |
 
 ## Principes du cœur
 
 - **Tuiles** de 256 × 256, RGBA 8 bits, alpha prémultiplié. Une tuile vide n'existe pas ; une tuile stockée n'est jamais modifiée sur place.
 - **Chaque modification** renvoie de quoi l'annuler ; l'historique ne stocke que les tuiles touchées.
 - **Chaque changement est notifié** (calque, propriété, tuiles), et l'affichage ne met à jour que ça.
-- **Toute action est une commande** du registre (`layer.add`, `history.undo`…), utilisable depuis un raccourci, un menu ou un plugin.
+- **Toute action est une commande** du registre (`layer.add`, `history.undo`…), utilisable depuis un raccourci, un menu ou un plugin. Les boutons de l'interface exécutent des commandes, ils n'agissent jamais directement.
+
+## Interface
+
+- **Textes en anglais**, sans traduction (voir `DECISIONS.md`).
+- **Couleurs et tailles** : uniquement les variables du thème (`var(--panel)`…), jamais de couleur en dur.
+- **Nouvelle action** : l'enregistrer comme commande (titre en anglais), puis l'associer à une touche dans `default-keymap.ts` si besoin. Elle apparaît alors dans la palette de commandes (Ctrl+K).
 
 ## Le moteur de pinceau (libmypaint)
 

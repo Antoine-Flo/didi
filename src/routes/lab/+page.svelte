@@ -4,20 +4,19 @@
 
 <main>
   <h1>Didi — Lab</h1>
-  <p><a href={resolve("/")}>← Retour à l'éditeur</a></p>
+  <p><a href={resolve("/")}>← Back to the editor</a></p>
   <ul>
     <li>
-      <a href={resolve("/lab/tablet")}>Tablette : pression, inclinaison, fréquence, latence</a>
+      <a href={resolve("/lab/tablet")}>Tablet: pressure, tilt, rate, latency</a>
     </li>
     <li>
-      <a href={resolve("/lab/stress")}>Stress : toile 4096 × 4096, 10 calques à moitié remplis</a>
+      <a href={resolve("/lab/stress")}>Stress: 4096 × 4096 canvas, 10 half-filled layers</a>
     </li>
     <li>
-      <a href={resolve("/lab/stress?layers=20&fill=1")}>Stress lourd : 20 calques pleins (1,3 Go)</a
-      >
+      <a href={resolve("/lab/stress?layers=20&fill=1")}>Heavy stress: 20 full layers (1.3 GB)</a>
     </li>
     <li>
-      <a href={resolve("/lab/render")}>Rendu : tamponnage PixiJS, calques, temps de frame</a>
+      <a href={resolve("/lab/render")}>Rendering: PixiJS stamping, layers, frame time</a>
     </li>
   </ul>
 </main>

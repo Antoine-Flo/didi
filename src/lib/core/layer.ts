@@ -55,7 +55,7 @@ export const LAYER_PROP_KEYS: readonly (keyof LayerProps)[] = [
 ];
 
 export const DEFAULT_LAYER_PROPS: LayerProps = {
-  name: "Calque",
+  name: "Layer",
   visible: true,
   opacity: 1,
   blendMode: "normal",

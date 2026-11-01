@@ -16,22 +16,37 @@
     ZoomIn,
     ZoomOut,
   } from "@lucide/svelte";
-  import CanvasView, { type BrushCursor, type ViewStats } from "$lib/app/CanvasView.svelte";
+  import "$lib/app/ui.css";
+  import BrushBrowser from "$lib/app/BrushBrowser.svelte";
+  import CanvasView, {
+    type BrushCursor,
+    type Insets,
+    type ViewStats,
+  } from "$lib/app/CanvasView.svelte";
+  import ColorPicker from "$lib/app/ColorPicker.svelte";
+  import CommandPalette from "$lib/app/CommandPalette.svelte";
+  import LayersPanel from "$lib/app/LayersPanel.svelte";
+  import PalettePanel from "$lib/app/PalettePanel.svelte";
+  import Slider from "$lib/app/Slider.svelte";
+  import { registerAppCommands } from "$lib/app/app-commands";
+  import { DEFAULT_KEYMAP } from "$lib/app/default-keymap";
+  import { decodeImage, importImage } from "$lib/app/import-image";
+  import { isTyping } from "$lib/app/keyboard";
+  import { formatChord, KeymapIndex } from "$lib/app/keymap";
   import { Painter } from "$lib/app/painter";
-  import { brushGroups, bundledBrush } from "$lib/mypaint/brushes";
-  import { loadMyPaint } from "$lib/mypaint/engine";
+  import { loadPalettes } from "$lib/app/palette-storage";
+  import { applyTheme, DEFAULT_THEME } from "$lib/app/theme";
   import {
     sizeFromSlider,
     sliderFromSize,
     defaultToolOptions,
-    fromHex,
-    toHex,
+    TOOLS,
+    MAX_PIXEL_SIZE,
     type ToolId,
   } from "$lib/app/tools";
-  import LayersPanel from "$lib/app/LayersPanel.svelte";
-  import { decodeImage, importImage } from "$lib/app/import-image";
-  import { isTyping } from "$lib/app/keyboard";
   import type { Editor } from "$lib/core/editor";
+  import { parseHexPalette, type PaletteLibrary } from "$lib/core/palette";
+  import { loadMyPaint } from "$lib/mypaint/engine";
   import type { Camera, Point } from "$lib/render/camera";
 
   let { editor }: { editor: Editor } = $props();
@@ -43,21 +58,24 @@
       tool: () => tool,
       options: () => $state.snapshot(options),
       onPick: (color) => (options.color = color),
-      onMessage: (message) => {
-        error = message;
-        setTimeout(() => {
-          if (error === message) error = null;
-        }, 4000);
-      },
+      onMessage: notify,
     }),
   );
 
-  const TOOLS: { id: ToolId; title: string; key: string }[] = [
-    { id: "brush", title: "Pinceau", key: "B" },
-    { id: "eraser", title: "Gomme", key: "E" },
-    { id: "pixel", title: "Pinceau pixel", key: "P" },
-    { id: "picker", title: "Pipette", key: "I" },
-  ];
+  /** Shows a message in the status bar for a few seconds. */
+  function notify(message: string) {
+    error = message;
+    setTimeout(() => {
+      if (error === message) error = null;
+    }, 6000);
+  }
+
+  // Before anything is mounted: the canvas reads its background from the theme.
+  applyTheme(DEFAULT_THEME);
+  const keymap = new KeymapIndex(DEFAULT_KEYMAP);
+  let paletteOpen = $state(false);
+
+  const TOOL_ICONS = { brush: Brush, eraser: Eraser, pixel: Grid2x2, picker: Pipette };
 
   function brushCursor(eraser: boolean): BrushCursor {
     if (eraser || tool === "eraser") return { kind: "circle", size: options.eraser.size };
@@ -66,43 +84,96 @@
     return { kind: "none" };
   }
 
-  /** Multiplies the current tool's size (bracket keys). */
-  function resize(factor: number) {
-    // Through the slider mapping, which also rounds sensibly for small and large sizes.
-    const scale = (v: number) => sizeFromSlider(sliderFromSize(v * factor));
-    if (tool === "brush") options.brush.size = scale(options.brush.size);
-    if (tool === "eraser") options.eraser.size = scale(options.eraser.size);
-    if (tool === "pixel") {
-      const step = factor > 1 ? 1 : -1;
-      options.pixel.size = Math.min(64, Math.max(1, options.pixel.size + step));
-    }
-  }
-
   // Bumped on every change, so the UI re-reads the editor.
   let version = $state(0);
   let camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
   let cursor = $state<Point | null>(null);
   let error = $state<string | null>(null);
   let stats = $state<ViewStats | null>(null);
-  let canvasView: CanvasView;
+  let canvasView = $state<CanvasView | null>(null);
   let fileInput: HTMLInputElement;
+  let paletteInput: HTMLInputElement;
+  let palettes = $state.raw<PaletteLibrary | null>(null);
+  let paletteVersion = $state(0);
+  let app: HTMLDivElement;
+  let left: HTMLElement;
+  let right: HTMLElement;
+  let top: HTMLElement;
+  let bottom: HTMLElement;
 
-  const canUndo = $derived.by(() => (void version, editor.history.canUndo));
-  const canRedo = $derived.by(() => (void version, editor.history.canRedo));
+  /** Space taken by the floating panels over the canvas, margins included. */
+  function insets(): Insets {
+    const box = app.getBoundingClientRect();
+    return {
+      left: left.getBoundingClientRect().right - box.left,
+      right: box.right - right.getBoundingClientRect().left,
+      top: top.getBoundingClientRect().bottom - box.top,
+      bottom: box.bottom - bottom.getBoundingClientRect().top,
+    };
+  }
+
+  // Registered before the first render, which shows the commands' titles.
+  $effect.pre(() =>
+    registerAppCommands(editor.commands, {
+      get tool() {
+        return tool;
+      },
+      set tool(id) {
+        tool = id;
+      },
+      options,
+      get view() {
+        return canvasView;
+      },
+      get palettes() {
+        return palettes;
+      },
+      importImage: () => fileInput.click(),
+      importPalette: () => paletteInput.click(),
+      openCommandPalette: () => (paletteOpen = true),
+    }),
+  );
+
+  /** Runs a command from a button or a shortcut. Nothing may run while the pen is down. */
+  function run(id: string, params?: unknown) {
+    if (painter.active) {
+      if (!painter.finishing) return;
+      // The pen is up but the stroke is still being painted: finish it first, so that
+      // undo, for instance, applies to it.
+      painter.drain();
+    }
+    editor.commands.execute(id, params);
+  }
+
+  /** Whether a command can run now, for buttons. */
+  function enabled(id: string): boolean {
+    void version;
+    return editor.commands.isEnabled(id);
+  }
+
+  /** Tooltip with the command's title and shortcut, e.g. "Undo (Ctrl+Z)". */
+  function tip(id: string): string {
+    const title = editor.commands.get(id)?.title ?? id;
+    const keys = keymap.chordsFor(id).slice(0, 1).map(formatChord);
+    return keys.length ? `${title} (${keys[0]})` : title;
+  }
+
   /** CPU memory of layer pixels and of the history (estimate, tiles can be shared). */
   const memory = $derived.by(() => {
     void version;
     const pixels = editor.drawing.layers.reduce((sum, l) => sum + l.tiles.memoryBytes, 0);
     return { pixels, history: editor.history.bytes };
   });
-  const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} Mo`;
+  const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
 
   onMount(() => {
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
-      .catch(
-        (e) => (error = `Moteur de pinceau indisponible : ${e instanceof Error ? e.message : e}`),
-      );
+      .catch((e) => (error = `Brush engine unavailable: ${e instanceof Error ? e.message : e}`));
+    loadPalettes(notify).then((library) => {
+      palettes = library;
+      library.subscribe(() => paletteVersion++);
+    });
     const bump = () => version++;
     const unsubscribe = [
       editor.drawing.subscribe(bump),
@@ -112,43 +183,44 @@
     return () => unsubscribe.forEach((fn) => fn());
   });
 
+  /** Imports images as layers and .hex files as palettes. */
   async function importFiles(files: FileList | null | undefined) {
     for (const file of files ?? []) {
+      if (/\.hex$/i.test(file.name)) {
+        await importPalette(file);
+        continue;
+      }
       if (!file.type.startsWith("image/")) continue;
       try {
         importImage(editor, await decodeImage(file), file.name.replace(/\.[^.]+$/, ""));
       } catch (e) {
-        error = `Impossible d'importer ${file.name} : ${e instanceof Error ? e.message : e}`;
+        error = `Cannot import ${file.name}: ${e instanceof Error ? e.message : e}`;
       }
     }
   }
 
+  async function importPalette(file: File) {
+    if (!palettes) return;
+    try {
+      palettes.add(parseHexPalette(await file.text(), file.name.replace(/\.[^.]+$/, "")));
+    } catch (e) {
+      notify(`Cannot import ${file.name}: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
   function onKeyDown(e: KeyboardEvent) {
-    if (isTyping(e)) return;
-    const ctrl = e.ctrlKey || e.metaKey;
-    const key = e.key.toLowerCase();
-    // Nothing may change the drawing in the middle of a stroke.
-    if (painter.active) return;
-    let handled = true;
-    if (ctrl && key === "z" && !e.shiftKey) editor.commands.execute("history.undo");
-    else if (ctrl && (key === "y" || (key === "z" && e.shiftKey)))
-      editor.commands.execute("history.redo");
-    else if (ctrl) handled = false;
-    else if (key === "0") canvasView.fitView();
-    else if (key === "1") canvasView.zoomTo(1);
-    else if (key === "+" || key === "=") canvasView.zoomBy(1.25);
-    else if (key === "-") canvasView.zoomBy(0.8);
-    else if (key === "4") canvasView.rotateBy(-Math.PI / 12);
-    else if (key === "6") canvasView.rotateBy(Math.PI / 12);
-    else if (key === "5") canvasView.resetRotation();
-    else if (key === "b") tool = "brush";
-    else if (key === "e") tool = "eraser";
-    else if (key === "p") tool = "pixel";
-    else if (key === "i") tool = "picker";
-    else if (key === "[") resize(0.8);
-    else if (key === "]") resize(1.25);
-    else handled = false;
-    if (handled) e.preventDefault();
+    if (isTyping(e) || paletteOpen) return;
+    const binding = keymap.match({
+      key: e.key,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      altKey: e.altKey,
+      shiftKey: e.shiftKey,
+      altGraph: e.getModifierState("AltGraph"),
+    });
+    if (!binding || !editor.commands.has(binding.command)) return;
+    e.preventDefault();
+    run(binding.command, binding.params);
   }
 
   const degrees = (radians: number) => Math.round((radians * 180) / Math.PI);
@@ -159,325 +231,311 @@
 <div
   class="app"
   role="application"
+  bind:this={app}
   ondragover={(e) => e.preventDefault()}
   ondrop={(e) => {
     e.preventDefault();
     importFiles(e.dataTransfer?.files);
   }}
 >
-  <header>
-    <button class="icon" title="Importer une image" onclick={() => fileInput.click()}>
-      <ImagePlus size={18} />
-    </button>
-    <input
-      bind:this={fileInput}
-      type="file"
-      accept="image/*"
-      multiple
-      hidden
-      onchange={(e) => {
-        importFiles(e.currentTarget.files);
-        e.currentTarget.value = "";
-      }}
-    />
-    <span class="sep"></span>
-    <button
-      class="icon"
-      title="Annuler (Ctrl+Z)"
-      disabled={!canUndo}
-      onclick={() => editor.commands.execute("history.undo")}
-    >
-      <Undo2 size={18} />
-    </button>
-    <button
-      class="icon"
-      title="Rétablir (Ctrl+Maj+Z)"
-      disabled={!canRedo}
-      onclick={() => editor.commands.execute("history.redo")}
-    >
-      <Redo2 size={18} />
-    </button>
-    <span class="sep"></span>
-    <button class="icon" title="Zoom avant (+)" onclick={() => canvasView.zoomBy(1.25)}>
-      <ZoomIn size={18} />
-    </button>
-    <button class="icon" title="Zoom arrière (-)" onclick={() => canvasView.zoomBy(0.8)}>
-      <ZoomOut size={18} />
-    </button>
-    <button class="icon" title="Ajuster à la fenêtre (0)" onclick={() => canvasView.fitView()}>
-      <Maximize size={18} />
-    </button>
-    <span class="sep"></span>
-    <button
-      class="icon"
-      title="Tourner à gauche (4)"
-      onclick={() => canvasView.rotateBy(-Math.PI / 12)}
-    >
-      <RotateCcw size={18} />
-    </button>
-    <button
-      class="icon"
-      title="Tourner à droite (6)"
-      onclick={() => canvasView.rotateBy(Math.PI / 12)}
-    >
-      <RotateCw size={18} />
-    </button>
-    <button class="icon" title="Remettre droit (5)" onclick={() => canvasView.resetRotation()}>
-      <Compass size={18} />
-    </button>
-  </header>
-
-  <nav>
-    {#each TOOLS as t (t.id)}
-      <button
-        class="icon"
-        class:active={tool === t.id}
-        title="{t.title} ({t.key})"
-        onclick={() => (tool = t.id)}
-      >
-        {#if t.id === "brush"}<Brush size={18} />
-        {:else if t.id === "eraser"}<Eraser size={18} />
-        {:else if t.id === "pixel"}<Grid2x2 size={18} />
-        {:else}<Pipette size={18} />{/if}
-      </button>
-    {/each}
-    <span class="sep"></span>
-    <input
-      type="color"
-      title="Couleur"
-      value={toHex(options.color)}
-      oninput={(e) => {
-        const color = fromHex(e.currentTarget.value);
-        if (color) options.color = color;
-      }}
-    />
-    <span class="sep"></span>
-    {#if tool === "brush" || tool === "eraser"}
-      {@const settings = tool === "brush" ? options.brush : options.eraser}
-      <select
-        title="Pinceau"
-        value={settings.preset}
-        onchange={(e) => {
-          // Each brush starts at the size it was designed for.
-          settings.preset = e.currentTarget.value;
-          settings.size = bundledBrush(settings.preset).nativeSize;
-        }}
-      >
-        {#each brushGroups(tool === "eraser") as group (group.label)}
-          <optgroup label={group.label}>
-            {#each group.brushes as b (b.id)}
-              <option value={b.id}>{b.name}</option>
-            {/each}
-          </optgroup>
-        {/each}
-      </select>
-      <label>
-        Taille
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.001"
-          value={sliderFromSize(settings.size)}
-          oninput={(e) => (settings.size = sizeFromSlider(Number(e.currentTarget.value)))}
-        />
-        {settings.size} px
-      </label>
-      <label>
-        Opacité <input type="range" min="0" max="1" step="0.01" bind:value={settings.opacity} />
-        {Math.round(settings.opacity * 100)} %
-      </label>
-    {:else if tool === "pixel"}
-      <label
-        >Taille <input type="range" min="1" max="64" bind:value={options.pixel.size} />
-        {options.pixel.size} px</label
-      >
-      <label
-        >Opacité <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          bind:value={options.pixel.opacity}
-        />
-        {Math.round(options.pixel.opacity * 100)} %</label
-      >
-      <label title="Retire les coins en L (pinceau de 1 px)">
-        <input type="checkbox" bind:checked={options.pixel.pixelPerfect} /> Pixel-perfect
-      </label>
-    {:else}
-      <span class="hint">Cliquez sur la toile pour prendre une couleur.</span>
-    {/if}
-  </nav>
-
-  <main>
+  <div class="canvas">
     <CanvasView
       bind:this={canvasView}
       {editor}
       {painter}
       {brushCursor}
+      {insets}
       oncamera={(c) => (camera = c)}
       oncursor={(p) => (cursor = p)}
       onstats={(s) => (stats = s)}
     />
-  </main>
+  </div>
 
-  <aside>
-    <LayersPanel {editor} {version} />
+  <aside class="panel left" bind:this={left}>
+    <section class="section">
+      <div class="tools">
+        {#each TOOLS as t (t.id)}
+          {@const Icon = TOOL_ICONS[t.id]}
+          <button
+            class="icon"
+            class:active={tool === t.id}
+            title={tip(`tool.${t.id}`)}
+            onclick={() => run(`tool.${t.id}`)}
+          >
+            <Icon size={16} />
+          </button>
+        {/each}
+      </div>
+    </section>
+    <section class="section brushes">
+      <span class="section-title">Brushes</span>
+      <BrushBrowser
+        eraser={tool === "eraser"}
+        selected={tool === "eraser" ? options.eraser.preset : options.brush.preset}
+        onselect={(id) => run("brush.select", { id })}
+      />
+    </section>
   </aside>
 
-  <footer>
-    <span>{editor.drawing.width} × {editor.drawing.height}</span>
-    <span>{Math.round(camera.zoom * 100)} %</span>
-    <span>{degrees(camera.rotation)}°</span>
+  <div class="panel bar top" bind:this={top}>
+    <div class="group">
+      <button class="icon" title={tip("file.importImage")} onclick={() => run("file.importImage")}>
+        <ImagePlus size={16} />
+      </button>
+      <button
+        class="icon"
+        title={tip("history.undo")}
+        disabled={!enabled("history.undo")}
+        onclick={() => run("history.undo")}
+      >
+        <Undo2 size={16} />
+      </button>
+      <button
+        class="icon"
+        title={tip("history.redo")}
+        disabled={!enabled("history.redo")}
+        onclick={() => run("history.redo")}
+      >
+        <Redo2 size={16} />
+      </button>
+    </div>
+
+    <div class="group options">
+      {#if tool === "brush" || tool === "eraser"}
+        {@const settings = tool === "brush" ? options.brush : options.eraser}
+        <Slider
+          label="Size"
+          min={0}
+          max={1}
+          step={0.001}
+          value={sliderFromSize(settings.size)}
+          display="{settings.size} px"
+          oninput={(v) => (settings.size = sizeFromSlider(v))}
+        />
+        <Slider
+          label="Opacity"
+          value={settings.opacity}
+          display="{Math.round(settings.opacity * 100)}%"
+          oninput={(v) => (settings.opacity = v)}
+        />
+      {:else if tool === "pixel"}
+        <Slider
+          label="Size"
+          min={1}
+          max={MAX_PIXEL_SIZE}
+          step={1}
+          value={options.pixel.size}
+          display="{options.pixel.size} px"
+          oninput={(v) => (options.pixel.size = v)}
+        />
+        <Slider
+          label="Opacity"
+          value={options.pixel.opacity}
+          display="{Math.round(options.pixel.opacity * 100)}%"
+          oninput={(v) => (options.pixel.opacity = v)}
+        />
+        <label class="check" title="Removes L-shaped corners (1 px brush)">
+          <input type="checkbox" bind:checked={options.pixel.pixelPerfect} /> Pixel-perfect
+        </label>
+      {:else}
+        <span class="hint">Click on the canvas to pick a color.</span>
+      {/if}
+    </div>
+
+    <div class="group">
+      <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}>
+        <ZoomOut size={16} />
+      </button>
+      <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}>
+        {Math.round(camera.zoom * 100)}%
+      </button>
+      <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}>
+        <ZoomIn size={16} />
+      </button>
+      <button class="icon" title={tip("view.fit")} onclick={() => run("view.fit")}>
+        <Maximize size={16} />
+      </button>
+      <button class="icon" title={tip("view.rotateLeft")} onclick={() => run("view.rotateLeft")}>
+        <RotateCcw size={16} />
+      </button>
+      <button class="icon" title={tip("view.rotateRight")} onclick={() => run("view.rotateRight")}>
+        <RotateCw size={16} />
+      </button>
+      <button
+        class="icon"
+        title="{tip('view.resetRotation')} · {degrees(camera.rotation)}°"
+        onclick={() => run("view.resetRotation")}
+      >
+        <Compass size={16} />
+      </button>
+    </div>
+  </div>
+
+  <aside class="panel right" bind:this={right}>
+    <section class="section">
+      <span class="section-title">Color</span>
+      <ColorPicker color={options.color} onchange={(c) => (options.color = c)} />
+    </section>
+    <PalettePanel library={palettes} version={paletteVersion} color={options.color} {tip} {run} />
+    <LayersPanel {editor} {version} {tip} {run} />
+  </aside>
+
+  <footer class="panel bar bottom" bind:this={bottom}>
+    <span>{editor.drawing.width} × {editor.drawing.height} px</span>
     <span>{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
-    {#if stats}
-      <span title="Images par seconde">{Math.round(stats.fps)} fps</span>
-      <span title="Tuiles affichées sur le GPU">{stats.tiles} tuiles</span>
-    {/if}
-    <span title="Mémoire des pixels / de l'historique (estimation)">
-      {mb(memory.pixels)} · hist. {mb(memory.history)}
-    </span>
     {#if error}<span class="error">{error}</span>{/if}
+    <span class="spacer"></span>
+    {#if stats}
+      <span title="Frames per second">{Math.round(stats.fps)} fps</span>
+      <span title="Tiles on the GPU">{stats.tiles} tiles</span>
+    {/if}
+    <span title="Memory of the pixels / of the history (estimate)">
+      {mb(memory.pixels)} · history {mb(memory.history)}
+    </span>
     <a href={resolve("/lab")}>Lab</a>
   </footer>
+
+  <input
+    bind:this={paletteInput}
+    type="file"
+    accept=".hex"
+    hidden
+    onchange={(e) => {
+      const file = e.currentTarget.files?.[0];
+      if (file) importPalette(file);
+      e.currentTarget.value = "";
+    }}
+  />
+  <input
+    bind:this={fileInput}
+    type="file"
+    accept="image/*"
+    multiple
+    hidden
+    onchange={(e) => {
+      importFiles(e.currentTarget.files);
+      e.currentTarget.value = "";
+    }}
+  />
 </div>
 
+<CommandPalette {editor} {keymap} bind:open={paletteOpen} />
+
 <style>
-  :global(html) {
-    /* Native controls (menus, sliders, checkboxes) follow the dark theme. */
-    color-scheme: dark;
-  }
-
-  :global(html, body) {
-    margin: 0;
-    height: 100%;
-    overflow: hidden;
-    background: #1e1e1e;
-    color: #ccc;
-    font:
-      13px/1.4 system-ui,
-      sans-serif;
-  }
-
-  :global(button) {
-    background: none;
-    color: inherit;
-    border: none;
-    padding: 4px 6px;
-    cursor: pointer;
-    font: inherit;
-  }
-
-  :global(button:hover:not(:disabled)) {
-    background: #ffffff1a;
-  }
-
-  :global(button:disabled) {
-    opacity: 0.35;
-    cursor: default;
-  }
-
-  :global(button.icon) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  :global(input, select) {
-    font: inherit;
-    color: inherit;
-    background: #2b2b2b;
-    border: 1px solid #444;
-  }
-
+  /* The canvas fills the window; the panels float over it, inset from the edges. */
   .app {
-    display: grid;
-    grid-template-columns: 1fr 240px;
-    grid-template-rows: auto auto 1fr auto;
+    position: relative;
     height: 100vh;
+    overflow: hidden;
+    --left-width: 200px;
+    --right-width: 200px;
   }
 
-  nav {
-    grid-column: 1 / -1;
+  .canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  .left,
+  .right {
+    position: absolute;
+    top: var(--space);
+    bottom: var(--space);
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 2px 12px;
-    padding: 2px 4px;
-    border-bottom: 1px solid #333;
+    flex-direction: column;
+    overflow: hidden;
   }
 
-  nav label {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
+  .left {
+    left: var(--space);
+    width: var(--left-width);
   }
 
-  nav input[type="range"] {
-    width: 90px;
+  .right {
+    right: var(--space);
+    width: var(--right-width);
   }
 
-  nav input[type="color"] {
-    width: 32px;
-    height: 24px;
-    padding: 0;
-  }
-
-  :global(button.active) {
-    background: #3a4a66;
-  }
-
-  .hint {
-    color: #888;
-  }
-
-  header {
-    grid-column: 1 / -1;
+  .tools {
     display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 2px 4px;
-    border-bottom: 1px solid #333;
+    gap: calc(var(--space) / 2);
   }
 
-  .sep {
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    background: #444;
-  }
-
-  main {
-    min-width: 0;
+  .brushes,
+  .right :global(.layers) {
+    flex: 1;
     min-height: 0;
   }
 
-  aside {
-    padding: 6px;
-    overflow-y: auto;
-    border-left: 1px solid #333;
+  .bar {
+    position: absolute;
+    left: calc(var(--left-width) + 2 * var(--space));
+    right: calc(var(--right-width) + 2 * var(--space));
+    display: flex;
+    align-items: center;
+    gap: var(--space);
+    padding: 0 calc(var(--space) / 2);
   }
 
-  footer {
-    grid-column: 1 / -1;
+  .top {
+    top: var(--space);
+    height: calc(var(--control-height) + var(--space));
+  }
+
+  .group {
     display: flex;
-    gap: 16px;
-    padding: 2px 8px;
-    border-top: 1px solid #333;
-    font-size: 12px;
-    color: #999;
+    align-items: center;
+    flex: none;
+  }
+
+  .options {
+    flex: 1;
+    gap: calc(var(--space) * 2);
+    min-width: 0;
+    padding: 0 var(--space);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  .options :global(.slider) {
+    flex: 1;
+    max-width: 240px;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space) / 2);
+    white-space: nowrap;
+  }
+
+  .zoom {
+    width: 4.5em;
+    padding: 0;
     font-variant-numeric: tabular-nums;
   }
 
-  footer a {
-    margin-left: auto;
-    color: #999;
+  .bottom {
+    bottom: var(--space);
+    height: var(--control-height);
+    padding: 0 var(--space);
+    gap: calc(var(--space) * 2);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .bottom a {
+    color: var(--text-muted);
   }
 
   .error {
-    color: #e77;
+    overflow: hidden;
+    color: var(--danger);
+    text-overflow: ellipsis;
   }
 </style>

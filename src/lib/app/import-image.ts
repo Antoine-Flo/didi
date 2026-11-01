@@ -31,10 +31,10 @@ export function importImage(editor: Editor, image: DecodedImage, name: string) {
     width: image.width,
     height: image.height,
   };
-  history.begin("Importer une image");
+  history.begin("Import image");
   try {
     editor.commands.execute("layer.add", { props: { name } });
-    history.push(writePixels(editor.activeLayer!.id, rect, image.data, "Importer une image"));
+    history.push(writePixels(editor.activeLayer!.id, rect, image.data, "Import image"));
   } finally {
     history.end();
   }

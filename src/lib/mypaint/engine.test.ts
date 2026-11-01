@@ -51,8 +51,8 @@ describe("libmypaint engine", () => {
 
   it("groups brushes for menus, essentials first", () => {
     const groups = brushGroups(false);
-    expect(groups[0].label).toBe("Essentiels");
-    expect(groups[0].brushes.map((b) => b.name)).toContain("Crayon 2B");
+    expect(groups[0].label).toBe("Essentials");
+    expect(groups[0].brushes.map((b) => b.name)).toContain("2B pencil");
     expect(groups.flatMap((g) => g.brushes).every((b) => !b.eraser)).toBe(true);
     expect(
       brushGroups(true)
@@ -81,7 +81,7 @@ describe("libmypaint engine", () => {
     expect(b).toBeLessThan(60);
     expect(pixel(drawing, id, 150, 50)).toEqual([0, 0, 0, 0]);
     expect(pixel(drawing, id, 290, 150)).toEqual([0, 0, 0, 0]);
-    stroke.finish("Pinceau");
+    stroke.finish("Brush");
   });
 
   it("starts each stroke where it is placed, for every brush", () => {
@@ -109,7 +109,7 @@ describe("libmypaint engine", () => {
     drawing.writePixels(id, all, fill(all, [0, 120, 0, 255]));
     const stroke = new MyPaintStroke(mp, brush("deevad/liner", 6), drawing, id);
     draw(stroke, 100, 200, 150);
-    stroke.finish("Pinceau");
+    stroke.finish("Brush");
     // Same libmypaint tile as the stroke, but away from it.
     expect(pixel(drawing, id, 150, 135)).toEqual([0, 120, 0, 255]);
   });
@@ -137,7 +137,7 @@ describe("libmypaint engine", () => {
     const stroke = new MyPaintStroke(mp, brush("deevad/watercolor_glazing", 40), drawing, id);
     draw(stroke, 20, 280, 100);
     draw(stroke, 280, 20, 120);
-    stroke.finish("Pinceau");
+    stroke.finish("Brush");
     const all = drawing.getLayer(id).tiles.readRegion({ x: 0, y: 0, width: 300, height: 300 });
     let invalid = 0;
     for (let i = 0; i < all.length; i += 4) {
@@ -151,7 +151,7 @@ describe("libmypaint engine", () => {
     const before = capture(drawing);
     const stroke = new MyPaintStroke(mp, brush("deevad/liner"), drawing, id);
     draw(stroke, 30, 270, 150);
-    history.push(stroke.finish("Pinceau")!);
+    history.push(stroke.finish("Brush")!);
     const after = capture(drawing);
     expect(history.steps).toBe(1);
     history.undo();
@@ -172,7 +172,7 @@ describe("libmypaint engine", () => {
     drawing.writePixels(id, all, fill(all, [0, 0, 200, 255]));
     const stroke = new MyPaintStroke(mp, brush("deevad/large_hard_eraser", 30), drawing, id);
     draw(stroke, 50, 250, 150);
-    stroke.finish("Gomme");
+    stroke.finish("Eraser");
     expect(pixel(drawing, id, 150, 150)[3]).toBeLessThan(30);
     expect(pixel(drawing, id, 150, 20)).toEqual([0, 0, 200, 255]);
   });
@@ -197,12 +197,12 @@ describe("libmypaint engine", () => {
     const b = brush("deevad/basic_digital_brush", 10);
     const first = new MyPaintStroke(mp, b, drawing, id);
     draw(first, 10, 1990, 50);
-    first.finish("Pinceau");
+    first.finish("Brush");
     expect(pixel(drawing, id, 1500, 50)[3]).toBeGreaterThan(200);
     // A second stroke elsewhere must not be joined to the end of the first one.
     const second = new MyPaintStroke(mp, b, drawing, id);
     draw(second, 100, 200, 250);
-    second.finish("Pinceau");
+    second.finish("Brush");
     expect(pixel(drawing, id, 1000, 150)).toEqual([0, 0, 0, 0]);
   });
 
@@ -211,7 +211,7 @@ describe("libmypaint engine", () => {
     const b = brush("deevad/liner");
     const stroke = new MyPaintStroke(mp, b, drawing, id);
     expect(() => new MyPaintStroke(mp, b, drawing, id)).toThrow();
-    stroke.finish("Pinceau");
+    stroke.finish("Brush");
     new MyPaintStroke(mp, b, drawing, id).cancel();
   });
 

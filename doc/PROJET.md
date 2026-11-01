@@ -8,6 +8,8 @@ Il doit être aussi simple et intuitif que Procreate, avec une interface propre,
 
 L'intégration avec Godot est la force du logiciel : on dessine et on voit le résultat dans le jeu, en direct.
 
+Didi sert à créer des **assets de jeu vidéo** (2D classique ou pixel art), faciles à exporter vers Godot. D'autres moteurs (Unity…) pourront être ajoutés plus tard par des modules d'export.
+
 ## Ce qui rend Didi unique
 
 - **Mise à jour en direct** : chaque trait se met à jour dans l'éditeur Godot et dans le jeu en cours d'exécution.
@@ -46,7 +48,8 @@ Inspirée de la roue de Krita, mais entièrement personnalisable. Elle libère l
 - **Couche plateforme** : tout ce qui dépend du système (entrée tablette, fichiers, lien avec Godot) passe par une interface commune. Chaque OS a son implémentation, et les tests utilisent une version simulée.
 - **Source d'entrée abstraite** : le moteur de pinceau ne sait pas d'où viennent les points. On utilise la meilleure source par OS : Pointer Events de la webview ou lecture native côté Rust.
 - **Tout est donnée** : pinceaux, thèmes, keymaps, roues et palettes sont du JSON (+ PNG), avec un numéro de version.
-- **Formats versionnés** : fichier `.didi` (zip de PNG + JSON), avec des migrations entre versions.
+- **Formats versionnés** : fichier `.didi` (zip de PNG + JSON), avec des migrations entre versions. Il doit rester facile à lire (JSON lisible, PNG standards), à étendre (champs inconnus conservés, données de modules à part), à partager et à versionner (diff lisible dans git).
+- **Export découplé** : le cœur ne connaît aucun moteur de jeu. Godot est le premier module d'export ; Unity ou d'autres moteurs pourront s'ajouter par la même interface, sans toucher au cœur.
 
 ## Stack technique
 
@@ -55,7 +58,7 @@ Inspirée de la roue de Krita, mais entièrement personnalisable. Elle libère l
 | Application | Tauri 2, SvelteKit (statique), Svelte 5            |
 | Rendu       | PixiJS                                             |
 | Pinceaux    | libmypaint (WebAssembly), pinceaux MyPaint `.myb`  |
-| Couleur     | culori (OKLCH)                                     |
+| Couleur     | HSV maison (sélecteur) ; culori (OKLCH) si besoin  |
 | Interface   | Bits UI, thème par tokens CSS ; Dockview plus tard |
 | Raccourcis  | hotkeys-js                                         |
 | Fichiers    | fflate (zip), Comlink (Web Workers)                |

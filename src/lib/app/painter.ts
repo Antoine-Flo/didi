@@ -3,6 +3,12 @@
 // Brushes and erasers use libmypaint; the pixel tool draws whole pixels (pixel-perfect).
 // Samples are in canvas pixels. The input side (DOM or native events) calls `begin`,
 // `move` and `end`; the render loop calls `flush` once per frame.
+//
+// Like MyPaint, libmypaint brushes do not paint as samples arrive: samples wait in a queue,
+// with their original times (so speed-based dynamics are unchanged), and each frame paints
+// as many as fit in a time budget. A huge brush then lags behind the pen instead of
+// freezing the interface. After `end`, the queue keeps draining over the next frames; the
+// stroke becomes an undo step once it is fully painted.
 
 import { PixelPathBuilder } from "$lib/core/brush/pixel-path";
 import { StrokeRaster } from "$lib/core/brush/raster";
@@ -11,7 +17,8 @@ import type { Editor } from "$lib/core/editor";
 import { unpremultiply } from "$lib/core/pixels";
 import { bundledBrush } from "$lib/mypaint/brushes";
 import { MyPaintStroke, type Brush, type MyPaint } from "$lib/mypaint/engine";
-import type { RGB, ToolId, ToolOptions } from "./tools";
+import type { RGB } from "$lib/core/color";
+import type { ToolId, ToolOptions } from "./tools";
 
 export interface Sample {
   x: number;
@@ -37,6 +44,13 @@ export interface PainterHost {
   onMessage(message: string): void;
 }
 
+/**
+ * Rough cost of painting a segment with libmypaint: its length times the brush size
+ * (about 1 ms per 1000 on a fast machine). Longer segments are split, so that a frame
+ * never waits long for a single sample: a huge brush moved fast would otherwise freeze.
+ */
+const MAX_SEGMENT_COST = 4000;
+
 export class Painter {
   private engine: MyPaint | null = null;
   private readonly brushes = new Map<string, Brush>();
@@ -50,10 +64,19 @@ export class Painter {
   /** Farthest distance from the first sample, to tell taps from strokes. */
   private moved = 0;
   private label = "";
+  /** Samples waiting to be painted by libmypaint. */
+  private pending: Sample[] = [];
+  /** Last sample put in the queue, and the brush size, to split long segments. */
+  private lastQueued: Sample | null = null;
+  private brushSize = 0;
+  /** `end` was called: the stroke ends once the queue is empty. */
+  private ending = false;
 
   constructor(
     private readonly editor: Editor,
     private readonly host: PainterHost,
+    /** Clock for the frame budget, in milliseconds. */
+    private readonly now: () => number = () => performance.now(),
   ) {}
 
   /** Provides the brush engine, once loaded. */
@@ -61,9 +84,14 @@ export class Painter {
     this.engine = engine;
   }
 
-  /** Whether a stroke is in progress. Undo and layer changes must wait for its end. */
+  /** Whether a stroke is in progress, or still being painted. */
   get active(): boolean {
     return this.mypaint !== null || this.pixels !== null;
+  }
+
+  /** The pen is up, but the stroke is still being painted from the queue. */
+  get finishing(): boolean {
+    return this.ending;
   }
 
   /**
@@ -71,16 +99,19 @@ export class Painter {
    * Returns false if nothing was started (picker, no layer, locked or hidden layer).
    */
   begin(sample: Sample, eraser = false): boolean {
-    if (this.active) this.end();
+    if (this.active) {
+      this.end();
+      this.drain();
+    }
     const tool = eraser ? "eraser" : this.host.tool();
     if (tool === "picker") {
       this.pick(sample);
       return false;
     }
     const layer = this.editor.activeLayer;
-    if (!layer) return this.refuse("Aucun calque : ajoutez-en un pour dessiner.");
-    if (layer.locked) return this.refuse(`Le calque « ${layer.name} » est verrouillé.`);
-    if (!layer.visible) return this.refuse(`Le calque « ${layer.name} » est masqué.`);
+    if (!layer) return this.refuse("No layer: add one to draw.");
+    if (layer.locked) return this.refuse(`Layer "${layer.name}" is locked.`);
+    if (!layer.visible) return this.refuse(`Layer "${layer.name}" is hidden.`);
 
     const options = this.host.options();
     if (tool === "pixel") {
@@ -95,12 +126,13 @@ export class Painter {
         path: new PixelPathBuilder(pixelPerfect && rounded === 1),
         size: rounded,
       };
-      this.label = "Pinceau pixel";
+      this.label = "Pixel brush";
     } else {
-      if (!this.engine) return this.refuse("Le moteur de pinceau se charge, réessayez.");
+      if (!this.engine) return this.refuse("The brush engine is loading, try again.");
       const settings = tool === "eraser" ? options.eraser : options.brush;
       const brush = this.brush(settings.preset);
       brush.size = settings.size;
+      this.brushSize = settings.size;
       brush.setColor(options.color);
       this.mypaint = new MyPaintStroke(
         this.engine,
@@ -111,9 +143,10 @@ export class Painter {
       );
       this.mypaint.view = { zoom: sample.viewZoom ?? 1, rotation: sample.viewRotation ?? 0 };
       this.mypaint.moveTo(sample.x, sample.y, sample.tiltX, sample.tiltY);
-      this.label = tool === "eraser" ? "Gomme" : "Pinceau";
+      this.label = tool === "eraser" ? "Eraser" : "Brush";
     }
     this.lastTime = null;
+    this.lastQueued = null;
     this.sameTime = [];
     this.firstSample = sample;
     this.moved = 0;
@@ -136,9 +169,21 @@ export class Painter {
         raster.setPixels(unpaint, size, false);
         raster.setPixels(paint, size, true);
       } else if (this.mypaint) {
-        this.queue(s);
+        this.enqueue(s);
       }
     }
+  }
+
+  /** Puts a sample in the queue, after splitting a long segment from the previous one. */
+  private enqueue(s: Sample) {
+    const prev = this.lastQueued;
+    if (prev) {
+      const length = Math.hypot(s.x - prev.x, s.y - prev.y);
+      const parts = Math.ceil((length * this.brushSize) / MAX_SEGMENT_COST);
+      for (let i = 1; i < parts; i++) this.pending.push(between(prev, s, i / parts));
+    }
+    this.pending.push(s);
+    this.lastQueued = s;
   }
 
   /**
@@ -173,8 +218,28 @@ export class Painter {
     this.mypaint!.strokeTo(s.x, s.y, s.pressure, s.tiltX ?? 0, s.tiltY ?? 0, dtime);
   }
 
-  /** Ends the stroke and records it as one undo step. */
+  /**
+   * The pen is up. A pixel stroke ends now; a libmypaint stroke ends once its queue is
+   * painted (see `flush` and `drain`). Either way it then becomes one undo step.
+   */
   end() {
+    if (this.pixels) this.finish();
+    else if (this.mypaint) {
+      this.ending = true;
+      if (this.pending.length === 0) this.finish();
+    }
+  }
+
+  /** Paints every waiting sample now, and finishes the stroke if the pen is up. */
+  drain() {
+    if (!this.mypaint) return;
+    for (const s of this.pending) this.queue(s);
+    this.pending = [];
+    if (this.ending) this.finish();
+  }
+
+  private finish() {
+    this.ending = false;
     // Samples still waiting for a later time: give them 1 ms each.
     if (this.mypaint && this.lastTime !== null) {
       for (const waiting of this.sameTime) this.send(waiting, this.lastTime + 1);
@@ -195,15 +260,30 @@ export class Painter {
 
   /** Abandons the stroke, leaving the layer as it was. */
   cancel() {
+    this.pending = [];
+    this.ending = false;
     const stroke = this.mypaint ?? this.pixels?.raster;
     this.mypaint = null;
     this.pixels = null;
     stroke?.cancel();
   }
 
-  /** Shows the stroke's latest changes. Call once per frame. */
-  flush() {
-    this.mypaint?.flush();
+  /**
+   * Paints waiting samples for about `budgetMs` (at least one), then shows the stroke's
+   * latest changes. Call once per frame.
+   */
+  flush(budgetMs = 8) {
+    if (this.mypaint) {
+      const start = this.now();
+      let done = 0;
+      while (done < this.pending.length) {
+        this.queue(this.pending[done++]);
+        if (this.now() - start >= budgetMs) break;
+      }
+      this.pending.splice(0, done);
+      if (this.ending && this.pending.length === 0) this.finish();
+      else this.mypaint.flush();
+    }
     this.pixels?.raster.flush();
   }
 
@@ -230,4 +310,20 @@ export class Painter {
     this.host.onMessage(message);
     return false;
   }
+}
+
+/** The sample at `t` (0 to 1) on the way from `a` to `b`. */
+function between(a: Sample, b: Sample, t: number): Sample {
+  const mix = (x: number | undefined, y: number | undefined) =>
+    x === undefined || y === undefined ? y : x + (y - x) * t;
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    pressure: a.pressure + (b.pressure - a.pressure) * t,
+    tiltX: mix(a.tiltX ?? 0, b.tiltX ?? 0),
+    tiltY: mix(a.tiltY ?? 0, b.tiltY ?? 0),
+    time: mix(a.time, b.time),
+    viewZoom: b.viewZoom,
+    viewRotation: b.viewRotation,
+  };
 }

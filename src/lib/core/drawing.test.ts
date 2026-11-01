@@ -18,7 +18,7 @@ describe("Drawing", () => {
     const a = d.createLayer();
     const b = d.createLayer({ name: "Encre", opacity: 0.5 });
     expect(a.id).not.toBe(b.id);
-    expect(a).toMatchObject({ name: "Calque", visible: true, opacity: 1, blendMode: "normal" });
+    expect(a).toMatchObject({ name: "Layer", visible: true, opacity: 1, blendMode: "normal" });
     expect(b).toMatchObject({ name: "Encre", opacity: 0.5 });
     expect(d.layers).toHaveLength(0);
   });
@@ -65,8 +65,8 @@ describe("Drawing", () => {
     const d = new Drawing(W, H);
     const a = d.createLayer();
     d.addLayer(a);
-    expect(d.updateLayer(a.id, { name: "Fond", opacity: 0.3 })).toEqual({
-      name: "Calque",
+    expect(d.updateLayer(a.id, { name: "Background", opacity: 0.3 })).toEqual({
+      name: "Layer",
       opacity: 1,
     });
   });

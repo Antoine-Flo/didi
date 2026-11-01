@@ -10,6 +10,14 @@
     tiles: number;
   }
 
+  /** Space taken by panels over the view, in pixels, on each side. */
+  export interface Insets {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  }
+
   /** Brush outline under the cursor, in canvas pixels. */
   export type BrushCursor = { kind: "circle" | "square"; size: number } | { kind: "none" };
 </script>
@@ -38,6 +46,7 @@
     editor,
     painter,
     brushCursor,
+    insets,
     oncamera,
     oncursor,
     onstats,
@@ -46,6 +55,8 @@
     painter?: Painter;
     /** Current brush outline, read on every pointer move. `eraser`: the pen's eraser is used. */
     brushCursor?: (eraser: boolean) => BrushCursor;
+    /** Panels over the view: fitting and zooming use the area between them. */
+    insets?: () => Insets;
     oncamera?: (camera: Camera) => void;
     oncursor?: (point: Point | null) => void;
     /** Called twice a second with rendering statistics. */
@@ -84,12 +95,26 @@
     oncamera?.(next);
   }
 
+  /** The part of the view that is not under panels. */
+  function visibleArea() {
+    const { top, right, bottom, left } = insets?.() ?? { top: 0, right: 0, bottom: 0, left: 0 };
+    return {
+      x: left,
+      y: top,
+      width: Math.max(1, host.clientWidth - left - right),
+      height: Math.max(1, host.clientHeight - top - bottom),
+    };
+  }
+
   function center(): Point {
-    return { x: host.clientWidth / 2, y: host.clientHeight / 2 };
+    const area = visibleArea();
+    return { x: area.x + area.width / 2, y: area.y + area.height / 2 };
   }
 
   export function fitView() {
-    setCamera(fit(editor.drawing, { width: host.clientWidth, height: host.clientHeight }));
+    const area = visibleArea();
+    const fitted = fit(editor.drawing, area);
+    setCamera({ ...fitted, x: fitted.x + area.x, y: fitted.y + area.y });
   }
 
   export function zoomBy(factor: number) {
@@ -257,7 +282,8 @@
       spaceDown = true;
       e.preventDefault();
     }
-    if (e.key === "Escape" && stroking) {
+    // Also while the queue of a lifted stroke is still being painted.
+    if (e.key === "Escape" && (stroking || painter?.active)) {
       if (pendingEnd !== null) clearTimeout(pendingEnd);
       pendingEnd = null;
       painter?.cancel();
@@ -277,7 +303,7 @@
         resizeTo: host,
         preference: "webgl",
         antialias: false,
-        background: 0x2b2b2b,
+        background: getComputedStyle(host).getPropertyValue("--canvas-bg").trim() || "#2b2b2b",
         resolution: devicePixelRatio,
         autoDensity: true,
       })

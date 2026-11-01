@@ -119,7 +119,7 @@
       tiltY: e.tiltY,
       buttons: e.button,
     };
-    if (e.phase !== "move") logButton(`natif ${e.phase} ${e.source} button=${e.button}`);
+    if (e.phase !== "move") logButton(`native ${e.phase} ${e.source} button=${e.button}`);
     if (e.source !== "pen" && e.source !== "eraser") return;
 
     const handledAt = performance.timeOrigin + performance.now();
@@ -158,7 +158,7 @@
         lines.push(`${k}: ${Number.isInteger(v) ? v : v.toFixed(3)}`);
       }
     }
-    lines.push("--- boutons", ...buttonLog);
+    lines.push("--- buttons", ...buttonLog);
     return lines.join("\n");
   }
 
@@ -166,10 +166,10 @@
     try {
       // The webview's navigator.clipboard is not reliable, use the Tauri plugin there.
       await (native ? writeText(reportText()) : navigator.clipboard.writeText(reportText()));
-      copyState = "Copié";
+      copyState = "Copied";
     } catch (err) {
       console.error(err);
-      copyState = "Échec de la copie";
+      copyState = "Copy failed";
     }
     setTimeout(() => (copyState = null), 1500);
   }
@@ -224,15 +224,15 @@
     <dl>
       {#each Object.entries(support) as [name, ok] (name)}
         <dt>{name}</dt>
-        <dd class:ok class:ko={!ok}>{ok ? "oui" : "non"}</dd>
+        <dd class:ok class:ko={!ok}>{ok ? "yes" : "no"}</dd>
       {/each}
     </dl>
 
     {#if native}
-      <h2>Dessiner avec</h2>
+      <h2>Draw with</h2>
       <div class="toggle">
         <button class:active={drawSource === "native"} onclick={() => (drawSource = "native")}>
-          Natif
+          Native
         </button>
         <button class:active={drawSource === "dom"} onclick={() => (drawSource = "dom")}>
           DOM
@@ -240,80 +240,80 @@
       </div>
     {/if}
 
-    <h2>En direct</h2>
+    <h2>Live</h2>
     <dl class="cols">
       <dt></dt>
       <dd class="head">DOM</dd>
-      <dd class="head">Natif</dd>
+      <dd class="head">Native</dd>
       <dt>type</dt>
       <dd>{live.dom.type}</dd>
       <dd>{live.native.type}</dd>
-      <dt>pression</dt>
+      <dt>pressure</dt>
       <dd>{fmt(live.dom.pressure)}</dd>
       <dd>{fmt(live.native.pressure)}</dd>
-      <dt>incl. X</dt>
+      <dt>tilt X</dt>
       <dd>{fmt(live.dom.tiltX, 1)}</dd>
       <dd>{fmt(live.native.tiltX, 1)}</dd>
-      <dt>incl. Y</dt>
+      <dt>tilt Y</dt>
       <dd>{fmt(live.dom.tiltY, 1)}</dd>
       <dd>{fmt(live.native.tiltY, 1)}</dd>
-      <dt>boutons</dt>
+      <dt>buttons</dt>
       <dd>{live.dom.buttons}</dd>
       <dd>{live.native.buttons}</dd>
     </dl>
 
-    <h2>Dernier trait</h2>
+    <h2>Last stroke</h2>
     {#if reports.dom || reports.native}
       {@const d = reports.dom}
       {@const n = reports.native}
       <dl class="cols">
         <dt></dt>
         <dd class="head">DOM</dd>
-        <dd class="head">Natif</dd>
-        <dt>échantillons</dt>
+        <dd class="head">Native</dd>
+        <dt>samples</dt>
         <dd>{d?.samples ?? "-"}</dd>
         <dd>{n?.samples ?? "-"}</dd>
-        <dt>par événement</dt>
+        <dt>per event</dt>
         <dd>{d ? fmt(d.samplesPerEvent, 2) : "-"}</dd>
         <dd>{n ? fmt(n.samplesPerEvent, 2) : "-"}</dd>
-        <dt>fréquence (Hz)</dt>
+        <dt>rate (Hz)</dt>
         <dd>{d ? fmt(d.sampleRate, 0) : "-"}</dd>
         <dd>{n ? fmt(n.sampleRate, 0) : "-"}</dd>
-        <dt>pression min</dt>
+        <dt>pressure min</dt>
         <dd>{d ? fmt(d.pressureMin) : "-"}</dd>
         <dd>{n ? fmt(n.pressureMin) : "-"}</dd>
-        <dt>pression max</dt>
+        <dt>pressure max</dt>
         <dd>{d ? fmt(d.pressureMax) : "-"}</dd>
         <dd>{n ? fmt(n.pressureMax) : "-"}</dd>
-        <dt>niveaux</dt>
+        <dt>levels</dt>
         <dd>{d?.pressureLevels ?? "-"}</dd>
         <dd>{n?.pressureLevels ?? "-"}</dd>
-        <dt>incl. max</dt>
+        <dt>tilt max</dt>
         <dd>{d ? fmt(d.tiltMax, 1) : "-"}</dd>
         <dd>{n ? fmt(n.tiltMax, 1) : "-"}</dd>
-        <dt>latence moy. (ms)</dt>
+        <dt>latency avg (ms)</dt>
         <dd>{d ? fmt(d.latencyAvg, 1) : "-"}</dd>
         <dd>{n ? fmt(n.latencyAvg, 1) : "-"}</dd>
-        <dt>latence max (ms)</dt>
+        <dt>latency max (ms)</dt>
         <dd>{d ? fmt(d.latencyMax, 1) : "-"}</dd>
         <dd>{n ? fmt(n.latencyMax, 1) : "-"}</dd>
       </dl>
     {:else}
-      <p class="hint">Trace un trait sur la zone de gauche.</p>
+      <p class="hint">Draw a stroke on the left area.</p>
     {/if}
 
-    <h2>Boutons</h2>
+    <h2>Buttons</h2>
     <ul>
       {#each buttonLog as line, i (i)}
         <li>{line}</li>
       {:else}
-        <li class="hint">Appuie sur les boutons du stylet.</li>
+        <li class="hint">Press the pen buttons.</li>
       {/each}
     </ul>
 
     <div class="actions">
-      <button onclick={clear}>Effacer</button>
-      <button onclick={copyReport}>{copyState ?? "Copier le rapport"}</button>
+      <button onclick={clear}>Clear</button>
+      <button onclick={copyReport}>{copyState ?? "Copy report"}</button>
     </div>
   </aside>
 </div>

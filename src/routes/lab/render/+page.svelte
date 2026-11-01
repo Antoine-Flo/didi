@@ -364,7 +364,7 @@
   <aside>
     <h2>GPU</h2>
     <dl>
-      <dt>rendu</dt>
+      <dt>renderer</dt>
       <dd>{info.renderer}</dd>
       <dt>texture max</dt>
       <dd>{info.maxTexture}</dd>
@@ -373,7 +373,7 @@
 
     <h2>Document</h2>
     <label>
-      Taille
+      Size
       <select bind:value={docSize} onchange={buildDocument} disabled={!ready}>
         {#each SIZES as size (size)}
           <option value={size} disabled={info.maxTexture > 0 && size > info.maxTexture}>
@@ -383,7 +383,7 @@
       </select>
     </label>
     <label>
-      Calques
+      Layers
       <select bind:value={layerCount} onchange={buildDocument} disabled={!ready}>
         {#each LAYER_COUNTS as count (count)}
           <option value={count}>{count}</option>
@@ -391,63 +391,63 @@
       </select>
     </label>
     <dl>
-      <dt>mémoire estimée</dt>
-      <dd>{fmt(memoryMB, 0)} Mo</dd>
+      <dt>estimated memory</dt>
+      <dd>{fmt(memoryMB, 0)} MB</dd>
     </dl>
 
-    <h2>Pinceau</h2>
+    <h2>Brush</h2>
     <label>
-      Taille : {brushSize} px
+      Size: {brushSize} px
       <input type="range" min="2" max="300" bind:value={brushSize} />
     </label>
     <label>
       Benchmark
       <select bind:value={benchRate} onchange={resetStats}>
         {#each BENCH_RATES as rate (rate)}
-          <option value={rate}>{rate === 0 ? "arrêt" : `${rate} dabs / frame`}</option>
+          <option value={rate}>{rate === 0 ? "off" : `${rate} dabs / frame`}</option>
         {/each}
       </select>
     </label>
 
-    <h2>Mesures</h2>
+    <h2>Measurements</h2>
     <dl>
       <dt>fps</dt>
       <dd>{fmt(frame.fps, 0)}</dd>
-      <dt>frame moy.</dt>
+      <dt>frame avg</dt>
       <dd>{fmt(frame.avg)} ms</dd>
       <dt>frame p95</dt>
       <dd>{fmt(frame.p95)} ms</dd>
       <dt>frame max</dt>
       <dd>{fmt(frame.max)} ms</dd>
-      <dt>tamponnage (CPU)</dt>
+      <dt>stamping (CPU)</dt>
       <dd>{fmt(stampMs, 2)} ms</dd>
       <dt>dabs / s</dt>
       <dd>{fmt(dabsPerSecond, 0)}</dd>
     </dl>
 
-    <h2>Relecture GPU → CPU</h2>
+    <h2>GPU → CPU readback</h2>
     <button onclick={measureReadback} disabled={!ready || measuring}>
-      {measuring ? "Mesure en cours…" : "Mesurer"}
+      {measuring ? "Measuring…" : "Measure"}
     </button>
     {#each readRows as row (row.zone)}
-      <h3>{row.zone} × {row.zone} ({fmt((row.zone * row.zone * 4) / (1024 * 1024), 2)} Mo)</h3>
+      <h3>{row.zone} × {row.zone} ({fmt((row.zone * row.zone * 4) / (1024 * 1024), 2)} MB)</h3>
       <dl>
-        <dt>bloquant, GPU au repos</dt>
+        <dt>blocking, GPU idle</dt>
         <dd>{fmt(row.idle, 2)} ms</dd>
-        <dt>bloquant, après un trait</dt>
+        <dt>blocking, after a stroke</dt>
         <dd>{fmt(row.afterStroke, 2)} ms</dd>
-        <dt>async, blocage</dt>
+        <dt>async, blocked</dt>
         <dd>{fmt(row.asyncBlocked, 2)} ms</dd>
-        <dt>async, disponible après</dt>
+        <dt>async, available after</dt>
         <dd>{fmt(row.asyncTotal, 1)} ms</dd>
       </dl>
     {/each}
 
     <div class="actions">
-      <button onclick={clearLayers} disabled={!ready}>Effacer</button>
-      <button onclick={fit} disabled={!ready}>Ajuster</button>
+      <button onclick={clearLayers} disabled={!ready}>Clear</button>
+      <button onclick={fit} disabled={!ready}>Fit</button>
     </div>
-    <p class="hint">Molette : zoom. Dessine au stylet sur la toile.</p>
+    <p class="hint">Wheel: zoom. Draw with the pen on the canvas.</p>
   </aside>
 </div>
 

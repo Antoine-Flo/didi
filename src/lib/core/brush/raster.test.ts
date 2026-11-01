@@ -70,11 +70,11 @@ describe("StrokeRaster", () => {
     drawing.writePixels(id, all, fill(all, [0, 200, 0, 255]));
     const half = new StrokeRaster(drawing, id, { ...RED, opacity: 0.5, mode: "erase" });
     half.setPixels([{ x: 50, y: 50 }], 1, true);
-    half.finish("Gomme");
+    half.finish("Eraser");
     expect(pixelAt(drawing, id, 50, 50)).toEqual([0, 100, 0, 128]);
     const full = new StrokeRaster(drawing, id, { ...RED, mode: "erase" });
     full.setPixels([{ x: 150, y: 150 }], 1, true);
-    full.finish("Gomme");
+    full.finish("Eraser");
     expect(pixelAt(drawing, id, 150, 150)).toEqual([0, 0, 0, 0]);
   });
 
@@ -89,7 +89,7 @@ describe("StrokeRaster", () => {
       1,
       true,
     );
-    expect(stroke.finish("Pinceau pixel")).toBeNull();
+    expect(stroke.finish("Pixel brush")).toBeNull();
   });
 
   it("refuses locked layers", () => {
@@ -132,7 +132,7 @@ describe("StrokeRaster: history", () => {
     }
     // The last pixels are not flushed yet: finishing must include them.
     stroke.setPixels([{ x: 300, y: 595 }], 1, true);
-    history.push(stroke.finish("Pinceau pixel")!);
+    history.push(stroke.finish("Pixel brush")!);
     expect(pixelAt(drawing, id, 300, 595)).toEqual([255, 0, 0, 255]);
     const after = capture(drawing);
     expect(history.steps).toBe(1);

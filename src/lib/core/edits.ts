@@ -9,7 +9,7 @@ import type { Layer, LayerProps } from "./layer";
 import { TILE_SIZE, type TileSnapshot } from "./tiles";
 
 export interface Edit {
-  /** Shown in the history, e.g. "Ajouter un calque". */
+  /** Shown in the history, e.g. "Add layer". */
   readonly label: string;
   apply(drawing: Drawing): void;
   revert(drawing: Drawing): void;
@@ -43,7 +43,7 @@ export function group(label: string, edits: readonly Edit[]): Edit {
 export function addLayer(layer: Layer, index?: number): Edit {
   let at = index;
   return {
-    label: "Ajouter un calque",
+    label: "Add layer",
     apply(d) {
       at ??= d.layers.length;
       d.addLayer(layer, at);
@@ -58,7 +58,7 @@ export function addLayer(layer: Layer, index?: number): Edit {
 export function removeLayer(id: string): Edit {
   let removed: ReturnType<Drawing["removeLayer"]>;
   return {
-    label: "Supprimer le calque",
+    label: "Delete layer",
     apply(d) {
       removed = d.removeLayer(id);
     },
@@ -72,7 +72,7 @@ export function removeLayer(id: string): Edit {
 export function moveLayer(id: string, index: number): Edit {
   let from: number;
   return {
-    label: "Déplacer le calque",
+    label: "Move layer",
     apply(d) {
       from = d.moveLayer(id, index);
     },
@@ -85,7 +85,7 @@ export function moveLayer(id: string, index: number): Edit {
 export function updateLayer(id: string, changes: Partial<LayerProps>): Edit {
   let previous: Partial<LayerProps>;
   return {
-    label: "Modifier le calque",
+    label: "Edit layer",
     apply(d) {
       previous = d.updateLayer(id, changes);
     },

@@ -17,7 +17,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
   const unregister = [
     registry.register<{ index?: number; props?: Partial<LayerProps> } | undefined>({
       id: "layer.add",
-      title: "Nouveau calque",
+      title: "New layer",
       run(editor, params) {
         const { drawing } = editor;
         const active = editor.activeLayer;
@@ -25,7 +25,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
         const index =
           params?.index ?? (active ? drawing.indexOf(active.id) + 1 : drawing.layers.length);
         const layer = drawing.createLayer({
-          name: `Calque ${drawing.layers.length + 1}`,
+          name: `Layer ${drawing.layers.length + 1}`,
           ...params?.props,
         });
         editor.history.push(addLayer(layer, index));
@@ -35,7 +35,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id?: string } | undefined>({
       id: "layer.remove",
-      title: "Supprimer le calque",
+      title: "Delete layer",
       enabled: (editor, params) => exists(editor.drawing, target(editor, params?.id)),
       run(editor, params) {
         const { drawing } = editor;
@@ -52,7 +52,8 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id?: string; index: number }>({
       id: "layer.move",
-      title: "Déplacer le calque",
+      title: "Move layer",
+      needsParams: true,
       enabled(editor, { id, index }) {
         const { drawing } = editor;
         const layerId = target(editor, id);
@@ -67,24 +68,78 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
       run: (editor, { id, index }) => editor.history.push(moveLayer(target(editor, id)!, index)),
     }),
 
+    ...(
+      [
+        ["layer.moveUp", "Move layer up", 1],
+        ["layer.moveDown", "Move layer down", -1],
+      ] as const
+    ).map(([commandId, title, step]) =>
+      registry.register<{ id?: string } | undefined>({
+        id: commandId,
+        title,
+        enabled(editor, params) {
+          const { drawing } = editor;
+          const id = target(editor, params?.id);
+          if (!exists(drawing, id)) return false;
+          const index = drawing.indexOf(id) + step;
+          return index >= 0 && index < drawing.layers.length;
+        },
+        run(editor, params) {
+          const id = target(editor, params?.id)!;
+          editor.history.push(moveLayer(id, editor.drawing.indexOf(id) + step));
+        },
+      }),
+    ),
+
     registry.register<{ id?: string; changes: Partial<LayerProps> }>({
       id: "layer.update",
-      title: "Modifier le calque",
+      title: "Edit layer",
+      needsParams: true,
       enabled: (editor, { id }) => exists(editor.drawing, target(editor, id)),
       run: (editor, { id, changes }) =>
         editor.history.push(updateLayer(target(editor, id)!, changes)),
     }),
 
+    registry.register<{ id: string }>({
+      id: "layer.select",
+      title: "Select layer",
+      needsParams: true,
+      enabled: (editor, { id }) => exists(editor.drawing, id),
+      run: (editor, { id }) => editor.setActiveLayer(id),
+    }),
+
+    ...(
+      [
+        ["layer.selectAbove", "Select layer above", 1],
+        ["layer.selectBelow", "Select layer below", -1],
+      ] as const
+    ).map(([commandId, title, step]) =>
+      registry.register({
+        id: commandId,
+        title,
+        enabled(editor) {
+          const active = editor.activeLayer;
+          if (!active) return false;
+          const index = editor.drawing.indexOf(active.id) + step;
+          return index >= 0 && index < editor.drawing.layers.length;
+        },
+        run(editor) {
+          const index = editor.drawing.indexOf(editor.activeLayer!.id) + step;
+          editor.setActiveLayer(editor.drawing.layers[index].id);
+        },
+      }),
+    ),
+
     registry.register({
       id: "history.undo",
-      title: "Annuler",
+      title: "Undo",
       enabled: (editor) => editor.history.canUndo,
       run: (editor) => editor.history.undo(),
     }),
 
     registry.register({
       id: "history.redo",
-      title: "Rétablir",
+      title: "Redo",
       enabled: (editor) => editor.history.canRedo,
       run: (editor) => editor.history.redo(),
     }),
