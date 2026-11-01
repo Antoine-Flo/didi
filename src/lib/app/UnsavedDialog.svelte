@@ -2,8 +2,8 @@
   // Asks what to do with unsaved changes, before they would be lost.
 
   import { AlertDialog } from "bits-ui";
-  import { popupClosed, popupOpened } from "$lib/app/dismissal";
-  import type { UnsavedChoice } from "$lib/app/session.svelte";
+  import { popupClosed, popupOpened } from "#lib/app/dismissal.js";
+  import type { UnsavedChoice } from "#lib/app/session.svelte.js";
 
   let {
     request,

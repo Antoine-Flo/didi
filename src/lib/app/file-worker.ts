@@ -9,8 +9,8 @@ import {
   thumbnail,
   writeDidi,
   type DocumentData,
-} from "$lib/core/didi-file";
-import { encodePng } from "$lib/core/png";
+} from "#lib/core/didi-file.js";
+import { encodePng } from "#lib/core/png.js";
 
 /** The buffers of a document's tiles, to transfer them instead of copying. */
 function tileBuffers(doc: DocumentData): ArrayBuffer[] {

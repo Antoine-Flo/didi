@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Drawing } from "$lib/core/drawing";
-import { Editor } from "$lib/core/editor";
-import { capture, expectSameState, fill } from "$lib/core/test-utils";
-import { loadMyPaint, type MyPaint } from "$lib/mypaint/engine";
+import { Drawing } from "#lib/core/drawing.js";
+import { Editor } from "#lib/core/editor.js";
+import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
+import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
 import { Painter } from "./painter";
-import type { RGB } from "$lib/core/color";
+import type { RGB } from "#lib/core/color.js";
 import { defaultToolOptions, type ToolId } from "./tools";
 
 let engine: MyPaint;
@@ -185,7 +185,7 @@ describe("samples with the same time", () => {
     // Pairs of events sharing a timestamp, as with 1 ms resolution, every 8 ms.
     const paired = Array.from({ length: 30 }, (_, i) => Math.floor(i / 2) * 8);
     const even = Array.from({ length: 30 }, (_, i) => i * 4);
-    const { firstDifference } = await import("$lib/core/test-utils");
+    const { firstDifference } = await import("#lib/core/test-utils.js");
     expect(firstDifference(run(paired), run(even))).toBe(-1);
   });
 

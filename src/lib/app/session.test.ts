@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readDidi, writeDidi } from "$lib/core/didi-file";
+import { readDidi, writeDidi } from "#lib/core/didi-file.js";
 import type { UnsavedChoice } from "./session.svelte";
 
 // Files and app data in memory, and the worker's work done directly.
@@ -7,7 +7,7 @@ const disk = new Map<string, Uint8Array>();
 const data = new Map<string, Uint8Array | string>();
 const dialogs = { open: null as string | null, save: null as string | null };
 
-vi.mock("$lib/platform/storage", () => ({
+vi.mock("#lib/platform/storage.js", () => ({
   canUseFiles: () => true,
   readFile: async (path: string) => {
     const bytes = disk.get(path);

@@ -18,29 +18,29 @@
     ZoomIn,
     ZoomOut,
   } from "@lucide/svelte";
-  import "$lib/app/ui.css";
-  import BrushBrowser from "$lib/app/BrushBrowser.svelte";
+  import "#lib/app/ui.css";
+  import BrushBrowser from "#lib/app/BrushBrowser.svelte";
   import CanvasView, {
     type BrushCursor,
     type Insets,
     type ViewStats,
-  } from "$lib/app/CanvasView.svelte";
-  import ColorPicker from "$lib/app/ColorPicker.svelte";
-  import CommandPalette from "$lib/app/CommandPalette.svelte";
-  import LayersPanel from "$lib/app/LayersPanel.svelte";
-  import PalettePanel from "$lib/app/PalettePanel.svelte";
-  import Slider from "$lib/app/Slider.svelte";
-  import StartScreen from "$lib/app/StartScreen.svelte";
-  import UnsavedDialog from "$lib/app/UnsavedDialog.svelte";
-  import { registerAppCommands } from "$lib/app/app-commands";
-  import { DEFAULT_KEYMAP } from "$lib/app/default-keymap";
-  import { decodeImage, importImage } from "$lib/app/import-image";
-  import { isTyping } from "$lib/app/keyboard";
-  import { formatChord, KeymapIndex } from "$lib/app/keymap";
-  import { Painter } from "$lib/app/painter";
-  import { flushPalettes, loadPalettes } from "$lib/app/palette-storage";
-  import { Session, type UnsavedChoice } from "$lib/app/session.svelte";
-  import { applyTheme, DEFAULT_THEME } from "$lib/app/theme";
+  } from "#lib/app/CanvasView.svelte";
+  import ColorPicker from "#lib/app/ColorPicker.svelte";
+  import CommandPalette from "#lib/app/CommandPalette.svelte";
+  import LayersPanel from "#lib/app/LayersPanel.svelte";
+  import PalettePanel from "#lib/app/PalettePanel.svelte";
+  import Slider from "#lib/app/Slider.svelte";
+  import StartScreen from "#lib/app/StartScreen.svelte";
+  import UnsavedDialog from "#lib/app/UnsavedDialog.svelte";
+  import { registerAppCommands } from "#lib/app/app-commands.js";
+  import { DEFAULT_KEYMAP } from "#lib/app/default-keymap.js";
+  import { decodeImage, importImage } from "#lib/app/import-image.js";
+  import { isTyping } from "#lib/app/keyboard.js";
+  import { formatChord, KeymapIndex } from "#lib/app/keymap.js";
+  import { Painter } from "#lib/app/painter.js";
+  import { flushPalettes, loadPalettes } from "#lib/app/palette-storage.js";
+  import { Session, type UnsavedChoice } from "#lib/app/session.svelte.js";
+  import { applyTheme, DEFAULT_THEME } from "#lib/app/theme.js";
   import {
     sizeFromSlider,
     sliderFromSize,
@@ -48,11 +48,11 @@
     TOOLS,
     MAX_PIXEL_SIZE,
     type ToolId,
-  } from "$lib/app/tools";
-  import type { Editor } from "$lib/core/editor";
-  import { parseHexPalette, type PaletteLibrary } from "$lib/core/palette";
-  import { loadMyPaint } from "$lib/mypaint/engine";
-  import type { Camera, Point } from "$lib/render/camera";
+  } from "#lib/app/tools.js";
+  import type { Editor } from "#lib/core/editor.js";
+  import { parseHexPalette, type PaletteLibrary } from "#lib/core/palette.js";
+  import { loadMyPaint } from "#lib/mypaint/engine.js";
+  import type { Camera, Point } from "#lib/render/camera.js";
 
   /** A document to start with (e.g. the stress test); a new one by default. */
   let { initial }: { initial?: Editor } = $props();
@@ -207,6 +207,7 @@
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
       .catch((e) => (error = `Brush engine unavailable: ${e instanceof Error ? e.message : e}`));
+
     loadPalettes(notify).then((library) => {
       palettes = library;
       library.subscribe(() => paletteVersion++);
@@ -343,9 +344,10 @@
 
   <div class="panel bar top" bind:this={top}>
     <div class="group">
-      <button class="icon" title={tip("file.importImage")} onclick={() => run("file.importImage")}>
-        <ImagePlus size={16} />
-      </button>
+      <button class="icon" title={tip("file.importImage")} onclick={() => run("file.importImage")}
+        ><ImagePlus size={16} /></button
+      >
+
       <button
         class="icon"
         title={tip("history.undo")}
@@ -407,24 +409,30 @@
     </div>
 
     <div class="group">
-      <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}>
-        <ZoomOut size={16} />
-      </button>
-      <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}>
-        {Math.round(camera.zoom * 100)}%
-      </button>
-      <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}>
-        <ZoomIn size={16} />
-      </button>
-      <button class="icon" title={tip("view.fit")} onclick={() => run("view.fit")}>
-        <Maximize size={16} />
-      </button>
-      <button class="icon" title={tip("view.rotateLeft")} onclick={() => run("view.rotateLeft")}>
-        <RotateCcw size={16} />
-      </button>
-      <button class="icon" title={tip("view.rotateRight")} onclick={() => run("view.rotateRight")}>
-        <RotateCw size={16} />
-      </button>
+      <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}
+        ><ZoomOut size={16} /></button
+      >
+
+      <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}
+        >{Math.round(camera.zoom * 100)}%</button
+      >
+
+      <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}
+        ><ZoomIn size={16} /></button
+      >
+
+      <button class="icon" title={tip("view.fit")} onclick={() => run("view.fit")}
+        ><Maximize size={16} /></button
+      >
+
+      <button class="icon" title={tip("view.rotateLeft")} onclick={() => run("view.rotateLeft")}
+        ><RotateCcw size={16} /></button
+      >
+
+      <button class="icon" title={tip("view.rotateRight")} onclick={() => run("view.rotateRight")}
+        ><RotateCw size={16} /></button
+      >
+
       <button
         class="icon"
         title="{tip('view.resetRotation')} · {degrees(camera.rotation)}°"
@@ -438,9 +446,12 @@
   <aside class="panel right" bind:this={right}>
     <section class="section">
       <span class="section-title">Color</span>
+
       <ColorPicker color={options.color} onchange={(c) => (options.color = c)} />
     </section>
+
     <PalettePanel library={palettes} version={paletteVersion} color={options.color} {tip} {run} />
+
     <LayersPanel {editor} {version} {tip} {run} />
   </aside>
 
@@ -454,10 +465,10 @@
       <span title="Frames per second">{Math.round(stats.fps)} fps</span>
       <span title="Tiles on the GPU">{stats.tiles} tiles</span>
     {/if}
-    <span title="Memory of the pixels / of the history (estimate)">
-      {mb(memory.pixels)} · history {mb(memory.history)}
-    </span>
-    <a href={resolve("/lab")}>Lab</a>
+    <span title="Memory of the pixels / of the history (estimate)"
+      >{mb(memory.pixels)} · history {mb(memory.history)}</span
+    >
+    <a href={resolve("lab")}>Lab</a>
   </footer>
 
   <input
@@ -485,6 +496,7 @@
 </div>
 
 <CommandPalette {editor} {keymap} bind:open={paletteOpen} />
+
 <StartScreen
   bind:open={startOpen}
   recent={session.recent}

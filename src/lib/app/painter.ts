@@ -10,14 +10,14 @@
 // freezing the interface. After `end`, the queue keeps draining over the next frames; the
 // stroke becomes an undo step once it is fully painted.
 
-import { PixelPathBuilder } from "$lib/core/brush/pixel-path";
-import { StrokeRaster } from "$lib/core/brush/raster";
-import { composite } from "$lib/core/compositing";
-import type { Editor } from "$lib/core/editor";
-import { unpremultiply } from "$lib/core/pixels";
-import { bundledBrush } from "$lib/mypaint/brushes";
-import { MyPaintStroke, type Brush, type MyPaint } from "$lib/mypaint/engine";
-import type { RGB } from "$lib/core/color";
+import { PixelPathBuilder } from "#lib/core/brush/pixel-path.js";
+import { StrokeRaster } from "#lib/core/brush/raster.js";
+import { composite } from "#lib/core/compositing.js";
+import type { Editor } from "#lib/core/editor.js";
+import { unpremultiply } from "#lib/core/pixels.js";
+import { bundledBrush } from "#lib/mypaint/brushes.js";
+import { MyPaintStroke, type Brush, type MyPaint } from "#lib/mypaint/engine.js";
+import type { RGB } from "#lib/core/color.js";
 import type { ToolId, ToolOptions } from "./tools";
 
 export interface Sample {

@@ -3,19 +3,24 @@
   // eraser tool, painting brushes for the others.
 
   import { asset } from "$app/paths";
-  import Select from "$lib/app/Select.svelte";
-  import { brushGroups } from "$lib/mypaint/brushes";
+  import type { AssetPath } from "$app/types";
+  import Select from "#lib/app/Select.svelte";
+  import { brushGroups } from "#lib/mypaint/brushes.js";
 
   let {
     eraser,
     selected,
     onselect,
+
+    /** Id of the current brush. */
   }: {
     eraser: boolean;
-    /** Id of the current brush. */
     selected: string;
     onselect: (id: string) => void;
   } = $props();
+
+  /** Previews are in static/brushes/, one per bundled brush. */
+  const preview = (id: string) => `brushes/${id}.png` as AssetPath;
 
   const groups = $derived(brushGroups(eraser));
   // The open group, for brushes and for erasers.
@@ -36,7 +41,8 @@
     {#each group.brushes as brush (brush.id)}
       <li>
         <button class:active={brush.id === selected} onclick={() => onselect(brush.id)}>
-          <img src={asset(`/brushes/${brush.id}.png`)} alt="" loading="lazy" draggable="false" />
+          <img src={asset(preview(brush.id))} alt="" loading="lazy" draggable="false" />
+
           <span>{brush.name}</span>
         </button>
       </li>

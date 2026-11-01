@@ -10,6 +10,8 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use tauri::ipc::Channel;
 
+// Only produced by the Linux code: elsewhere, nothing sends pen events (yet).
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 #[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Phase {
@@ -46,6 +48,7 @@ pub struct PenEvent {
 pub struct PenSink(Arc<Mutex<Option<Channel<PenEvent>>>>);
 
 impl PenSink {
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
     fn send(&self, event: PenEvent) {
         let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(channel) = guard.as_ref()

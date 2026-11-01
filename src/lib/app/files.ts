@@ -2,8 +2,8 @@
 // reading and writing files goes through the platform layer.
 
 import * as Comlink from "comlink";
-import type { DocumentData } from "$lib/core/didi-file";
-import { readFile, writeFile } from "$lib/platform/storage";
+import type { DocumentData } from "#lib/core/didi-file.js";
+import { readFile, writeFile } from "#lib/platform/storage.js";
 import type { FileWorker } from "./file-worker";
 
 let worker: Comlink.Remote<FileWorker> | null = null;

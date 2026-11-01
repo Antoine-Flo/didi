@@ -1,13 +1,22 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+// Tauri has no Node.js server for SSR: adapter-static with a fallback to index.html puts
+// the app in SPA mode. See https://v2.tauri.app/start/frontend/sveltekit/
+import adapter from "@sveltejs/adapter-static";
 import process from "node:process";
+
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [sveltekit()],
-
+  plugins: [
+    sveltekit({
+      preprocess: vitePreprocess(),
+      adapter: adapter({ fallback: "index.html" }),
+    }),
+  ],
   test: {
     include: ["src/**/*.test.ts"],
     passWithNoTests: true,

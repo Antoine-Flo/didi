@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
-import { Drawing } from "$lib/core/drawing";
+import { Drawing } from "#lib/core/drawing.js";
 import { bundledBrush } from "./brushes";
 import { loadMyPaint, MyPaintStroke } from "./engine";
 

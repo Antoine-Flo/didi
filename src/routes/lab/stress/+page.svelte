@@ -2,10 +2,10 @@
   // Stress test: a large drawing with many layers, opened in the regular editor.
   // Parameters: ?size=4096&layers=10&fill=0.5 (fraction of tiles filled per layer).
   import { page } from "$app/state";
-  import EditorApp from "$lib/app/EditorApp.svelte";
-  import { Drawing } from "$lib/core/drawing";
-  import { Editor } from "$lib/core/editor";
-  import { TILE_SIZE } from "$lib/core/tiles";
+  import EditorApp from "#lib/app/EditorApp.svelte";
+  import { Drawing } from "#lib/core/drawing.js";
+  import { Editor } from "#lib/core/editor.js";
+  import { TILE_SIZE } from "#lib/core/tiles.js";
 
   const params = page.url.searchParams;
   const size = Number(params.get("size") ?? 4096);

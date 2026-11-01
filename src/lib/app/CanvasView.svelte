@@ -25,11 +25,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Application } from "pixi.js";
-  import { consumeDismissal } from "$lib/app/dismissal";
-  import { isTyping } from "$lib/app/keyboard";
-  import type { Painter, Sample } from "$lib/app/painter";
-  import type { Editor } from "$lib/core/editor";
-  import { nativePenAvailable, subscribeNativePen, type PenEvent } from "$lib/platform/pen";
+  import { consumeDismissal } from "#lib/app/dismissal.js";
+  import { isTyping } from "#lib/app/keyboard.js";
+  import type { Painter, Sample } from "#lib/app/painter.js";
+  import type { Editor } from "#lib/core/editor.js";
+  import { nativePenAvailable, subscribeNativePen, type PenEvent } from "#lib/platform/pen.js";
   import {
     fit,
     pan,
@@ -39,8 +39,8 @@
     zoomAt,
     type Camera,
     type Point,
-  } from "$lib/render/camera";
-  import { DrawingView } from "$lib/render/drawing-view";
+  } from "#lib/render/camera.js";
+  import { DrawingView } from "#lib/render/drawing-view.js";
 
   let {
     editor,

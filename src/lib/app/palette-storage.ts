@@ -1,7 +1,7 @@
 // Loads the user's palettes from the app data folder, and saves them after every change.
 
-import { PaletteLibrary, parsePaletteFile } from "$lib/core/palette";
-import { readDataFile, writeDataFile } from "$lib/platform/storage";
+import { PaletteLibrary, parsePaletteFile } from "#lib/core/palette.js";
+import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 
 const FILE = "palettes.json";
 /** A file that could not be read is kept under this name instead of being overwritten. */

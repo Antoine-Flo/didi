@@ -1,7 +1,7 @@
 // Recently opened or saved documents, for the start screen: recent.json in the app data
 // folder, with a small preview of each document.
 
-import { readDataFile, writeDataFile } from "$lib/platform/storage";
+import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 
 export interface RecentFile {
   path: string;

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { Drawing } from "$lib/core/drawing";
-import { Editor } from "$lib/core/editor";
-import { PaletteLibrary } from "$lib/core/palette";
+import { Drawing } from "#lib/core/drawing.js";
+import { Editor } from "#lib/core/editor.js";
+import { PaletteLibrary } from "#lib/core/palette.js";
 import { registerAppCommands, type AppHost, type ViewControls } from "./app-commands";
 import { DEFAULT_KEYMAP } from "./default-keymap";
 import { defaultToolOptions } from "./tools";

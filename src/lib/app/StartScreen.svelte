@@ -4,10 +4,10 @@
 
   import { Dialog } from "bits-ui";
   import { FolderOpen } from "@lucide/svelte";
-  import { popupClosed, popupOpened } from "$lib/app/dismissal";
-  import { DEFAULT_SIZE, type Background } from "$lib/app/new-drawing";
-  import type { RecentFile } from "$lib/app/recent";
-  import type { RecoveryInfo } from "$lib/app/session.svelte";
+  import { popupClosed, popupOpened } from "#lib/app/dismissal.js";
+  import { DEFAULT_SIZE, type Background } from "#lib/app/new-drawing.js";
+  import type { RecentFile } from "#lib/app/recent.js";
+  import type { RecoveryInfo } from "#lib/app/session.svelte.js";
 
   let {
     open = $bindable(false),

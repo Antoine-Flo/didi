@@ -3,7 +3,9 @@ import ts from "typescript-eslint";
 import svelte from "eslint-plugin-svelte";
 import prettier from "eslint-config-prettier";
 import globals from "globals";
-import svelteConfig from "./svelte.config.js";
+import { loadConfig } from "@sveltejs/load-config";
+
+const svelteConfig = (await loadConfig("./", { traverse: false }))?.config;
 
 export default ts.config(
   {
@@ -45,7 +47,7 @@ export default ts.config(
         {
           patterns: [
             {
-              group: ["pixi.js", "svelte", "svelte/*", "@tauri-apps/*", "$app/*", "$lib/*"],
+              group: ["pixi.js", "svelte", "svelte/*", "@tauri-apps/*", "$app/*", "#lib/*"],
               message: "src/lib/core must not depend on UI, rendering or platform code.",
             },
           ],

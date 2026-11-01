@@ -22,6 +22,7 @@ Didi sert à créer des **assets de jeu vidéo** (2D classique ou pixel art), fa
 - **Steam en première cible**, avec Windows comme plateforme principale. Linux (dont le Steam Deck) et macOS sont aussi visés.
 - **Pas de version navigateur** : l'intégration à Godot a besoin d'un accès aux fichiers du projet (écriture, surveillance) que le web ne donne pas.
 - Le Steam Workshop pourra servir à partager pinceaux, roues, thèmes et plugins.
+- **Comme Aseprite** : le code source est public et chacun peut compiler Didi lui-même ; la version prête à l'emploi (et mise à jour) est vendue sur Steam. Les releases GitHub ne contiennent que le code source, pas d'exécutable.
 
 ## Roue rapide
 

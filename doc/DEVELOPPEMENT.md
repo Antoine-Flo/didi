@@ -19,8 +19,20 @@ Si l'interface perd ses styles ou que des fichiers renvoient des 404 après de g
 
 ## Intégration continue (GitHub Actions)
 
-- **CI** (`ci.yml`) : lint, types et tests (TypeScript), puis formatage, clippy et tests (Rust), à chaque push.
-- **Windows build** (`windows.yml`) : construit `didi.exe` à chaque push sur `main` (ou à la main depuis l'onglet Actions). L'exécutable se télécharge dans les artefacts du run. Pas d'installateur pour l'instant ; il faut le runtime WebView2, présent sur Windows 10 et 11.
+- **CI** (`ci.yml`) : lint, types et tests (TypeScript), puis formatage, clippy et tests (Rust), à chaque push. Linux uniquement (Ubuntu, Node 26), pour économiser les minutes : pas de build Windows automatique.
+
+## Prérequis
+
+- Node 26 (LTS) et Rust stable.
+- Linux : les paquets de développement de WebKitGTK 4.1 (voir la CI ou la [doc Tauri](https://v2.tauri.app/start/prerequisites/)).
+
+## Compiler sous Windows
+
+1. Installer Node 26, Rust (rustup, chaîne MSVC) et les « Build Tools for Visual Studio » (charge de travail « Développement Desktop en C++ »). WebView2 est déjà présent sur Windows 10 et 11.
+2. Cloner le dépôt, puis `npm ci`.
+3. `npm run tauri dev` pour lancer l'application, ou `npm run tauri build -- --no-bundle` pour un exécutable seul : `src-tauri/target/release/didi.exe`.
+
+La lecture native du stylet n'existe que sous Linux pour l'instant : sous Windows, le dessin passe par les Pointer Events de WebView2 (à évaluer, voir la roadmap).
 
 ## Organisation
 
