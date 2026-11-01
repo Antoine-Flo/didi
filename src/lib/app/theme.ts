@@ -26,6 +26,9 @@ export const TOKENS = [
   /** Accent: focus rings, checkboxes. Used sparingly. */
   "accent",
   "danger",
+  /** Close button of the title bar, when hovered. */
+  "window-close",
+  "window-close-text",
   /** Around the drawing. */
   "canvas-bg",
   /** Behind popups and dialogs. */
@@ -39,6 +42,8 @@ export const TOKENS = [
   "space",
   /** Height of buttons, fields and list rows. */
   "control-height",
+  /** Height of the window's title bar. */
+  "titlebar-height",
   /** Corners of panels and popups. */
   "radius",
   /** Corners of buttons, fields and list items. */
@@ -73,6 +78,8 @@ export const DEFAULT_THEME: Theme = {
     selected: "#ffffff1f",
     accent: "#7a9cc6",
     danger: "#d97a7a",
+    "window-close": "#c42b1c",
+    "window-close-text": "#ffffff",
     "canvas-bg": "#1c1c1c",
     overlay: "#00000059",
     shadow: "0 2px 10px #00000040",
@@ -80,6 +87,7 @@ export const DEFAULT_THEME: Theme = {
     "font-size": "12px",
     space: "8px",
     "control-height": "26px",
+    "titlebar-height": "32px",
     radius: "6px",
     "radius-small": "4px",
   },

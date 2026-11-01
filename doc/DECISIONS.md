@@ -4,6 +4,23 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 ---
 
+## Barre de titre dessinée par l'app
+
+**Date** : 2026-11-01 · **Phase** : 5
+
+**Décision** : la barre de titre du système est désactivée (`decorations: false`) ; l'app dessine la sienne (`Titlebar.svelte`, dans le layout racine, donc aussi sur les pages lab), comme Zed ou Discord : fine (32 px), couleur du fond, nom du document à gauche avec `●` si non enregistré, boutons plats à droite dans le style de Windows 11 (fermer en rouge au survol).
+
+**Pourquoi** : une interface plus propre et identique sur tous les systèmes, au lieu d'une barre GTK ou Windows qui détonne avec le thème.
+
+**Notes** :
+
+- Glisser la barre déplace la fenêtre, un double-clic l'agrandit (`startDragging`, `toggleMaximize`). Fermer passe par la demande de fermeture habituelle (proposition d'enregistrer).
+- La barre reste au-dessus des fenêtres de dialogue : on peut toujours déplacer ou fermer la fenêtre.
+- Le titre de la fenêtre reste mis à jour pour la barre des tâches.
+- Le stylet natif (Linux) n'est pas concerné : il ne dessine que si la pointe est sur la toile.
+- Redimensionnement par les bords : assuré par Tauri (et l'ombre de fenêtre sous Windows).
+- macOS (plus tard) : garder les boutons natifs en surimpression (`titleBarStyle: "Overlay"`).
+
 ## Format `.didi` et gestion des fichiers
 
 **Date** : 2026-11-01 · **Phase** : 5

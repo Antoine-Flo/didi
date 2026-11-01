@@ -2,6 +2,13 @@
 
 Règle : on ne passe à la phase suivante que si la précédente est **stable, testée et performante**.
 
+## Où on en est (2026-11-01)
+
+- **Fait** : phases 0 à 4, et la phase 5 sauf la vérification sur machine modeste. Didi tourne sous Linux et Windows (testé).
+- **Prochaine étape** : phase 5b, les outils essentiels (pot de peinture et gomme pixel en premier), puis le jalon v0.1.
+- **Ensuite** : phase 6, le pont Godot.
+- **Reporté, à reprendre plus tard** : import de `.myb`, actions des boutons du stylet, rejeu de traits enregistrés (phase 3) ; roue rapide et fenêtre des paramètres `.myb` (phase 4) ; peinture dans un worker pour les pinceaux géants ; lecture native du stylet sous Windows si la comparaison avec Krita le justifie.
+
 ---
 
 ## Phase 0 — Fondations et validations techniques
@@ -41,7 +48,7 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - ✅ Un trait = un seul Ctrl+Z, annulation par Échap, clic de fermeture des fenêtres ignoré.
 - ✅ Comparaison automatique avec MyPaint (`npm run compare:brushes`) : même rendu à pression égale.
 - Reporté (après la phase 4) :
-  - Import de pinceaux `.myb` par l'utilisateur, gomme pixel.
+  - Import de pinceaux `.myb` par l'utilisateur. (La gomme pixel passe en phase 5b.)
   - Actions associables aux boutons du stylet et au mode gomme (gomme, roue, déplacer…), car chaque pilote les envoie différemment.
   - Enregistrement de vrais traits au stylet, rejoués dans les tests.
 
@@ -57,6 +64,8 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - ✅ Sélecteur de couleur : carré (saturation, luminosité) + bande de teinte, code hexadécimal.
 - ✅ Palettes : création, renommage, suppression, ajout et retrait de couleurs (clic droit), enregistrement automatique (dossier de données de l'app, en attendant la phase 5), import de fichiers `.hex` (format de Lospec, aussi par glisser-déposer). PICO-8 fournie par défaut.
 - ✅ Raccourcis (keymap maison, sans hotkeys-js ; valeurs par défaut, configurables plus tard) et palette de commandes (Ctrl+K).
+- ✅ Menus déroulants dessinés par l'app (Bits UI), sans popup GTK.
+- ✅ Pinceaux en file d'attente avec un budget par frame (comme MyPaint) : un pinceau géant prend du retard au lieu de geler l'interface. Peindre dans un worker reste possible si besoin.
 - Reporté : roue rapide v1 (roue personnalisable définie comme un fichier), fenêtre de réglage des paramètres `.myb`.
 
 ## Phase 5 — Fichiers et robustesse
@@ -70,7 +79,21 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - Un document à la fois (onglets plus tard).
 
 - Vérification des performances sur une machine modeste (GPU intégré).
-- **Windows** : pages de test tablette et rendu sur WebView2, puis build et test complet.
+- ✅ **Windows** : build et test complet (compilé à la main, voir `DEVELOPPEMENT.md`). Fonctionne bien.
+- Windows : le trait suit un peu difficilement quand on va très vite (Pointer Events de WebView2). À comparer côte à côte avec Krita et d'autres logiciels avant de décider s'il faut une lecture native.
+- ✅ Barre de titre dessinée par l'app (comme Zed ou Discord) : nom du document, `●` si non enregistré, boutons réduire, agrandir et fermer. À vérifier au stylet et au redimensionnement sous Linux et Windows ; macOS (boutons natifs en surimpression) en phase 10.
+- ✅ CI à jour (actions v7, Node 26, Ubuntu 26.04) ; dépendances à jour (SvelteKit 3). Pas de build Windows automatique : chacun compile, la version prête à l'emploi sera sur Steam.
+
+## Phase 5b — Outils essentiels
+
+Ce qu'il faut pour dessiner de vrais assets de jeu sans repasser par un autre logiciel. Peu d'outils, mais soignés et testés.
+
+- Pot de peinture (remplissage, avec tolérance ; exact au pixel pour le pixel art).
+- Gomme pixel (pixel-perfect, sans bords doux).
+- Pipette rapide (Alt + clic) avec n'importe quel outil.
+- Sélection rectangulaire, déplacement de la sélection ou du calque, copier-coller.
+- Retourner horizontalement et verticalement (calque ou sélection).
+- Redimensionner la toile (agrandir, recadrer).
 
 **Jalon v0.1** : un logiciel de dessin simple, utilisable au quotidien.
 
@@ -106,7 +129,7 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 
 - Intégration Steamworks, builds Windows, Linux (Steam Deck) et macOS.
 - Steam Workshop pour le partage de pinceaux, roues, thèmes et plugins.
-- Test sur macOS (entrée tablette dans WebKit, lecture native si nécessaire).
+- Test sur macOS (entrée tablette dans WebKit, lecture native si nécessaire). Barre de titre : garder les boutons natifs de macOS (`titleBarStyle: "Overlay"`) au lieu des nôtres.
 
 ---
 

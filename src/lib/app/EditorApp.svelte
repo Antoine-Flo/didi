@@ -40,7 +40,7 @@
   import { Painter } from "#lib/app/painter.js";
   import { flushPalettes, loadPalettes } from "#lib/app/palette-storage.js";
   import { Session, type UnsavedChoice } from "#lib/app/session.svelte.js";
-  import { applyTheme, DEFAULT_THEME } from "#lib/app/theme.js";
+  import { windowTitle } from "#lib/app/window-title.svelte.js";
   import {
     sizeFromSlider,
     sliderFromSize,
@@ -102,8 +102,6 @@
     }, 6000);
   }
 
-  // Before anything is mounted: the canvas reads its background from the theme.
-  applyTheme(DEFAULT_THEME);
   const keymap = new KeymapIndex(DEFAULT_KEYMAP);
   let paletteOpen = $state(false);
 
@@ -238,11 +236,17 @@
     return () => unsubscribe.forEach((fn) => fn());
   });
 
-  // "● name — Didi" while there are unsaved changes.
+  // "● name — Didi" while there are unsaved changes (taskbar), and the same in our title bar.
   $effect(() => {
+    windowTitle.name = session.name;
+    windowTitle.dirty = session.dirty;
     const title = `${session.dirty ? "● " : ""}${session.name} — Didi`;
     if (isTauri()) getCurrentWindow().setTitle(title);
     else document.title = title;
+  });
+  $effect(() => () => {
+    windowTitle.name = "Didi";
+    windowTitle.dirty = false;
   });
 
   /** Imports images as layers and .hex files as palettes. */
@@ -509,10 +513,11 @@
 <UnsavedDialog request={unsavedRequest} />
 
 <style>
-  /* The canvas fills the window; the panels float over it, inset from the edges. */
+  /* The canvas fills the window (below the title bar); the panels float over it, inset
+     from the edges. */
   .app {
     position: relative;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
     --left-width: 200px;
     --right-width: 200px;

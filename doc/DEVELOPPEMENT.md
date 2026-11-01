@@ -49,6 +49,8 @@ La lecture native du stylet n'existe que sous Linux pour l'instant : sous Window
 | `native/mypaint/`   | Compilation de libmypaint en WebAssembly.                                                                                                                                                                                                                                                    |
 | `tools/`            | Outils de développement (comparaison avec MyPaint).                                                                                                                                                                                                                                          |
 
+Imports (SvelteKit 3) : `#lib/…` au lieu de `$lib/…`, avec l'extension `.js` (ex. `#lib/core/editor.js`). La configuration de SvelteKit est dans `vite.config.js` (plus de `svelte.config.js`).
+
 ## Principes du cœur
 
 - **Tuiles** de 256 × 256, RGBA 8 bits, alpha prémultiplié. Une tuile vide n'existe pas ; une tuile stockée n'est jamais modifiée sur place.
@@ -81,3 +83,4 @@ Nécessite MyPaint installé en paquet système (`/usr/lib64/mypaint`). Sans lui
 - **Validation par bugs volontaires** : chaque nouveau test est vérifié en introduisant un défaut dans le code pour s'assurer qu'il le détecte.
 - **Déterminisme** : un même trait donne toujours le même résultat, pour les 196 pinceaux.
 - Garder les tests rapides : générateurs bornés, et toujours lancer les tests avec une limite de temps (`testTimeout` de 30 s dans `vite.config.js`).
+- **Vérifier l'interface sans l'app** : `npx vite dev --port 1430` (pas 1420, réservé à `npm run tauri dev`), puis un Chromium headless piloté par le protocole DevTools pour cliquer et faire des captures. Les fichiers, dialogues et le stylet natif ne marchent que dans l'app Tauri.
