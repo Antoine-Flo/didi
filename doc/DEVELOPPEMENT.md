@@ -10,12 +10,17 @@ Comment le code est organisé, et comment travailler dessus.
 | ------------------------- | ----------------------------------------------------------- |
 | `npm run tauri dev`       | Lance l'application (recompile aussi la partie Rust).       |
 | `npm test`                | Tests (Vitest), environ 5 s.                                |
-| `npm run lint`            | Formatage (Prettier) et lint (ESLint).                      |
+| `npm run lint`            | Formatage (Prettier, rustfmt) et lint (ESLint).             |
 | `npm run check`           | Vérification des types (TypeScript, Svelte).                |
-| `npm run format`          | Reformate tout le code.                                     |
+| `npm run format`          | Reformate tout le code (TypeScript, Svelte, Rust).          |
 | `npm run compare:brushes` | Compare le rendu des pinceaux avec MyPaint (voir plus bas). |
 
 Si l'interface perd ses styles ou que des fichiers renvoient des 404 après de gros changements : `rm -rf node_modules/.vite` puis relancer `npm run tauri dev`.
+
+## Intégration continue (GitHub Actions)
+
+- **CI** (`ci.yml`) : lint, types et tests (TypeScript), puis formatage, clippy et tests (Rust), à chaque push.
+- **Windows build** (`windows.yml`) : construit `didi.exe` à chaque push sur `main` (ou à la main depuis l'onglet Actions). L'exécutable se télécharge dans les artefacts du run. Pas d'installateur pour l'instant ; il faut le runtime WebView2, présent sur Windows 10 et 11.
 
 ## Organisation
 

@@ -19,7 +19,9 @@ fn valid_name(name: &str) -> bool {
     let stem = parts.next().unwrap_or("");
     let ext = parts.next().unwrap_or("");
     let ok = |s: &str| {
-        !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
     };
     ok(stem) && ok(ext)
 }
@@ -66,7 +68,10 @@ fn percent_decode(text: &str) -> Result<String, String> {
 }
 
 /// A header and the raw body of a request.
-fn header_and_body<'a>(request: &'a Request<'_>, header: &str) -> Result<(String, &'a [u8]), String> {
+fn header_and_body<'a>(
+    request: &'a Request<'_>,
+    header: &str,
+) -> Result<(String, &'a [u8]), String> {
     let value = request
         .headers()
         .get(header)
@@ -126,7 +131,9 @@ pub fn data_remove(app: AppHandle, name: String) -> Result<(), String> {
 /// The bytes of a user file (a path chosen in a dialog, or a recent file).
 #[tauri::command]
 pub fn file_read(path: String) -> Result<Response, String> {
-    fs::read(&path).map(Response::new).map_err(|e| e.to_string())
+    fs::read(&path)
+        .map(Response::new)
+        .map_err(|e| e.to_string())
 }
 
 /// Writes the raw body to the user file in the `path` header, atomically.
@@ -144,14 +151,26 @@ mod tests {
     fn accepts_plain_names_only() {
         assert!(valid_name("palettes.json"));
         assert!(valid_name("my-file_2.json"));
-        for name in ["", "palettes", ".json", "../x.json", "a/b.json", "a.b.json", "x.", "é.json"] {
+        for name in [
+            "",
+            "palettes",
+            ".json",
+            "../x.json",
+            "a/b.json",
+            "a.b.json",
+            "x.",
+            "é.json",
+        ] {
             assert!(!valid_name(name), "{name}");
         }
     }
 
     #[test]
     fn decodes_percent_encoding() {
-        assert_eq!(percent_decode("/home/a%C3%A9/x%20y.didi").unwrap(), "/home/aé/x y.didi");
+        assert_eq!(
+            percent_decode("/home/a%C3%A9/x%20y.didi").unwrap(),
+            "/home/aé/x y.didi"
+        );
         assert!(percent_decode("%Z1").is_err());
         assert!(percent_decode("%4").is_err());
     }
@@ -163,7 +182,11 @@ mod tests {
         write_atomic(&target, b"one").unwrap();
         write_atomic(&target, b"two").unwrap();
         assert_eq!(fs::read(&target).unwrap(), b"two");
-        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1, "no temporary file left");
+        assert_eq!(
+            fs::read_dir(&dir).unwrap().count(),
+            1,
+            "no temporary file left"
+        );
         fs::remove_dir_all(&dir).unwrap();
     }
 }

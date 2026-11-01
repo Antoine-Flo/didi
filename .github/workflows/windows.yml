@@ -1,0 +1,36 @@
+name: Windows build
+
+# Builds didi.exe on every push to main (or by hand, from the Actions tab), and publishes
+# it as a downloadable artifact. Just the executable for now, no installer: it needs the
+# WebView2 runtime, which comes with Windows 10 and 11.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      # Builds the front end, then the release executable, without installers.
+      - run: npm run tauri build -- --no-bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: didi-windows-${{ github.sha }}
+          path: src-tauri/target/release/didi.exe
+          if-no-files-found: error
