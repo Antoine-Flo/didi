@@ -4,7 +4,7 @@ import { Editor } from "#lib/core/editor.js";
 import { PaletteLibrary } from "#lib/core/palette.js";
 import { registerAppCommands, type AppHost, type ViewControls } from "./app-commands";
 import { DEFAULT_KEYMAP } from "./default-keymap";
-import { defaultToolOptions } from "./tools";
+import { defaultToolOptions } from "#lib/app/canvas/tools.js";
 
 function setup(withView = true) {
   const editor = new Editor(new Drawing(100, 100));

@@ -33,6 +33,9 @@ export default defineConfig(() => ({
     port: 1420,
     strictPort: true,
     host: host || "127.0.0.1",
+    // 3. nothing in the webview's cache: WebKitGTK serves old modules from its cache
+    //    without asking the server, e.g. files at their old path after a move.
+    headers: { "Cache-Control": "no-store" },
     hmr: host
       ? {
           protocol: "ws",
@@ -41,7 +44,7 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
+      // 4. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
   },

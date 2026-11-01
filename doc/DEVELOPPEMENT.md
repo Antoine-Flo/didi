@@ -15,7 +15,7 @@ Comment le code est organisé, et comment travailler dessus.
 | `npm run format`          | Reformate tout le code (TypeScript, Svelte, Rust).          |
 | `npm run compare:brushes` | Compare le rendu des pinceaux avec MyPaint (voir plus bas). |
 
-Si l'interface perd ses styles ou que des fichiers renvoient des 404 après de gros changements : `rm -rf node_modules/.vite` puis relancer `npm run tauri dev`.
+Si l'interface perd ses styles ou que des fichiers renvoient des 404 après de gros changements : `rm -rf node_modules/.vite` puis relancer `npm run tauri dev`. Si les 404 visent d'anciens chemins (fichiers déplacés), c'est le cache de WebKitGTK : `rm -rf ~/.local/share/com.af.didi/WebKitCache`, l'app fermée. Le serveur de dev envoie `Cache-Control: no-store` (`vite.config.js`) pour que ça n'arrive plus.
 
 ## Intégration continue (GitHub Actions)
 
@@ -36,18 +36,30 @@ La lecture native du stylet n'existe que sous Linux pour l'instant : sous Window
 
 ## Organisation
 
-| Dossier             | Contenu                                                                                                                                                                                                                                                                                      |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/core/`     | Le cœur, en TypeScript pur, sans interface ni rendu : tuiles, dessin, calques, historique, commandes, notifications, composition, crayon pixel, couleurs et palettes, PNG et format `.didi`. Une règle de lint y interdit tout import de Svelte, PixiJS ou Tauri.                            |
-| `src/lib/mypaint/`  | Le moteur de pinceau (libmypaint en WebAssembly), la lecture des `.myb` et les pinceaux fournis.                                                                                                                                                                                             |
-| `src/lib/render/`   | L'affichage avec PixiJS : caméra (zoom, rotation), tuiles, grille, contour du pinceau.                                                                                                                                                                                                       |
-| `src/lib/app/`      | L'éditeur : interface Svelte, outils, liaison entre le stylet et le moteur (`painter.ts`), commandes de l'interface (`app-commands.ts`), raccourcis (`keymap.ts`, `default-keymap.ts`), thème (`theme.ts`), document ouvert et fichiers (`session.svelte.ts`, `files.ts`, `file-worker.ts`). |
-| `src/lib/platform/` | Ce qui dépend du système : entrée tablette native, fichiers de données de l'utilisateur (`storage.ts`).                                                                                                                                                                                      |
-| `src/lib/lab/`      | Utilitaires des pages de test.                                                                                                                                                                                                                                                               |
-| `src/routes/lab/`   | Pages de test : tablette, rendu, stress (lien « Lab » en bas de l'éditeur).                                                                                                                                                                                                                  |
-| `src-tauri/`        | Partie Rust : lecture native du stylet sous Linux (`tablet.rs`), fichiers de données (`storage.rs`).                                                                                                                                                                                         |
-| `native/mypaint/`   | Compilation de libmypaint en WebAssembly.                                                                                                                                                                                                                                                    |
-| `tools/`            | Outils de développement (comparaison avec MyPaint).                                                                                                                                                                                                                                          |
+| Dossier             | Contenu                                                                                                                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/core/`     | Le cœur, en TypeScript pur, sans interface ni rendu : tuiles, dessin, calques, historique, commandes, notifications, composition, crayon pixel, couleurs et palettes, PNG et format `.didi`. Une règle de lint y interdit tout import de Svelte, PixiJS ou Tauri. |
+| `src/lib/mypaint/`  | Le moteur de pinceau (libmypaint en WebAssembly), la lecture des `.myb` et les pinceaux fournis.                                                                                                                                                                  |
+| `src/lib/render/`   | L'affichage avec PixiJS : caméra (zoom, rotation), tuiles, grille, contour du pinceau.                                                                                                                                                                            |
+| `src/lib/app/`      | L'éditeur (`EditorApp.svelte`), rangé par rôle, voir ci-dessous.                                                                                                                                                                                                  |
+| `src/lib/platform/` | Ce qui dépend du système : entrée tablette native, fichiers de données de l'utilisateur (`storage.ts`).                                                                                                                                                           |
+| `src/lib/lab/`      | Utilitaires des pages de test.                                                                                                                                                                                                                                    |
+| `src/routes/lab/`   | Pages de test : tablette, rendu, stress (lien « Lab » en bas de l'éditeur).                                                                                                                                                                                       |
+| `src-tauri/`        | Partie Rust : lecture native du stylet sous Linux (`tablet.rs`), fichiers de données (`storage.rs`).                                                                                                                                                              |
+| `native/mypaint/`   | Compilation de libmypaint en WebAssembly.                                                                                                                                                                                                                         |
+| `tools/`            | Outils de développement (comparaison avec MyPaint).                                                                                                                                                                                                               |
+
+Dans `src/lib/app/`, chaque test est à côté du fichier qu'il teste :
+
+| Sous-dossier | Contenu                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `shell/`     | La fenêtre et l'apparence : barre de titre, thème (`theme.ts`), styles de base (`ui.css`).                                           |
+| `widgets/`   | Composants génériques, sans logique métier (`Select`, `Slider`).                                                                     |
+| `panels/`    | Les panneaux flottants : pinceaux, couleur, palette, calques.                                                                        |
+| `dialogs/`   | Ce qui s'ouvre par-dessus : écran de démarrage, confirmation, palette de commandes.                                                  |
+| `canvas/`    | La toile et la peinture : affichage (`CanvasView.svelte`), liaison entre le stylet et le moteur (`painter.ts`), outils (`tools.ts`). |
+| `commands/`  | Commandes de l'interface (`app-commands.ts`) et raccourcis (`keymap.ts`, `default-keymap.ts`).                                       |
+| `files/`     | Document ouvert et fichiers (`session.svelte.ts`, `files.ts`, `file-worker.ts`), récents, import d'images, palettes enregistrées.    |
 
 Imports (SvelteKit 3) : `#lib/…` au lieu de `$lib/…`, avec l'extension `.js` (ex. `#lib/core/editor.js`). La configuration de SvelteKit est dans `vite.config.js` (plus de `svelte.config.js`).
 

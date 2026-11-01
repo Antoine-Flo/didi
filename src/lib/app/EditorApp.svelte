@@ -18,29 +18,29 @@
     ZoomIn,
     ZoomOut,
   } from "@lucide/svelte";
-  import "#lib/app/ui.css";
-  import BrushBrowser from "#lib/app/BrushBrowser.svelte";
+  import "#lib/app/shell/ui.css";
+  import BrushBrowser from "#lib/app/panels/BrushBrowser.svelte";
   import CanvasView, {
     type BrushCursor,
     type Insets,
     type ViewStats,
-  } from "#lib/app/CanvasView.svelte";
-  import ColorPicker from "#lib/app/ColorPicker.svelte";
-  import CommandPalette from "#lib/app/CommandPalette.svelte";
-  import LayersPanel from "#lib/app/LayersPanel.svelte";
-  import PalettePanel from "#lib/app/PalettePanel.svelte";
-  import Slider from "#lib/app/Slider.svelte";
-  import StartScreen from "#lib/app/StartScreen.svelte";
-  import UnsavedDialog from "#lib/app/UnsavedDialog.svelte";
-  import { registerAppCommands } from "#lib/app/app-commands.js";
-  import { DEFAULT_KEYMAP } from "#lib/app/default-keymap.js";
-  import { decodeImage, importImage } from "#lib/app/import-image.js";
-  import { isTyping } from "#lib/app/keyboard.js";
-  import { formatChord, KeymapIndex } from "#lib/app/keymap.js";
-  import { Painter } from "#lib/app/painter.js";
-  import { flushPalettes, loadPalettes } from "#lib/app/palette-storage.js";
-  import { Session, type UnsavedChoice } from "#lib/app/session.svelte.js";
-  import { windowTitle } from "#lib/app/window-title.svelte.js";
+  } from "#lib/app/canvas/CanvasView.svelte";
+  import ColorPicker from "#lib/app/panels/ColorPicker.svelte";
+  import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
+  import LayersPanel from "#lib/app/panels/LayersPanel.svelte";
+  import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
+  import Slider from "#lib/app/widgets/Slider.svelte";
+  import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
+  import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
+  import { registerAppCommands } from "#lib/app/commands/app-commands.js";
+  import { DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
+  import { decodeImage, importImage } from "#lib/app/files/import-image.js";
+  import { isTyping } from "#lib/app/commands/keyboard.js";
+  import { formatChord, KeymapIndex } from "#lib/app/commands/keymap.js";
+  import { Painter } from "#lib/app/canvas/painter.js";
+  import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
+  import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
+  import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
   import {
     sizeFromSlider,
     sliderFromSize,
@@ -48,7 +48,7 @@
     TOOLS,
     MAX_PIXEL_SIZE,
     type ToolId,
-  } from "#lib/app/tools.js";
+  } from "#lib/app/canvas/tools.js";
   import type { Editor } from "#lib/core/editor.js";
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/palette.js";
   import { loadMyPaint } from "#lib/mypaint/engine.js";

@@ -4,7 +4,7 @@
 
   import { asset } from "$app/paths";
   import type { AssetPath } from "$app/types";
-  import Select from "#lib/app/Select.svelte";
+  import Select from "#lib/app/widgets/Select.svelte";
   import { brushGroups } from "#lib/mypaint/brushes.js";
 
   let {

@@ -7,7 +7,7 @@ import type { CommandRegistry } from "#lib/core/commands.js";
 import type { Editor } from "#lib/core/editor.js";
 import type { PaletteLibrary } from "#lib/core/palette.js";
 import { bundledBrush, findBundledBrush } from "#lib/mypaint/brushes.js";
-import { TOOLS, stepToolSize, type ToolId, type ToolOptions } from "./tools";
+import { TOOLS, stepToolSize, type ToolId, type ToolOptions } from "#lib/app/canvas/tools.js";
 
 /** The view controls of the canvas, once it is mounted. */
 export interface ViewControls {

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Titlebar from "#lib/app/Titlebar.svelte";
-  import { applyTheme, DEFAULT_THEME } from "#lib/app/theme.js";
-  import { windowTitle } from "#lib/app/window-title.svelte.js";
+  import Titlebar from "#lib/app/shell/Titlebar.svelte";
+  import { applyTheme, DEFAULT_THEME } from "#lib/app/shell/theme.js";
+  import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
 
   let { children }: { children: Snippet } = $props();
 

@@ -84,7 +84,7 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 **Notes** :
 
-- Les styles de base (`src/lib/app/ui.css`) sont enveloppés dans `:where()` : n'importe quelle classe d'un composant les remplace.
+- Les styles de base (`src/lib/app/shell/ui.css`) sont enveloppés dans `:where()` : n'importe quelle classe d'un composant les remplace.
 - « Ajuster à la fenêtre » et le zoom au clavier se centrent sur la zone visible entre les panneaux, pas sur toute la fenêtre.
 - Pas de `<select>` natif : les menus déroulants sont ceux de Bits UI (`Select.svelte`). Le menu natif de WebKitGTK ouvre un popup GTK qui détonne et provoque un avertissement sous Wayland (« Tried to map a popup with a non-top most parent »).
 - Pendant qu'un menu est ouvert, et 250 ms après sa fermeture, un contact sur la toile ne dessine pas (`dismissal.ts`) : le clic qui ferme le menu ne doit pas laisser de trait.
@@ -99,7 +99,7 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 **Date** : 2026-11-01 · **Phase** : 4
 
-**Décision** : chaque action de l'interface est une commande du registre (`tool.brush`, `view.zoomIn`, `layer.moveUp`…). Boutons, raccourcis et palette de commandes ne font qu'exécuter des commandes. Les raccourcis sont une liste de données (`src/lib/app/default-keymap.ts` : touches → commande + paramètres), sans hotkeys-js.
+**Décision** : chaque action de l'interface est une commande du registre (`tool.brush`, `view.zoomIn`, `layer.moveUp`…). Boutons, raccourcis et palette de commandes ne font qu'exécuter des commandes. Les raccourcis sont une liste de données (`src/lib/app/commands/default-keymap.ts` : touches → commande + paramètres), sans hotkeys-js.
 
 **Pourquoi** : une seule source pour les actions (raccourcis, palette, future roue, plugins). Un keymap en données pourra être chargé depuis un fichier sans changer le code.
 
@@ -113,7 +113,7 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 **Date** : 2026-11-01 · **Phase** : 4
 
-**Décision** : les composants n'utilisent que des variables CSS (`--panel`, `--text`, `--selected`…) définies par un thème (`src/lib/app/theme.ts`). Un seul thème sombre par défaut pour l'instant, en données, pour pouvoir le charger depuis un fichier plus tard.
+**Décision** : les composants n'utilisent que des variables CSS (`--panel`, `--text`, `--selected`…) définies par un thème (`src/lib/app/shell/theme.ts`). Un seul thème sombre par défaut pour l'instant, en données, pour pouvoir le charger depuis un fichier plus tard.
 
 ## Précision des calques : 8 bits
 

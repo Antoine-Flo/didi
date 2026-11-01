@@ -5,7 +5,7 @@
   import { ChevronDown } from "@lucide/svelte";
   import { Select } from "bits-ui";
   import { onDestroy } from "svelte";
-  import { popupClosed, popupOpened } from "#lib/app/dismissal.js";
+  import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
 
   let {
     items,
