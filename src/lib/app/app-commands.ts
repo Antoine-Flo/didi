@@ -26,6 +26,12 @@ export interface AppHost {
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
   importImage(): void;
+  /** Shows the start screen, to create a document or open a recent one. */
+  newDocument(): void;
+  openDocument(): void;
+  saveDocument(): void;
+  saveDocumentAs(): void;
+  exportPng(): void;
   /** Asks for a .hex file and adds it as a new palette. */
   importPalette(): void;
   openCommandPalette(): void;
@@ -146,6 +152,11 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       run: () => host.palettes!.remove(),
     }),
 
+    registry.register({ id: "file.new", title: "New document…", run: () => host.newDocument() }),
+    registry.register({ id: "file.open", title: "Open…", run: () => host.openDocument() }),
+    registry.register({ id: "file.save", title: "Save", run: () => host.saveDocument() }),
+    registry.register({ id: "file.saveAs", title: "Save as…", run: () => host.saveDocumentAs() }),
+    registry.register({ id: "file.exportPng", title: "Export PNG…", run: () => host.exportPng() }),
     registry.register({
       id: "file.importImage",
       title: "Import image…",

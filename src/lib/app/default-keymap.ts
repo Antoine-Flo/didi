@@ -11,6 +11,11 @@ export const DEFAULT_KEYMAP: Keymap = {
 
     { keys: "ctrl+k", command: "app.commandPalette" },
     { keys: "ctrl+shift+p", command: "app.commandPalette" },
+    { keys: "ctrl+n", command: "file.new" },
+    { keys: "ctrl+o", command: "file.open" },
+    { keys: "ctrl+s", command: "file.save" },
+    { keys: "ctrl+shift+s", command: "file.saveAs" },
+    { keys: "ctrl+shift+e", command: "file.exportPng" },
     { keys: "ctrl+i", command: "file.importImage" },
 
     { keys: "b", command: "tool.brush" },

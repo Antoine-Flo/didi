@@ -23,6 +23,7 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-dialog = "2"
 
 # Native tablet input: WebKitGTK reports the pen as a mouse without pressure,
 # so we read GTK events directly from the webview widget.

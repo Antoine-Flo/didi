@@ -4,6 +4,31 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 ---
 
+## Format `.didi` et gestion des fichiers
+
+**Date** : 2026-11-01 · **Phase** : 5
+
+**Décision** : un `.didi` est un zip que n'importe quel outil sait ouvrir :
+
+- `mimetype` (`application/x-didi`, en premier et non compressé, pour reconnaître le fichier) ;
+- `document.json`, lisible et versionné : taille, calque actif, et pour chaque calque nom, fichier, visibilité, verrouillage, opacité, mode de fusion ;
+- `layers/1.png`, `layers/2.png`… : un PNG standard par calque, de bas en haut, alpha non prémultiplié ;
+- `thumbnail.png` : aperçu de 256 px maximum, pour les fichiers récents.
+
+**Pourquoi** : lisible (on peut extraire et retoucher un calque dans un autre logiciel), facile à étendre et à versionner. Format proche du `.kra` de Krita et de l'ORA.
+
+**Notes** :
+
+- `extensions` dans `document.json` est réservé aux données des modules (lien Godot…) : conservé tel quel, même s'il n'est pas compris. Les autres champs inconnus sont ignorés.
+- Les versions plus anciennes sont migrées à la lecture (`MIGRATIONS` dans `didi-file.ts`) ; une version plus récente est refusée avec un message clair.
+- Un calque manquant ou mal formé donne un message précis ; les réglages absents prennent leur valeur par défaut.
+- PNG encodé et décodé par notre code (`core/png.ts`, avec fflate) : marche dans un worker et dans les tests. Le décodeur lit les formats courants (gris, RGB, palette, 1 à 16 bits, transparence `tRNS`), vérifiés contre PIL.
+- Enregistrement et ouverture dans un worker (Comlink) : environ 1,3 s pour écrire et 0,5 s pour lire un document 2048 × 2048 de 3 calques, sans bloquer l'interface.
+- Écriture atomique côté Rust (fichier temporaire puis renommage) : un crash pendant l'enregistrement ne laisse jamais un fichier à moitié écrit.
+- Modifications non enregistrées : `History.marker` identifie l'état courant ; annuler jusqu'à l'état enregistré rend le document « propre ».
+- Récupération : une copie dans le dossier de données, deux minutes après une modification, supprimée à l'enregistrement et à la fermeture normale. Au démarrage, une copie laissée par un crash est mise de côté (`recovery-previous.didi`) et proposée jusqu'à ce que l'utilisateur la récupère ou la jette.
+- Les fichiers sont lus et écrits par des commandes Rust qui acceptent n'importe quel chemin (choisi dans un dialogue ou dans les récents). À restreindre quand les plugins arriveront (phase 9).
+
 ## Pinceaux : file d'attente et budget par frame (comme MyPaint)
 
 **Date** : 2026-11-01 · **Phase** : 4

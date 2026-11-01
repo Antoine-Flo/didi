@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
+  import { isTauri } from "@tauri-apps/api/core";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { resolve } from "$app/paths";
   import {
     Brush,
@@ -28,13 +30,16 @@
   import LayersPanel from "$lib/app/LayersPanel.svelte";
   import PalettePanel from "$lib/app/PalettePanel.svelte";
   import Slider from "$lib/app/Slider.svelte";
+  import StartScreen from "$lib/app/StartScreen.svelte";
+  import UnsavedDialog from "$lib/app/UnsavedDialog.svelte";
   import { registerAppCommands } from "$lib/app/app-commands";
   import { DEFAULT_KEYMAP } from "$lib/app/default-keymap";
   import { decodeImage, importImage } from "$lib/app/import-image";
   import { isTyping } from "$lib/app/keyboard";
   import { formatChord, KeymapIndex } from "$lib/app/keymap";
   import { Painter } from "$lib/app/painter";
-  import { loadPalettes } from "$lib/app/palette-storage";
+  import { flushPalettes, loadPalettes } from "$lib/app/palette-storage";
+  import { Session, type UnsavedChoice } from "$lib/app/session.svelte";
   import { applyTheme, DEFAULT_THEME } from "$lib/app/theme";
   import {
     sizeFromSlider,
@@ -49,18 +54,45 @@
   import { loadMyPaint } from "$lib/mypaint/engine";
   import type { Camera, Point } from "$lib/render/camera";
 
-  let { editor }: { editor: Editor } = $props();
+  /** A document to start with (e.g. the stress test); a new one by default. */
+  let { initial }: { initial?: Editor } = $props();
+
+  // The open document, and what to do with unsaved changes (see UnsavedDialog).
+  let unsavedRequest = $state<{ name: string; answer: (choice: UnsavedChoice) => void } | null>(
+    null,
+  );
+  // svelte-ignore state_referenced_locally
+  const session = new Session(
+    {
+      notify,
+      askUnsaved: (name) =>
+        new Promise((resolve) => {
+          unsavedRequest = {
+            name,
+            answer: (choice) => {
+              unsavedRequest = null;
+              resolve(choice);
+            },
+          };
+        }),
+    },
+    initial,
+  );
+  const editor = $derived(session.editor);
+  // Shown at start, like Blender's splash screen.
+  // svelte-ignore state_referenced_locally
+  let startOpen = $state(!initial);
 
   let tool = $state<ToolId>("brush");
   let options = $state(defaultToolOptions());
-  const painter = $derived(
-    new Painter(editor, {
-      tool: () => tool,
-      options: () => $state.snapshot(options),
-      onPick: (color) => (options.color = color),
-      onMessage: notify,
-    }),
-  );
+  // One painter for the whole session: it keeps the brushes it has loaded.
+  const painter = new Painter(session.editor, {
+    tool: () => tool,
+    options: () => $state.snapshot(options),
+    onPick: (color) => (options.color = color),
+    onMessage: notify,
+  });
+  $effect.pre(() => painter.setEditor(editor));
 
   /** Shows a message in the status bar for a few seconds. */
   function notify(message: string) {
@@ -129,6 +161,11 @@
         return palettes;
       },
       importImage: () => fileInput.click(),
+      newDocument: () => (startOpen = true),
+      openDocument: () => session.open(),
+      saveDocument: () => session.save(),
+      saveDocumentAs: () => session.saveAs(),
+      exportPng: () => session.exportPng(),
       importPalette: () => paletteInput.click(),
       openCommandPalette: () => (paletteOpen = true),
     }),
@@ -174,13 +211,37 @@
       palettes = library;
       library.subscribe(() => paletteVersion++);
     });
+    session.start();
+    if (!isTauri()) return;
+    // Closing the window: offer to save unsaved changes first.
+    const window = getCurrentWindow();
+    const unlisten = window.onCloseRequested(async (event) => {
+      event.preventDefault();
+      if (!(await session.confirmDiscard())) return;
+      await Promise.all([session.closing(), flushPalettes()]);
+      await window.destroy();
+    });
+    return () => void unlisten.then((fn) => fn());
+  });
+
+  // Follows the open document's changes.
+  $effect(() => {
     const bump = () => version++;
+    // Untracked: this effect must not depend on `version`, which it changes.
+    untrack(bump);
     const unsubscribe = [
       editor.drawing.subscribe(bump),
       editor.history.subscribe(bump),
       editor.onActiveLayerChange(bump),
     ];
     return () => unsubscribe.forEach((fn) => fn());
+  });
+
+  // "● name — Didi" while there are unsaved changes.
+  $effect(() => {
+    const title = `${session.dirty ? "● " : ""}${session.name} — Didi`;
+    if (isTauri()) getCurrentWindow().setTitle(title);
+    else document.title = title;
   });
 
   /** Imports images as layers and .hex files as palettes. */
@@ -209,7 +270,7 @@
   }
 
   function onKeyDown(e: KeyboardEvent) {
-    if (isTyping(e) || paletteOpen) return;
+    if (isTyping(e) || paletteOpen || startOpen || unsavedRequest) return;
     const binding = keymap.match({
       key: e.key,
       ctrlKey: e.ctrlKey,
@@ -239,16 +300,19 @@
   }}
 >
   <div class="canvas">
-    <CanvasView
-      bind:this={canvasView}
-      {editor}
-      {painter}
-      {brushCursor}
-      {insets}
-      oncamera={(c) => (camera = c)}
-      oncursor={(p) => (cursor = p)}
-      onstats={(s) => (stats = s)}
-    />
+    <!-- A new view for each document, fitted to the window. -->
+    {#key editor}
+      <CanvasView
+        bind:this={canvasView}
+        {editor}
+        {painter}
+        {brushCursor}
+        {insets}
+        oncamera={(c) => (camera = c)}
+        oncursor={(p) => (cursor = p)}
+        onstats={(s) => (stats = s)}
+      />
+    {/key}
   </div>
 
   <aside class="panel left" bind:this={left}>
@@ -383,6 +447,7 @@
   <footer class="panel bar bottom" bind:this={bottom}>
     <span>{editor.drawing.width} × {editor.drawing.height} px</span>
     <span>{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
+    {#if session.busy}<span>{session.busy}</span>{/if}
     {#if error}<span class="error">{error}</span>{/if}
     <span class="spacer"></span>
     {#if stats}
@@ -420,6 +485,16 @@
 </div>
 
 <CommandPalette {editor} {keymap} bind:open={paletteOpen} />
+<StartScreen
+  bind:open={startOpen}
+  recent={session.recent}
+  recovery={session.recovery}
+  oncreate={(width, height, background) => session.newDocument(width, height, background)}
+  onopen={(path) => session.open(path)}
+  onrecover={() => session.recover()}
+  ondiscardrecovery={() => session.discardRecovery()}
+/>
+<UnsavedDialog request={unsavedRequest} />
 
 <style>
   /* The canvas fills the window; the panels float over it, inset from the edges. */

@@ -57,4 +57,4 @@
 
 <svelte:head><title>Stress {size} × {layerCount} ({generatedIn} ms)</title></svelte:head>
 
-<EditorApp {editor} />
+<EditorApp initial={editor} />

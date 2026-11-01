@@ -25,7 +25,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Application } from "pixi.js";
-  import { consumeDismissal, markDismissal } from "$lib/app/dismissal";
+  import { consumeDismissal } from "$lib/app/dismissal";
   import { isTyping } from "$lib/app/keyboard";
   import type { Painter, Sample } from "$lib/app/painter";
   import type { Editor } from "$lib/core/editor";
@@ -173,7 +173,6 @@
   function onPointerDown(e: PointerEvent) {
     if (e.button === 1 || (e.button === 0 && spaceDown)) {
       e.preventDefault();
-      if (!nativeInput) consumeDismissal();
       host.setPointerCapture(e.pointerId);
       panning = { id: e.pointerId, x: e.clientX, y: e.clientY };
       updateCursor(null);
@@ -248,9 +247,7 @@
         pendingEnd = null;
         return;
       }
-      // Without focus, a contact belongs to another window (e.g. the color dialog).
-      if (!document.hasFocus()) return;
-      // A click that closes a dialog or menu only closes it (see dismissal.ts).
+      // A click that closes a menu only closes it (see dismissal.ts).
       if (consumeDismissal()) return;
       // Only start on the canvas itself, not over a panel or while panning.
       const target = document.elementFromPoint(e.x, e.y);
@@ -331,18 +328,9 @@
       subscribeNativePen(onNative);
     });
 
-    // When the window loses focus (e.g. to the color dialog), end any stroke (the dialog
-    // may swallow the release), and make the click that comes back a dismissal click.
-    const onBlur = () => {
-      endStroke();
-      markDismissal();
-    };
+    // When the window loses focus, end any stroke: the release may happen elsewhere.
+    const onBlur = () => endStroke();
     window.addEventListener("blur", onBlur);
-    // A first contact outside the canvas (on the interface) works normally and clears it.
-    const onAnyPointerDown = (e: PointerEvent) => {
-      if (!(e.target instanceof Node) || !host.contains(e.target)) consumeDismissal();
-    };
-    window.addEventListener("pointerdown", onAnyPointerDown, true);
 
     // Keep the checkerboard and the grid matching the view size.
     const resize = new ResizeObserver(() => setCamera(camera));
@@ -351,7 +339,6 @@
     return () => {
       destroyed = true;
       window.removeEventListener("blur", onBlur);
-      window.removeEventListener("pointerdown", onAnyPointerDown, true);
       endStroke();
       resize.disconnect();
       view?.destroy();

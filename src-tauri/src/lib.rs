@@ -6,6 +6,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(tablet::PenSink::default())
         .setup(|app| {
             tablet::install(app)?;
@@ -15,7 +16,12 @@ pub fn run() {
             tablet::tablet_available,
             tablet::tablet_subscribe,
             storage::data_read,
-            storage::data_write
+            storage::data_write,
+            storage::data_read_bytes,
+            storage::data_write_bytes,
+            storage::data_remove,
+            storage::file_read,
+            storage::file_write
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

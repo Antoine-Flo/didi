@@ -21,6 +21,11 @@ function setup(withView = true) {
     view: withView ? view : null,
     palettes: new PaletteLibrary([{ name: "A", colors: [] }]),
     importImage: vi.fn(),
+    newDocument: vi.fn(),
+    openDocument: vi.fn(),
+    saveDocument: vi.fn(),
+    saveDocumentAs: vi.fn(),
+    exportPng: vi.fn(),
     importPalette: vi.fn(),
     openCommandPalette: vi.fn(),
   };

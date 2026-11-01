@@ -12,4 +12,11 @@ describe("newEditor", () => {
     expect(editor.activeLayer?.id).toBe(layer.id);
     expect(editor.history.canUndo).toBe(false);
   });
+
+  it("has only an empty layer with a transparent background", () => {
+    const editor = newEditor(16, 16, "transparent");
+    expect(editor.drawing.layers.map((l) => l.name)).toEqual(["Layer 1"]);
+    expect(editor.drawing.layers[0].tiles.tileCount).toBe(0);
+    expect(editor.history.canUndo).toBe(false);
+  });
 });

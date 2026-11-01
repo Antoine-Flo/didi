@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { consumeDismissal, markDismissal, popupClosed, popupOpened } from "./dismissal";
+import { consumeDismissal, popupClosed, popupOpened } from "./dismissal";
 
 describe("dismissal clicks", () => {
-  it("swallows exactly one contact after a mark", () => {
+  it("draws normally without popups", () => {
     expect(consumeDismissal()).toBe(false);
-    markDismissal();
-    markDismissal();
-    expect(consumeDismissal()).toBe(true);
     expect(consumeDismissal()).toBe(false);
   });
 

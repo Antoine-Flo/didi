@@ -62,6 +62,15 @@ export class History {
     return this.past.length;
   }
 
+  /**
+   * Identifies the current state of the drawing, as reached through the history: compare
+   * it with the marker saved with a file to know whether there are unsaved changes. Undoing
+   * back to the saved state gives the same marker again.
+   */
+  get marker(): unknown {
+    return this.past.at(-1) ?? null;
+  }
+
   /** Approximate memory kept by undo and redo steps, in bytes. */
   get bytes(): number {
     return [...this.past, ...this.future].reduce((sum, e) => sum + (e.bytes?.() ?? 0), 0);

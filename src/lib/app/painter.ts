@@ -73,11 +73,18 @@ export class Painter {
   private ending = false;
 
   constructor(
-    private readonly editor: Editor,
+    private editor: Editor,
     private readonly host: PainterHost,
     /** Clock for the frame budget, in milliseconds. */
     private readonly now: () => number = () => performance.now(),
   ) {}
+
+  /** Paints in another document from now on. A stroke in progress is abandoned. */
+  setEditor(editor: Editor) {
+    if (editor === this.editor) return;
+    if (this.active) this.cancel();
+    this.editor = editor;
+  }
 
   /** Provides the brush engine, once loaded. */
   setEngine(engine: MyPaint) {

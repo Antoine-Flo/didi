@@ -61,10 +61,13 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 
 ## Phase 5 — Fichiers et robustesse
 
-- Format `.didi`, sauvegarde et chargement dans un worker. Facile à lire, à étendre, à partager et à versionner (voir `PROJET.md`).
-- Décider où vivent les palettes (dossier de données de l'app depuis la phase 4) : rester globales, et/ou être embarquées dans le `.didi`.
-- Sauvegarde automatique, récupération après crash, export PNG.
-- Tests d'aller-retour, de migration et de fichiers corrompus.
+- ✅ Format `.didi` (zip : JSON lisible + un PNG par calque + aperçu), sauvegarde et chargement dans un worker. Facile à lire, à étendre, à partager et à versionner (voir `DECISIONS.md`).
+- ✅ Palettes : restent globales, pas dans le `.didi`.
+- ✅ Écran de démarrage à la Blender : nouveau document (formats pour le jeu vidéo en un clic, taille libre, fond blanc ou transparent), fichiers récents avec aperçu ; clic à côté → toile vide par défaut.
+- ✅ Nouveau, Ouvrir, Enregistrer, Enregistrer sous, Export PNG ; titre de fenêtre avec `●` si non enregistré ; confirmation avant de perdre des modifications (nouveau, ouvrir, fermeture).
+- ✅ Copie de récupération deux minutes après une modification (jamais dans le fichier de l'utilisateur), proposée au démarrage après un crash.
+- ✅ Tests d'aller-retour, de fichiers corrompus (tronqués, octets inversés), de versions trop récentes. Migrations prêtes, aucune encore (version 1).
+- Un document à la fois (onglets plus tard).
 
 - Vérification des performances sur une machine modeste (GPU intégré).
 - **Windows** : pages de test tablette et rendu sur WebView2, puis build et test complet.

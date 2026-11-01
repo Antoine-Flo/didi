@@ -1,16 +1,26 @@
 import { Drawing } from "$lib/core/drawing";
 import { Editor } from "$lib/core/editor";
 
+export type Background = "white" | "transparent";
+
+export const DEFAULT_SIZE = { width: 2048, height: 2048 };
+
 /**
- * A new drawing ready to paint: a white "Background" layer, and an empty layer above it, active.
- * Nothing in the history.
+ * A new drawing ready to paint, with nothing in the history: a white "Background" layer
+ * and an empty layer above it, active. With a transparent background, the empty layer only.
  */
-export function newEditor(width = 2048, height = 2048): Editor {
+export function newEditor(
+  width = DEFAULT_SIZE.width,
+  height = DEFAULT_SIZE.height,
+  background: Background = "white",
+): Editor {
   const drawing = new Drawing(width, height);
-  const background = drawing.createLayer({ name: "Background" });
-  drawing.addLayer(background);
-  const all = { x: 0, y: 0, width, height };
-  drawing.writePixels(background.id, all, new Uint8ClampedArray(width * height * 4).fill(255));
+  if (background === "white") {
+    const layer = drawing.createLayer({ name: "Background" });
+    drawing.addLayer(layer);
+    const all = { x: 0, y: 0, width, height };
+    drawing.writePixels(layer.id, all, new Uint8ClampedArray(width * height * 4).fill(255));
+  }
   const editor = new Editor(drawing);
   editor.commands.execute("layer.add", { props: { name: "Layer 1" } });
   editor.history.clear();

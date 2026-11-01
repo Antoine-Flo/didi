@@ -33,6 +33,23 @@ describe("History", () => {
     expect(opacityOf(drawing, id)).toBe(0.5);
   });
 
+  it("gives a marker that tells whether the drawing changed since it was saved", () => {
+    const { history, id } = setup();
+    const saved = history.marker;
+    history.push(updateLayer(id, { opacity: 0.5 }));
+    expect(history.marker).not.toBe(saved);
+    history.undo();
+    expect(history.marker).toBe(saved);
+    history.redo();
+    const afterRedo = history.marker;
+    expect(afterRedo).not.toBe(saved);
+    // Undo then a different edit: not the saved state, even with the same number of steps.
+    history.undo();
+    history.push(updateLayer(id, { opacity: 0.3 }));
+    expect(history.marker).not.toBe(afterRedo);
+    expect(history.marker).not.toBe(saved);
+  });
+
   it("returns false when there is nothing to undo or redo", () => {
     const { history } = setup();
     expect(history.undo()).toBe(false);

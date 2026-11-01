@@ -4,6 +4,7 @@
 
   import { ChevronDown } from "@lucide/svelte";
   import { Select } from "bits-ui";
+  import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "$lib/app/dismissal";
 
   let {
@@ -19,6 +20,16 @@
   } = $props();
 
   const label = $derived(items.find((i) => i.value === value)?.label ?? "");
+
+  let open = false;
+  function setOpen(next: boolean) {
+    if (next === open) return;
+    open = next;
+    if (next) popupOpened();
+    else popupClosed();
+  }
+  // Removed while open (e.g. its panel disappears): the canvas must not stay blocked.
+  onDestroy(() => setOpen(false));
 </script>
 
 <Select.Root
@@ -26,7 +37,7 @@
   {value}
   {items}
   onValueChange={(v) => v !== value && onchange(v)}
-  onOpenChange={(open) => (open ? popupOpened() : popupClosed())}
+  onOpenChange={setOpen}
 >
   <Select.Trigger class="select-trigger" {title}>
     <span>{label}</span>

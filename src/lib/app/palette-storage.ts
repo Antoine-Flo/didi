@@ -8,6 +8,14 @@ const FILE = "palettes.json";
 const BACKUP = "palettes-unreadable.json";
 const SAVE_DELAY_MS = 300;
 
+/** Saves now the changes waiting for the delay, if any. */
+let flush: () => Promise<void> = async () => {};
+
+/** Saves the palettes' pending changes now: call before the app closes. */
+export function flushPalettes(): Promise<void> {
+  return flush();
+}
+
 /**
  * The saved library, or the default one the first time. `onError` receives a message for
  * the user if the file cannot be read or saved.
@@ -37,19 +45,19 @@ function autosave(library: PaletteLibrary, onError: (message: string) => void) {
   const save = () => {
     timer = null;
     const text = JSON.stringify(library.toFile(), null, 2) + "\n";
-    writeDataFile(FILE, text).catch((e) => onError(`Palettes could not be saved: ${message(e)}`));
+    return writeDataFile(FILE, text).catch((e) =>
+      onError(`Palettes could not be saved: ${message(e)}`),
+    );
   };
   library.subscribe(() => {
     if (timer !== null) clearTimeout(timer);
     timer = setTimeout(save, SAVE_DELAY_MS);
   });
-  // Changes waiting for the delay are saved when the window closes.
-  window.addEventListener("beforeunload", () => {
-    if (timer !== null) {
-      clearTimeout(timer);
-      save();
-    }
-  });
+  flush = async () => {
+    if (timer === null) return;
+    clearTimeout(timer);
+    await save();
+  };
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
