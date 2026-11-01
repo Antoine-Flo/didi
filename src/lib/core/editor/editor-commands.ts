@@ -2,10 +2,10 @@
 // active layer, so they can be bound to shortcuts or the quick wheel without params.
 
 import type { CommandRegistry } from "./commands";
-import type { Drawing } from "./drawing";
-import { addLayer, moveLayer, removeLayer, updateLayer } from "./edits";
+import type { Drawing } from "../document/drawing";
+import { addLayer, moveLayer, removeLayer, updateLayer } from "../history/edits";
 import type { Editor } from "./editor";
-import type { LayerProps } from "./layer";
+import type { LayerProps } from "../document/layer";
 
 const exists = (d: Drawing, id: string | undefined): id is string =>
   id !== undefined && d.layers.some((l) => l.id === id);

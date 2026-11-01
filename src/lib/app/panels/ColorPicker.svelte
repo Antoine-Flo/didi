@@ -9,7 +9,7 @@
     toHex,
     type HSV,
     type RGB,
-  } from "#lib/core/color.js";
+  } from "#lib/core/color/color.js";
 
   let { color, onchange }: { color: RGB; onchange: (color: RGB) => void } = $props();
 

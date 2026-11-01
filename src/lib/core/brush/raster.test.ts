@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { Drawing } from "../drawing";
-import { History } from "../history";
+import { Drawing } from "../document/drawing";
+import { History } from "../history/history";
 import { capture, expectSameState, fill, pattern } from "../test-utils";
 import { PixelPathBuilder, type Pixel } from "./pixel-path";
 import { StrokeRaster, pixelStamp, type StrokeStyle } from "./raster";

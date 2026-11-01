@@ -10,11 +10,11 @@ import {
   readDidiThumbnail,
   writeDidi,
 } from "./didi-file";
-import { Drawing } from "./drawing";
-import { Editor } from "./editor";
-import { BLEND_MODES } from "./layer";
+import { Drawing } from "../document/drawing";
+import { Editor } from "../editor/editor";
+import { BLEND_MODES } from "../document/layer";
 import { decodePng } from "./png";
-import { firstDifference, pattern } from "./test-utils";
+import { firstDifference, pattern } from "../test-utils";
 
 /** Layer settings and pixels, without ids (they are not saved). */
 function state(editor: Editor) {

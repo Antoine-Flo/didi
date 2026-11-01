@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readDidi, writeDidi } from "#lib/core/didi-file.js";
+import { readDidi, writeDidi } from "#lib/core/file/didi-file.js";
 import type { UnsavedChoice } from "./session.svelte";
 
 // Files and app data in memory, and the worker's work done directly.

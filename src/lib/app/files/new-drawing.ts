@@ -1,5 +1,5 @@
-import { Drawing } from "#lib/core/drawing.js";
-import { Editor } from "#lib/core/editor.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { Editor } from "#lib/core/editor/editor.js";
 
 export type Background = "white" | "transparent";
 

@@ -2,10 +2,10 @@
 
 import { expect } from "vitest";
 import fc from "fast-check";
-import type { Drawing } from "./drawing";
-import * as edits from "./edits";
+import type { Drawing } from "./document/drawing";
+import * as edits from "./history/edits";
 import type { Rect } from "./geometry";
-import { BLEND_MODES } from "./layer";
+import { BLEND_MODES } from "./document/layer";
 
 /** Solid color region data. */
 export function fill(rect: Rect, rgba: [number, number, number, number]): Uint8ClampedArray {

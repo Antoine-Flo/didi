@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import fc from "fast-check";
 import { Drawing, type DrawingChange } from "./drawing";
-import { Editor } from "./editor";
-import { History } from "./history";
+import { Editor } from "../editor/editor";
+import { History } from "../history/history";
 import type { LayerProps } from "./layer";
 import { TILE_SIZE, tileCoord, tileKey } from "./tiles";
-import { capture, expectSameState, fill, randomEdit, type DrawingState } from "./test-utils";
+import { capture, expectSameState, fill, randomEdit, type DrawingState } from "../test-utils";
 
 function record(d: Drawing) {
   const changes: DrawingChange[] = [];

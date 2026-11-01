@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Command, Dialog } from "bits-ui";
-  import type { Editor } from "#lib/core/editor.js";
+  import type { Editor } from "#lib/core/editor/editor.js";
   import { formatChord, type KeymapIndex } from "#lib/app/commands/keymap.js";
 
   let {

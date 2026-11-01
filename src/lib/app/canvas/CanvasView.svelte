@@ -28,7 +28,7 @@
   import { consumeDismissal } from "#lib/app/canvas/dismissal.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import type { Painter, Sample } from "#lib/app/canvas/painter.js";
-  import type { Editor } from "#lib/core/editor.js";
+  import type { Editor } from "#lib/core/editor/editor.js";
   import { nativePenAvailable, subscribeNativePen, type PenEvent } from "#lib/platform/pen.js";
   import {
     fit,

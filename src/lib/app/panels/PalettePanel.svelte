@@ -1,7 +1,7 @@
 <script lang="ts">
   import { FileUp, Pencil, Plus, Trash2 } from "@lucide/svelte";
-  import { sameColor, toHex, type RGB } from "#lib/core/color.js";
-  import type { PaletteLibrary } from "#lib/core/palette.js";
+  import { sameColor, toHex, type RGB } from "#lib/core/color/color.js";
+  import type { PaletteLibrary } from "#lib/core/color/palette.js";
   import Select from "#lib/app/widgets/Select.svelte";
 
   let {

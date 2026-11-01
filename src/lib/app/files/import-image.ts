@@ -1,6 +1,6 @@
-import type { Editor } from "#lib/core/editor.js";
-import { writePixels } from "#lib/core/edits.js";
-import { premultiply } from "#lib/core/pixels.js";
+import type { Editor } from "#lib/core/editor/editor.js";
+import { writePixels } from "#lib/core/history/edits.js";
+import { premultiply } from "#lib/core/document/pixels.js";
 
 export interface DecodedImage {
   width: number;

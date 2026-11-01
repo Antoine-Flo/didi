@@ -2,10 +2,10 @@
 // so they can be bound to shortcuts, listed in the command palette and later put in the
 // quick wheel; those that need params are marked `needsParams`.
 
-import { fromHex } from "#lib/core/color.js";
-import type { CommandRegistry } from "#lib/core/commands.js";
-import type { Editor } from "#lib/core/editor.js";
-import type { PaletteLibrary } from "#lib/core/palette.js";
+import { fromHex } from "#lib/core/color/color.js";
+import type { CommandRegistry } from "#lib/core/editor/commands.js";
+import type { Editor } from "#lib/core/editor/editor.js";
+import type { PaletteLibrary } from "#lib/core/color/palette.js";
 import { bundledBrush, findBundledBrush } from "#lib/mypaint/brushes.js";
 import { TOOLS, stepToolSize, type ToolId, type ToolOptions } from "#lib/app/canvas/tools.js";
 

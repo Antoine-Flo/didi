@@ -4,7 +4,7 @@
 // The library notifies every change, so the interface can refresh and save it.
 
 import { fromHex, sameColor, toHex, type RGB } from "./color";
-import { Emitter } from "./emitter";
+import { Emitter } from "../emitter";
 
 export interface Palette {
   name: string;

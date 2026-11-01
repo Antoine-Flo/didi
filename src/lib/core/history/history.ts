@@ -4,9 +4,9 @@
 // `begin` / `end` (e.g. while dragging a slider, or for a plugin macro). The oldest steps
 // are dropped when the history exceeds its step or memory limits.
 
-import type { Drawing } from "./drawing";
+import type { Drawing } from "../document/drawing";
 import { group, type Edit } from "./edits";
-import { Emitter } from "./emitter";
+import { Emitter } from "../emitter";
 
 export interface HistoryOptions {
   /** Maximum number of undo steps. */

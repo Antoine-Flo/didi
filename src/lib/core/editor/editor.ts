@@ -4,10 +4,10 @@
 // kept valid after every history change.
 
 import { CommandRegistry } from "./commands";
-import type { Drawing } from "./drawing";
-import { Emitter } from "./emitter";
-import { History, type HistoryOptions } from "./history";
-import type { ReadonlyLayer } from "./layer";
+import type { Drawing } from "../document/drawing";
+import { Emitter } from "../emitter";
+import { History, type HistoryOptions } from "../history/history";
+import type { ReadonlyLayer } from "../document/layer";
 import { registerEditorCommands } from "./editor-commands";
 
 export class Editor {

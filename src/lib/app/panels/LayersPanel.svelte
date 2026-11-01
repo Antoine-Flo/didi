@@ -2,8 +2,8 @@
   import { ArrowDown, ArrowUp, Eye, EyeOff, Lock, LockOpen, Plus, Trash2 } from "@lucide/svelte";
   import Select from "#lib/app/widgets/Select.svelte";
   import Slider from "#lib/app/widgets/Slider.svelte";
-  import type { Editor } from "#lib/core/editor.js";
-  import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/layer.js";
+  import type { Editor } from "#lib/core/editor/editor.js";
+  import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
 
   let {
     editor,

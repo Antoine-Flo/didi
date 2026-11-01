@@ -9,10 +9,10 @@
 // The stroke owns copies of the touched tiles and changes them in place; `flush` shows
 // them in the drawing, `finish` returns the whole stroke as one undo step.
 
-import type { Drawing } from "../drawing";
-import { replaceTiles, type Edit } from "../edits";
+import type { Drawing } from "../document/drawing";
+import { replaceTiles, type Edit } from "../history/edits";
 import { intersect, type Rect } from "../geometry";
-import { TILE_SIZE, tileKey, type TileSnapshot } from "../tiles";
+import { TILE_SIZE, tileKey, type TileSnapshot } from "../document/tiles";
 import type { Pixel } from "./pixel-path";
 
 export interface StrokeStyle {

@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Drawing } from "#lib/core/drawing.js";
-import { History } from "#lib/core/history.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { History } from "#lib/core/history/history.js";
 import { capture, expectSameState, fill, firstDifference } from "#lib/core/test-utils.js";
-import { unpremultiply } from "#lib/core/pixels.js";
+import { unpremultiply } from "#lib/core/document/pixels.js";
 import { BUNDLED_BRUSHES, brushGroups, bundledBrush } from "./brushes";
 import { loadMyPaint, MyPaintStroke, rgbToHsv, type Brush, type MyPaint } from "./engine";
 import { parseMyb } from "./myb";

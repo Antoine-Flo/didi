@@ -1,6 +1,6 @@
 // Drawing tools and their settings.
 
-import type { RGB } from "#lib/core/color.js";
+import type { RGB } from "#lib/core/color/color.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
 
 export type ToolId = "brush" | "eraser" | "pixel" | "picker";

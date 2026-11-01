@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Drawing } from "./drawing";
+import { Drawing } from "../document/drawing";
 import { Editor } from "./editor";
 
 function setup(names: string[] = []) {

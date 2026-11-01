@@ -49,6 +49,18 @@ La lecture native du stylet n'existe que sous Linux pour l'instant : sous Window
 | `native/mypaint/`   | Compilation de libmypaint en WebAssembly.                                                                                                                                                                                                                         |
 | `tools/`            | Outils de développement (comparaison avec MyPaint).                                                                                                                                                                                                               |
 
+Dans `src/lib/core/`, rangé du plus simple au plus haut niveau (hors tests, chaque dossier n'utilise que ceux d'avant) :
+
+| Sous-dossier | Contenu                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| (racine)     | Briques communes : `emitter.ts` (notifications), `geometry.ts` (rectangles), `test-utils.ts`.   |
+| `document/`  | Le dessin en mémoire : tuiles, calques, dessin, composition, conversions d'alpha (`pixels.ts`). |
+| `history/`   | Annuler et refaire : modifications (`edits.ts`) et historique.                                  |
+| `editor/`    | Le document ouvert : `editor.ts`, registre de commandes (`commands.ts`), commandes du document. |
+| `brush/`     | Tracé des pinceaux dans les tuiles, crayon pixel.                                               |
+| `color/`     | Couleurs et palettes.                                                                           |
+| `file/`      | Format `.didi` et PNG.                                                                          |
+
 Dans `src/lib/app/`, chaque test est à côté du fichier qu'il teste :
 
 | Sous-dossier | Contenu                                                                                                                              |
@@ -61,7 +73,7 @@ Dans `src/lib/app/`, chaque test est à côté du fichier qu'il teste :
 | `commands/`  | Commandes de l'interface (`app-commands.ts`) et raccourcis (`keymap.ts`, `default-keymap.ts`).                                       |
 | `files/`     | Document ouvert et fichiers (`session.svelte.ts`, `files.ts`, `file-worker.ts`), récents, import d'images, palettes enregistrées.    |
 
-Imports (SvelteKit 3) : `#lib/…` au lieu de `$lib/…`, avec l'extension `.js` (ex. `#lib/core/editor.js`). La configuration de SvelteKit est dans `vite.config.js` (plus de `svelte.config.js`).
+Imports (SvelteKit 3) : `#lib/…` au lieu de `$lib/…`, avec l'extension `.js` (ex. `#lib/core/editor/editor.js`). La configuration de SvelteKit est dans `vite.config.js` (plus de `svelte.config.js`).
 
 ## Principes du cœur
 

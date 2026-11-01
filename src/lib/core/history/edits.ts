@@ -3,10 +3,10 @@
 // An edit is created unapplied. `apply` performs it (and redoes it), `revert` undoes it.
 // `revert` must only be called after `apply`, and calls must alternate.
 
-import type { Drawing } from "./drawing";
-import type { Rect } from "./geometry";
-import type { Layer, LayerProps } from "./layer";
-import { TILE_SIZE, type TileSnapshot } from "./tiles";
+import type { Drawing } from "../document/drawing";
+import type { Rect } from "../geometry";
+import type { Layer, LayerProps } from "../document/layer";
+import { TILE_SIZE, type TileSnapshot } from "../document/tiles";
 
 export interface Edit {
   /** Shown in the history, e.g. "Add layer". */

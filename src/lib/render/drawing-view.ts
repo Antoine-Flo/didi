@@ -14,9 +14,9 @@ import {
   type BLEND_MODES as PixiBlendMode,
   type SCALE_MODE,
 } from "pixi.js";
-import type { Drawing, DrawingChange } from "#lib/core/drawing.js";
-import type { BlendMode, ReadonlyLayer } from "#lib/core/layer.js";
-import { TILE_SIZE, tileCoord } from "#lib/core/tiles.js";
+import type { Drawing, DrawingChange } from "#lib/core/document/drawing.js";
+import type { BlendMode, ReadonlyLayer } from "#lib/core/document/layer.js";
+import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
 import { visibleRect, type Camera } from "./camera";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {

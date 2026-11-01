@@ -39,7 +39,7 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 - `extensions` dans `document.json` est réservé aux données des modules (lien Godot…) : conservé tel quel, même s'il n'est pas compris. Les autres champs inconnus sont ignorés.
 - Les versions plus anciennes sont migrées à la lecture (`MIGRATIONS` dans `didi-file.ts`) ; une version plus récente est refusée avec un message clair.
 - Un calque manquant ou mal formé donne un message précis ; les réglages absents prennent leur valeur par défaut.
-- PNG encodé et décodé par notre code (`core/png.ts`, avec fflate) : marche dans un worker et dans les tests. Le décodeur lit les formats courants (gris, RGB, palette, 1 à 16 bits, transparence `tRNS`), vérifiés contre PIL.
+- PNG encodé et décodé par notre code (`core/file/png.ts`, avec fflate) : marche dans un worker et dans les tests. Le décodeur lit les formats courants (gris, RGB, palette, 1 à 16 bits, transparence `tRNS`), vérifiés contre PIL.
 - Enregistrement et ouverture dans un worker (Comlink) : environ 1,3 s pour écrire et 0,5 s pour lire un document 2048 × 2048 de 3 calques, sans bloquer l'interface.
 - Écriture atomique côté Rust (fichier temporaire puis renommage) : un crash pendant l'enregistrement ne laisse jamais un fichier à moitié écrit.
 - Modifications non enregistrées : `History.marker` identifie l'état courant ; annuler jusqu'à l'état enregistré rend le document « propre ».
@@ -175,7 +175,7 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 **Constat** : dans PixiJS, les modes normal, écran et addition suivent la norme, mais le mode produit (multiply) donne du noir sur un fond transparent, et incrustation, assombrir et éclaircir passent par des filtres séparés.
 
-**Décision** : la composition CPU (`src/lib/core/compositing.ts`) suit la spécification W3C Compositing and Blending (comme Photoshop, Krita et les navigateurs), en alpha prémultiplié, avec un arrondi sur 8 bits après chaque calque comme sur le GPU. L'addition est une somme plafonnée, comme sur le GPU.
+**Décision** : la composition CPU (`src/lib/core/document/compositing.ts`) suit la spécification W3C Compositing and Blending (comme Photoshop, Krita et les navigateurs), en alpha prémultiplié, avec un arrondi sur 8 bits après chaque calque comme sur le GPU. L'addition est une somme plafonnée, comme sur le GPU.
 
 **Mise à jour (phase 2)** : seuls les modes normal, écran et addition sont proposés, car les fonctions de mélange GPU de PixiJS donnent exactement les formules de la référence. Produit, incrustation, assombrir et éclaircir sont retirés plutôt que laissés approximatifs : ce n'est pas une priorité pour du dessin de jeu vidéo. Ils reviendront implémentés des deux côtés (shader GPU + CPU) et vérifiés par comparaison d'images.
 

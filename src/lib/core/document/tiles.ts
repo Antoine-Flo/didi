@@ -6,7 +6,7 @@
 // - A stored tile is never mutated: writes replace it with a new array. Snapshots can
 //   therefore keep references to tiles instead of copying them.
 
-import { intersect, isIntegerRect, type Rect } from "./geometry";
+import { intersect, isIntegerRect, type Rect } from "../geometry";
 
 export const TILE_SIZE = 256;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;

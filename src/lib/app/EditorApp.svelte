@@ -49,8 +49,8 @@
     MAX_PIXEL_SIZE,
     type ToolId,
   } from "#lib/app/canvas/tools.js";
-  import type { Editor } from "#lib/core/editor.js";
-  import { parseHexPalette, type PaletteLibrary } from "#lib/core/palette.js";
+  import type { Editor } from "#lib/core/editor/editor.js";
+  import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
   import { loadMyPaint } from "#lib/mypaint/engine.js";
   import type { Camera, Point } from "#lib/render/camera.js";
 

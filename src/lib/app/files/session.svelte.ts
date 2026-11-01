@@ -6,8 +6,8 @@
 // normally. At start, a copy left by a crash is moved aside and offered in the start
 // screen until the user opens or discards it.
 
-import { documentFromEditor, editorFromDocument } from "#lib/core/didi-file.js";
-import type { Editor } from "#lib/core/editor.js";
+import { documentFromEditor, editorFromDocument } from "#lib/core/file/didi-file.js";
+import type { Editor } from "#lib/core/editor/editor.js";
 import {
   canUseFiles,
   chooseFileToOpen,

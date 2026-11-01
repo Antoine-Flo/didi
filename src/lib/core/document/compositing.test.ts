@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { composite } from "./compositing";
 import { Drawing } from "./drawing";
 import { BLEND_MODES, type BlendMode, type LayerProps } from "./layer";
-import { fill, firstDifference, pattern } from "./test-utils";
+import { fill, firstDifference, pattern } from "../test-utils";
 
 type RGBA = [number, number, number, number];
 const px = { x: 0, y: 0, width: 1, height: 1 };

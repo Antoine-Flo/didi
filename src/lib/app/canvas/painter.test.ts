@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Drawing } from "#lib/core/drawing.js";
-import { Editor } from "#lib/core/editor.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { Editor } from "#lib/core/editor/editor.js";
 import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
 import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
 import { Painter } from "./painter";
-import type { RGB } from "#lib/core/color.js";
+import type { RGB } from "#lib/core/color/color.js";
 import { defaultToolOptions, type ToolId } from "./tools";
 
 let engine: MyPaint;

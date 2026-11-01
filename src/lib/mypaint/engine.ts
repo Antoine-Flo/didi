@@ -5,9 +5,9 @@
 // the brush needs it, and the tiles it writes are copied back into the layer's 8-bit tiles
 // on `flush`. `finish` returns the whole stroke as one undo step.
 
-import type { Drawing } from "#lib/core/drawing.js";
-import { replaceTiles, type Edit } from "#lib/core/edits.js";
-import { TILE_SIZE, tileKey, type TileSnapshot } from "#lib/core/tiles.js";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
+import { TILE_SIZE, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
 import createLibMyPaint, { type LibMyPaint } from "./libmypaint.mjs";
 import type { MybBrush } from "./myb";
 

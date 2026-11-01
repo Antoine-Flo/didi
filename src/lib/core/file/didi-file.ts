@@ -15,13 +15,13 @@
 // not understood. Older versions are migrated when read; newer ones are refused.
 
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
-import { composite } from "./compositing";
-import { Drawing } from "./drawing";
-import { Editor } from "./editor";
-import { BLEND_MODES, DEFAULT_LAYER_PROPS, type LayerProps } from "./layer";
-import { premultiply, unpremultiply } from "./pixels";
+import { composite } from "../document/compositing";
+import { Drawing } from "../document/drawing";
+import { Editor } from "../editor/editor";
+import { BLEND_MODES, DEFAULT_LAYER_PROPS, type LayerProps } from "../document/layer";
+import { premultiply, unpremultiply } from "../document/pixels";
 import { decodePng, encodePng } from "./png";
-import { assertCanvasSize, TileStore, type TileSnapshot } from "./tiles";
+import { assertCanvasSize, TileStore, type TileSnapshot } from "../document/tiles";
 
 export const DIDI_VERSION = 1;
 export const DIDI_MIME = "application/x-didi";

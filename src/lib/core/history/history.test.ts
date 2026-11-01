@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import fc from "fast-check";
-import { Drawing } from "./drawing";
+import { Drawing } from "../document/drawing";
 import { addLayer, updateLayer, writePixels } from "./edits";
 import { History } from "./history";
-import { TILE_SIZE } from "./tiles";
-import { capture, expectSameState, fill, randomEdit, type DrawingState } from "./test-utils";
+import { TILE_SIZE } from "../document/tiles";
+import { capture, expectSameState, fill, randomEdit, type DrawingState } from "../test-utils";
 
 function setup(options = {}) {
   const drawing = new Drawing(512, 512);
