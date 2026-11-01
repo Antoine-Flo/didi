@@ -3,3 +3,4 @@ build/
 src-tauri/target/
 src-tauri/gen/
 package-lock.json
+src/lib/mypaint/libmypaint.mjs

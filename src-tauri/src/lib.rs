@@ -10,7 +10,10 @@ pub fn run() {
             tablet::install(app)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![tablet::tablet_subscribe])
+        .invoke_handler(tauri::generate_handler![
+            tablet::tablet_available,
+            tablet::tablet_subscribe
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

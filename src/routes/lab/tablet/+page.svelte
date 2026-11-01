@@ -3,7 +3,7 @@
   import { isTauri } from "@tauri-apps/api/core";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { InputStats, type InputReport, type InputSample } from "$lib/lab/input-stats";
-  import { subscribeNativePen, type PenEvent } from "$lib/lab/pen-input";
+  import { subscribeNativePen, type PenEvent } from "$lib/platform/pen";
 
   type Source = "dom" | "native";
 

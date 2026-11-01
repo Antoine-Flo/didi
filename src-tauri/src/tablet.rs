@@ -33,6 +33,8 @@ pub struct PenEvent {
     pub button: u32,
     /// "pen", "eraser", "mouse", ...
     pub source: &'static str,
+    /// Whether the tip (or the left mouse button) is held down, before this event.
+    pub pressed: bool,
     /// Event time from the windowing system, in ms.
     pub time: u32,
     /// Wall clock time (ms since epoch) when the event was handled, to measure latency.
@@ -52,6 +54,12 @@ impl PenSink {
             *guard = None;
         }
     }
+}
+
+/// Whether native pen events are available on this platform.
+#[tauri::command]
+pub fn tablet_available() -> bool {
+    cfg!(target_os = "linux")
 }
 
 #[tauri::command]
@@ -144,6 +152,9 @@ mod linux {
             tilt_y: axis(gdk::AxisUse::Ytilt) * 90.0,
             button,
             source,
+            pressed: ev
+                .state()
+                .is_some_and(|s| s.contains(gdk::ModifierType::BUTTON1_MASK)),
             time: ev.time(),
             sent_at: SystemTime::now()
                 .duration_since(UNIX_EPOCH)

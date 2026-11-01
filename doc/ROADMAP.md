@@ -35,13 +35,14 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 
 ## Phase 3 — Saisie et moteur de pinceau
 
-- Abstraction de la source d'entrée, stabilisation, interpolation.
-- Pinceau peinture (pression → taille/opacité, courbe de pression).
-- Pinceau pixel (pixel-perfect, sans antialiasing).
-- Gomme et pipette.
+- ✅ Source d'entrée native (Linux) ou DOM, pression, inclinaison, mode gomme du stylet.
+- ✅ Moteur de pinceau : libmypaint (WebAssembly), pinceaux `.myb` (toute la collection MyPaint CC0 fournie), smudge et mélange.
+- ✅ Crayon pixel (pixel-perfect, sans anticrénelage), gomme et pipette.
+- ✅ Un trait = un seul Ctrl+Z, annulation par Échap, clic de fermeture des fenêtres ignoré.
+- ✅ Comparaison automatique avec MyPaint (`npm run compare:brushes`) : même rendu à pression égale.
+- Import de pinceaux `.myb` par l'utilisateur, gomme pixel.
 - Actions associables aux boutons du stylet et au mode gomme (gomme, roue, déplacer…), car chaque pilote les envoie différemment.
-- Pinceaux définis comme fichiers dès le départ.
-- Tests par rejeu de traits enregistrés et comparaison d'images.
+- Enregistrement de vrais traits au stylet, rejoués dans les tests.
 
 **Terminé quand** : latence imperceptible et rendu sans régression.
 

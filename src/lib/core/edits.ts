@@ -125,3 +125,25 @@ export function writePixels(
     bytes: () => snapshotBytes(before) + snapshotBytes(after),
   };
 }
+
+/**
+ * Replaces tiles of a layer, from `before` to `after`. Used for changes already made
+ * progressively, like a brush stroke: applying it again is harmless.
+ */
+export function replaceTiles(
+  id: string,
+  before: TileSnapshot,
+  after: TileSnapshot,
+  label: string,
+): Edit {
+  return {
+    label,
+    apply(d) {
+      d.restorePixels(id, after);
+    },
+    revert(d) {
+      d.restorePixels(id, before);
+    },
+    bytes: () => snapshotBytes(before) + snapshotBytes(after),
+  };
+}

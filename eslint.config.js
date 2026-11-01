@@ -7,7 +7,13 @@ import svelteConfig from "./svelte.config.js";
 
 export default ts.config(
   {
-    ignores: ["build/", ".svelte-kit/", "src-tauri/", "node_modules/"],
+    ignores: [
+      "build/",
+      ".svelte-kit/",
+      "src-tauri/",
+      "node_modules/",
+      "src/lib/mypaint/libmypaint.mjs",
+    ],
   },
   js.configs.recommended,
   ...ts.configs.recommended,

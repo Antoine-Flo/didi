@@ -1,7 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
-// @ts-expect-error type error without @types/node package
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
@@ -12,6 +11,8 @@ export default defineConfig(() => ({
   test: {
     include: ["src/**/*.test.ts"],
     passWithNoTests: true,
+    // A test that runs this long is stuck: fail instead of hanging.
+    testTimeout: 30000,
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

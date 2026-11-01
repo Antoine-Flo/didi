@@ -2,8 +2,12 @@
   import { onMount } from "svelte";
   import { resolve } from "$app/paths";
   import {
+    Brush,
     Compass,
+    Eraser,
+    Grid2x2,
     ImagePlus,
+    Pipette,
     Maximize,
     Redo2,
     RotateCcw,
@@ -12,7 +16,18 @@
     ZoomIn,
     ZoomOut,
   } from "@lucide/svelte";
-  import CanvasView, { type ViewStats } from "$lib/app/CanvasView.svelte";
+  import CanvasView, { type BrushCursor, type ViewStats } from "$lib/app/CanvasView.svelte";
+  import { Painter } from "$lib/app/painter";
+  import { brushGroups, bundledBrush } from "$lib/mypaint/brushes";
+  import { loadMyPaint } from "$lib/mypaint/engine";
+  import {
+    sizeFromSlider,
+    sliderFromSize,
+    defaultToolOptions,
+    fromHex,
+    toHex,
+    type ToolId,
+  } from "$lib/app/tools";
   import LayersPanel from "$lib/app/LayersPanel.svelte";
   import { decodeImage, importImage } from "$lib/app/import-image";
   import { isTyping } from "$lib/app/keyboard";
@@ -20,6 +35,48 @@
   import type { Camera, Point } from "$lib/render/camera";
 
   let { editor }: { editor: Editor } = $props();
+
+  let tool = $state<ToolId>("brush");
+  let options = $state(defaultToolOptions());
+  const painter = $derived(
+    new Painter(editor, {
+      tool: () => tool,
+      options: () => $state.snapshot(options),
+      onPick: (color) => (options.color = color),
+      onMessage: (message) => {
+        error = message;
+        setTimeout(() => {
+          if (error === message) error = null;
+        }, 4000);
+      },
+    }),
+  );
+
+  const TOOLS: { id: ToolId; title: string; key: string }[] = [
+    { id: "brush", title: "Pinceau", key: "B" },
+    { id: "eraser", title: "Gomme", key: "E" },
+    { id: "pixel", title: "Pinceau pixel", key: "P" },
+    { id: "picker", title: "Pipette", key: "I" },
+  ];
+
+  function brushCursor(eraser: boolean): BrushCursor {
+    if (eraser || tool === "eraser") return { kind: "circle", size: options.eraser.size };
+    if (tool === "brush") return { kind: "circle", size: options.brush.size };
+    if (tool === "pixel") return { kind: "square", size: options.pixel.size };
+    return { kind: "none" };
+  }
+
+  /** Multiplies the current tool's size (bracket keys). */
+  function resize(factor: number) {
+    // Through the slider mapping, which also rounds sensibly for small and large sizes.
+    const scale = (v: number) => sizeFromSlider(sliderFromSize(v * factor));
+    if (tool === "brush") options.brush.size = scale(options.brush.size);
+    if (tool === "eraser") options.eraser.size = scale(options.eraser.size);
+    if (tool === "pixel") {
+      const step = factor > 1 ? 1 : -1;
+      options.pixel.size = Math.min(64, Math.max(1, options.pixel.size + step));
+    }
+  }
 
   // Bumped on every change, so the UI re-reads the editor.
   let version = $state(0);
@@ -41,6 +98,11 @@
   const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} Mo`;
 
   onMount(() => {
+    loadMyPaint()
+      .then((engine) => painter.setEngine(engine))
+      .catch(
+        (e) => (error = `Moteur de pinceau indisponible : ${e instanceof Error ? e.message : e}`),
+      );
     const bump = () => version++;
     const unsubscribe = [
       editor.drawing.subscribe(bump),
@@ -65,6 +127,8 @@
     if (isTyping(e)) return;
     const ctrl = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
+    // Nothing may change the drawing in the middle of a stroke.
+    if (painter.active) return;
     let handled = true;
     if (ctrl && key === "z" && !e.shiftKey) editor.commands.execute("history.undo");
     else if (ctrl && (key === "y" || (key === "z" && e.shiftKey)))
@@ -77,6 +141,12 @@
     else if (key === "4") canvasView.rotateBy(-Math.PI / 12);
     else if (key === "6") canvasView.rotateBy(Math.PI / 12);
     else if (key === "5") canvasView.resetRotation();
+    else if (key === "b") tool = "brush";
+    else if (key === "e") tool = "eraser";
+    else if (key === "p") tool = "pixel";
+    else if (key === "i") tool = "picker";
+    else if (key === "[") resize(0.8);
+    else if (key === "]") resize(1.25);
     else handled = false;
     if (handled) e.preventDefault();
   }
@@ -157,10 +227,95 @@
     </button>
   </header>
 
+  <nav>
+    {#each TOOLS as t (t.id)}
+      <button
+        class="icon"
+        class:active={tool === t.id}
+        title="{t.title} ({t.key})"
+        onclick={() => (tool = t.id)}
+      >
+        {#if t.id === "brush"}<Brush size={18} />
+        {:else if t.id === "eraser"}<Eraser size={18} />
+        {:else if t.id === "pixel"}<Grid2x2 size={18} />
+        {:else}<Pipette size={18} />{/if}
+      </button>
+    {/each}
+    <span class="sep"></span>
+    <input
+      type="color"
+      title="Couleur"
+      value={toHex(options.color)}
+      oninput={(e) => {
+        const color = fromHex(e.currentTarget.value);
+        if (color) options.color = color;
+      }}
+    />
+    <span class="sep"></span>
+    {#if tool === "brush" || tool === "eraser"}
+      {@const settings = tool === "brush" ? options.brush : options.eraser}
+      <select
+        title="Pinceau"
+        value={settings.preset}
+        onchange={(e) => {
+          // Each brush starts at the size it was designed for.
+          settings.preset = e.currentTarget.value;
+          settings.size = bundledBrush(settings.preset).nativeSize;
+        }}
+      >
+        {#each brushGroups(tool === "eraser") as group (group.label)}
+          <optgroup label={group.label}>
+            {#each group.brushes as b (b.id)}
+              <option value={b.id}>{b.name}</option>
+            {/each}
+          </optgroup>
+        {/each}
+      </select>
+      <label>
+        Taille
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.001"
+          value={sliderFromSize(settings.size)}
+          oninput={(e) => (settings.size = sizeFromSlider(Number(e.currentTarget.value)))}
+        />
+        {settings.size} px
+      </label>
+      <label>
+        Opacité <input type="range" min="0" max="1" step="0.01" bind:value={settings.opacity} />
+        {Math.round(settings.opacity * 100)} %
+      </label>
+    {:else if tool === "pixel"}
+      <label
+        >Taille <input type="range" min="1" max="64" bind:value={options.pixel.size} />
+        {options.pixel.size} px</label
+      >
+      <label
+        >Opacité <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          bind:value={options.pixel.opacity}
+        />
+        {Math.round(options.pixel.opacity * 100)} %</label
+      >
+      <label title="Retire les coins en L (pinceau de 1 px)">
+        <input type="checkbox" bind:checked={options.pixel.pixelPerfect} /> Pixel-perfect
+      </label>
+    {:else}
+      <span class="hint">Cliquez sur la toile pour prendre une couleur.</span>
+    {/if}
+  </nav>
+
   <main>
     <CanvasView
       bind:this={canvasView}
       {editor}
+      {painter}
+      {brushCursor}
       oncamera={(c) => (camera = c)}
       oncursor={(p) => (cursor = p)}
       onstats={(s) => (stats = s)}
@@ -189,6 +344,11 @@
 </div>
 
 <style>
+  :global(html) {
+    /* Native controls (menus, sliders, checkboxes) follow the dark theme. */
+    color-scheme: dark;
+  }
+
   :global(html, body) {
     margin: 0;
     height: 100%;
@@ -234,8 +394,44 @@
   .app {
     display: grid;
     grid-template-columns: 1fr 240px;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr auto;
     height: 100vh;
+  }
+
+  nav {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    padding: 2px 4px;
+    border-bottom: 1px solid #333;
+  }
+
+  nav label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  nav input[type="range"] {
+    width: 90px;
+  }
+
+  nav input[type="color"] {
+    width: 32px;
+    height: 24px;
+    padding: 0;
+  }
+
+  :global(button.active) {
+    background: #3a4a66;
+  }
+
+  .hint {
+    color: #888;
   }
 
   header {

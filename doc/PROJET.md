@@ -53,13 +53,19 @@ Inspirée de la roue de Krita, mais entièrement personnalisable. Elle libère l
 | Domaine     | Choix                                              |
 | ----------- | -------------------------------------------------- |
 | Application | Tauri 2, SvelteKit (statique), Svelte 5            |
-| Rendu       | PixiJS, pixi-viewport                              |
+| Rendu       | PixiJS                                             |
+| Pinceaux    | libmypaint (WebAssembly), pinceaux MyPaint `.myb`  |
 | Couleur     | culori (OKLCH)                                     |
 | Interface   | Bits UI, thème par tokens CSS ; Dockview plus tard |
 | Raccourcis  | hotkeys-js                                         |
 | Fichiers    | fflate (zip), Comlink (Web Workers)                |
 | Rust        | notify, image, tokio-tungstenite                   |
 | Godot       | plugin éditeur en GDScript, WebSocketPeer natif    |
+
+## Licences tierces
+
+- **libmypaint** (ISC) : notice à conserver, voir `native/mypaint/LICENSE-libmypaint`.
+- **Pinceaux MyPaint** fournis (CC0, domaine public) : voir `src/lib/mypaint/brushes/LICENSE-mypaint-brushes`.
 
 ## Long terme
 

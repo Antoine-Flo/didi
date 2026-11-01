@@ -12,7 +12,7 @@
   } from "pixi.js";
   import { FrameStats, type FrameReport } from "$lib/lab/frame-stats";
   import { placeDabs, type Point } from "$lib/lab/dabs";
-  import { subscribeNativePen, type PenEvent } from "$lib/lab/pen-input";
+  import { subscribeNativePen, type PenEvent } from "$lib/platform/pen";
   import { readAsync, readSync } from "$lib/lab/readback";
 
   interface ReadRow {

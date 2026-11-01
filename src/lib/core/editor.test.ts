@@ -17,6 +17,32 @@ describe("Editor", () => {
     expect(new Editor(drawing).activeLayer?.name).toBe("C");
   });
 
+  it("activates the first layer added to an empty drawing", () => {
+    const editor = new Editor(new Drawing(100, 100));
+    const layer = editor.drawing.createLayer({ name: "A" });
+    // Through the history, without the command that selects the new layer.
+    const errors: unknown[] = [];
+    const original = globalThis.queueMicrotask;
+    globalThis.queueMicrotask = (fn) => {
+      try {
+        fn();
+      } catch (e) {
+        errors.push(e);
+      }
+    };
+    try {
+      editor.history.push({
+        label: "x",
+        apply: (d) => d.addLayer(layer),
+        revert: (d) => void d.removeLayer(layer.id),
+      });
+    } finally {
+      globalThis.queueMicrotask = original;
+    }
+    expect(errors).toEqual([]);
+    expect(editor.activeLayer?.name).toBe("A");
+  });
+
   it("has no active layer without layers", () => {
     const editor = setup();
     expect(editor.activeLayer).toBeNull();

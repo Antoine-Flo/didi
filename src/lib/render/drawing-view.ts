@@ -106,6 +106,11 @@ class LayerView {
   }
 }
 
+/** Brush outline: circle (round brushes) or square (pixel brush), at a canvas position. */
+export type BrushCursorState =
+  | { kind: "circle" | "square"; size: number; x: number; y: number }
+  | { kind: "none"; x: number; y: number };
+
 export class DrawingView {
   /** Add this to the stage. */
   readonly root = new Container();
@@ -116,6 +121,9 @@ export class DrawingView {
   private checker: TilingSprite;
   private checkerMask = new Graphics();
   private grid = new Graphics();
+  private cursor = new Graphics();
+  private cursorState: BrushCursorState | null = null;
+  private zoom = 1;
   private views = new Map<string, LayerView>();
   private dirtyTiles = new Map<string, Set<number>>();
   private dirtyProps = new Set<string>();
@@ -127,7 +135,7 @@ export class DrawingView {
     this.checker = new TilingSprite({ texture: checkerTexture(), width: 1, height: 1 });
     this.checkerMask.rect(0, 0, drawing.width, drawing.height).fill(0xffffff);
     this.checker.mask = this.checkerMask;
-    this.canvasRoot.addChild(this.checkerMask, this.layersRoot, this.grid);
+    this.canvasRoot.addChild(this.checkerMask, this.layersRoot, this.grid, this.cursor);
     this.root.addChild(this.checker, this.canvasRoot);
     for (const layer of drawing.layers) this.addView(layer.id);
     this.orderDirty = true;
@@ -146,6 +154,7 @@ export class DrawingView {
     this.canvasRoot.position.set(camera.x, camera.y);
     this.canvasRoot.scale.set(camera.zoom);
     this.canvasRoot.rotation = camera.rotation;
+    this.zoom = camera.zoom;
     this.checker.width = view.width;
     this.checker.height = view.height;
     const mode: SCALE_MODE = camera.zoom >= NEAREST_FROM_ZOOM ? "nearest" : "linear";
@@ -154,6 +163,59 @@ export class DrawingView {
       for (const layerView of this.views.values()) layerView.setScaleMode(mode);
     }
     this.drawGrid(camera, view);
+    this.drawCursor();
+  }
+
+  /** Shows the brush outline at a canvas position, or hides it. */
+  setBrushCursor(cursor: BrushCursorState | null) {
+    this.cursorState = cursor;
+    this.drawCursor();
+  }
+
+  private drawCursor() {
+    const g = this.cursor;
+    g.clear();
+    const c = this.cursorState;
+    if (!c || c.kind === "none") return;
+    // Two tones, one screen pixel apart, to stay visible on any background.
+    const px = 1 / this.zoom;
+    if (c.size * this.zoom < 6) {
+      const arm = 6 * px;
+      for (const [color, offset] of [
+        [0xffffff, px],
+        [0x000000, 0],
+      ] as const) {
+        g.moveTo(c.x - arm + offset, c.y + offset).lineTo(c.x + arm + offset, c.y + offset);
+        g.moveTo(c.x + offset, c.y - arm + offset).lineTo(c.x + offset, c.y + arm + offset);
+        g.stroke({ width: 1, color, alpha: 0.8, pixelLine: true });
+      }
+      if (c.kind === "circle") return;
+    }
+    if (c.kind === "circle") {
+      g.circle(c.x, c.y, c.size / 2 + px).stroke({
+        width: 1,
+        color: 0xffffff,
+        alpha: 0.8,
+        pixelLine: true,
+      });
+      g.circle(c.x, c.y, c.size / 2).stroke({
+        width: 1,
+        color: 0x000000,
+        alpha: 0.8,
+        pixelLine: true,
+      });
+    } else {
+      const n = Math.max(1, Math.round(c.size));
+      const x = Math.floor(c.x) - Math.floor(n / 2);
+      const y = Math.floor(c.y) - Math.floor(n / 2);
+      g.rect(x - px, y - px, n + 2 * px, n + 2 * px).stroke({
+        width: 1,
+        color: 0xffffff,
+        alpha: 0.8,
+        pixelLine: true,
+      });
+      g.rect(x, y, n, n).stroke({ width: 1, color: 0x000000, alpha: 0.8, pixelLine: true });
+    }
   }
 
   private drawGrid(camera: Camera, view: { width: number; height: number }) {

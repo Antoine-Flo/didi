@@ -30,3 +30,16 @@ Utiliser le stylet pour l'interface : des languettes au bord de l'écran, qu'on 
 - Un « espace de travail » partageable regroupant roues, mini-barre et drawers.
 
 **À valider** : prototype à tester en conditions réelles avant de l'intégrer. Une alternative serait la disposition fixe de la phase 4.
+
+---
+
+## Deux bureaux : pixel art et peinture
+
+Didi doit être aussi à l'aise en pixel art qu'en peinture 2D, sans favoriser l'un ou l'autre. Idée : deux « bureaux » au choix, comme 2D / 3D dans Godot, chacun avec ses outils, ses réglages par défaut et sa disposition.
+
+- **Pixel art** : pinceau pixel, pixel-perfect, grille, palettes, zoom entier, pas de lissage.
+- **Peinture** : pinceaux doux, pression, lissage, mélange de couleurs.
+
+Le moteur reste commun : mêmes calques, même historique, mêmes outils de base. Seuls les réglages et l'interface changent.
+
+**À valider** : plus tard, une fois les outils de base en place.
