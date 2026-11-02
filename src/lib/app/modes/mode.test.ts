@@ -20,3 +20,20 @@ describe("modes", () => {
     expect(modes.resolve(null).id).toBe(DEFAULT_MODE);
   });
 });
+
+describe("new documents", () => {
+  it("offer valid sizes in every mode, the default one among them", () => {
+    for (const { id, newDocument } of createModeRegistry().list()) {
+      const sizes = newDocument.presets.flatMap((p) => p.sizes);
+      expect(sizes.length, id).toBeGreaterThan(0);
+      for (const [w, h] of sizes) {
+        expect(Number.isInteger(w) && Number.isInteger(h) && w > 0 && h > 0, id).toBe(true);
+      }
+      const { width, height } = newDocument.size;
+      expect(
+        sizes.some(([w, h]) => w === width && h === height),
+        id,
+      ).toBe(true);
+    }
+  });
+});

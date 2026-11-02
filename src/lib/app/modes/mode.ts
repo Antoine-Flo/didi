@@ -8,7 +8,17 @@
 
 import type { Component } from "svelte";
 import type { Binding } from "#lib/app/commands/keymap.js";
+import type { Background } from "#lib/app/files/new-drawing.js";
 import { Registry } from "#lib/app/registry.js";
+
+/** What the start screen offers to create a document in a mode. */
+export interface NewDocumentOptions {
+  /** Sizes in one click, by group. */
+  presets: { group: string; sizes: [width: number, height: number][] }[];
+  /** Preselected in the custom size fields. */
+  size: { width: number; height: number };
+  background: Background;
+}
 
 /** Panels that only some modes show. */
 export type OptionalPanel = "brushes";
@@ -19,6 +29,9 @@ export interface Mode {
   /** In English, e.g. "Pixel art". */
   readonly title: string;
   readonly icon: Component<{ size?: number }>;
+  /** One line for the start screen, e.g. "Sprites, tiles, animation". */
+  readonly description: string;
+  readonly newDocument: NewDocumentOptions;
   /** Tool ids of the tool bar, in order. The first one is active when entering the mode. */
   readonly tools: readonly string[];
   /** The tool of the pen's eraser end. */
@@ -30,6 +43,9 @@ export interface Mode {
 
 /** The mode of documents that have none (files from before modes). */
 export const DEFAULT_MODE = "painting";
+
+/** The mode chosen at start, for the first new document. */
+export const START_MODE = "pixel";
 
 export class ModeRegistry extends Registry<Mode> {
   constructor() {

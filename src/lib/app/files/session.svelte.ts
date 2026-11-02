@@ -81,13 +81,24 @@ export class Session {
   private unsubscribe: () => void = () => {};
   private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** `editor`: the document to start with, a new one by default. */
+  /** `editor`: the document to start with, a new one by default, in `mode`. */
   constructor(
     private readonly host: SessionHost,
     editor: Editor = newEditor(),
+    mode: string = DEFAULT_MODE,
   ) {
     this.setEditor(editor);
     this.savedMarker = editor.history.marker;
+    this.mode = this.savedMode = mode;
+  }
+
+  /**
+   * A new document nobody has touched: no file, no change, nothing to undo or redo. It can
+   * be replaced without losing anything.
+   */
+  get untouched(): boolean {
+    const { history } = this.editor;
+    return this.path === null && !this.dirty && !history.canUndo && !history.canRedo;
   }
 
   /** Whether the document has changes that are not saved. */
@@ -265,6 +276,7 @@ export class Session {
       name: documentName(path),
       thumbnail: pngDataUrl(thumbnail),
       time: Date.now(),
+      mode: this.mode,
     });
     await saveRecent(this.recent);
   }

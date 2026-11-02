@@ -124,11 +124,31 @@ describe("Session", () => {
     await session.save();
     expect(session.dirty).toBe(false);
     expect(readDidi(disk.get("/m.didi")!).mode).toBe("painting");
+    expect(session.recent[0]).toMatchObject({ path: "/m.didi", mode: "painting" });
 
     await session.newDocument(16, 16, "white", "pixel");
     await session.open("/m.didi");
     expect(session.mode).toBe("painting");
     expect(session.dirty).toBe(false);
+  });
+
+  it("tells whether the document is untouched, and can be replaced without loss", async () => {
+    const host = { notify: vi.fn(), askUnsaved: vi.fn(async () => "cancel" as const) };
+    const session = new Session(host, undefined, "pixel");
+    expect(session.mode).toBe("pixel");
+    expect(session.dirty).toBe(false);
+    expect(session.untouched).toBe(true);
+    paint(session);
+    expect(session.untouched).toBe(false);
+    session.editor.history.undo();
+    // Not dirty, but the change can be redone: still worth keeping.
+    expect(session.dirty).toBe(false);
+    expect(session.untouched).toBe(false);
+
+    const saved = setup().session;
+    dialogs.save = "/u.didi";
+    await saved.save();
+    expect(saved.untouched).toBe(false);
   });
 
   it("opens files, and tells why one cannot be opened", async () => {

@@ -25,6 +25,8 @@
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
   import { createModeRegistry } from "#lib/app/modes/builtin.js";
+  import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
+  import { newEditor } from "#lib/app/files/new-drawing.js";
   import { createToolRegistry } from "#lib/app/tools/builtin.js";
   import type { BrushCursor, Tool } from "#lib/app/tools/tool.js";
   import type { Editor } from "#lib/core/editor/editor.js";
@@ -39,6 +41,14 @@
   let unsavedRequest = $state<{ name: string; answer: (choice: UnsavedChoice) => void } | null>(
     null,
   );
+  const modes = createModeRegistry();
+
+  /** A new empty document in a mode, with its default size and background. */
+  function blankEditor(mode: Mode): Editor {
+    const { size, background } = mode.newDocument;
+    return newEditor(size.width, size.height, background);
+  }
+
   // svelte-ignore state_referenced_locally
   const session = new Session(
     {
@@ -54,15 +64,26 @@
           };
         }),
     },
-    initial,
+    initial ?? blankEditor(modes.get(START_MODE)),
+    initial ? DEFAULT_MODE : START_MODE,
   );
+
+  /**
+   * A mode chosen in the start screen. While the document behind is untouched, it becomes
+   * an empty one in that mode, so that what is behind matches the choice (also when
+   * clicking outside). A document with any change or a file is never replaced.
+   */
+  function chooseMode(next: Mode) {
+    if (!session.untouched || session.mode === next.id) return;
+    const { size, background } = next.newDocument;
+    void session.newDocument(size.width, size.height, background, next.id);
+  }
   const editor = $derived(session.editor);
   // Shown at start, like Blender's splash screen.
   // svelte-ignore state_referenced_locally
   let startOpen = $state(!initial);
 
   const tools = createToolRegistry();
-  const modes = createModeRegistry();
   /** The document's mode: which tools and panels are shown. */
   const mode = $derived(modes.resolve(session.mode));
   /** Id of the active tool. */
@@ -430,9 +451,13 @@
 
 <StartScreen
   bind:open={startOpen}
+  modes={modes.list()}
+  mode={mode.id}
   recent={session.recent}
   recovery={session.recovery}
-  oncreate={(width, height, background) => session.newDocument(width, height, background)}
+  oncreate={(width, height, background, mode) =>
+    session.newDocument(width, height, background, mode)}
+  onchoose={chooseMode}
   onopen={(path) => session.open(path)}
   onrecover={() => session.recover()}
   ondiscardrecovery={() => session.discardRecovery()}
