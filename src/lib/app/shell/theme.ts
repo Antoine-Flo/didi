@@ -42,7 +42,8 @@ export const TOKENS = [
   "space",
   /** Height of buttons, fields and list rows. */
   "control-height",
-  /** Height of the window's title bar. */
+  /** Height of the window's title bar: a bar as tall as the others (control height plus
+   * space), and the space above it. */
   "titlebar-height",
   /** Corners of panels and popups. */
   "radius",
@@ -87,7 +88,7 @@ export const DEFAULT_THEME: Theme = {
     "font-size": "12px",
     space: "8px",
     "control-height": "26px",
-    "titlebar-height": "32px",
+    "titlebar-height": "42px",
     radius: "6px",
     "radius-small": "4px",
   },

@@ -8,6 +8,7 @@
     library,
     version,
     color,
+    fill = false,
     tip,
     run,
   }: {
@@ -16,6 +17,11 @@
     version: number;
     /** The current color, highlighted in the palette. */
     color: RGB;
+    /**
+     * Fills the height given by the parent (a resized panel), the colors scrolling inside.
+     * Otherwise as tall as its content, the colors scrolling past a fixed height.
+     */
+    fill?: boolean;
     tip: (command: string) => string;
     run: (command: string, params?: unknown) => void;
   } = $props();
@@ -39,35 +45,7 @@
   }
 </script>
 
-<section class="section palettes">
-  <div class="header">
-    <span class="section-title">Palette</span>
-    <div class="actions">
-      <button class="icon" title={tip("palette.new")} onclick={() => run("palette.new")}>
-        <Plus size={16} />
-      </button>
-      <button class="icon" title={tip("palette.import")} onclick={() => run("palette.import")}>
-        <FileUp size={16} />
-      </button>
-      <button
-        class="icon"
-        title="Rename palette"
-        disabled={!info?.hasActive}
-        onclick={() => (renaming = true)}
-      >
-        <Pencil size={16} />
-      </button>
-      <button
-        class="icon"
-        title={tip("palette.delete")}
-        disabled={!info?.hasActive}
-        onclick={() => run("palette.delete")}
-      >
-        <Trash2 size={16} />
-      </button>
-    </div>
-  </div>
-
+<section class="section palettes" class:fill>
   {#if info?.hasActive}
     {#if renaming}
       <!-- svelte-ignore a11y_autofocus -->
@@ -118,25 +96,59 @@
   {:else if info}
     <span class="hint">No palette. Create or import one (.hex, e.g. from Lospec).</span>
   {/if}
+
+  <div class="actions">
+    <button class="icon" title={tip("palette.new")} onclick={() => run("palette.new")}>
+      <Plus size={16} />
+    </button>
+    <button class="icon" title={tip("palette.import")} onclick={() => run("palette.import")}>
+      <FileUp size={16} />
+    </button>
+    <button
+      class="icon"
+      title="Rename palette"
+      disabled={!info?.hasActive}
+      onclick={() => (renaming = true)}
+    >
+      <Pencil size={16} />
+    </button>
+    <button
+      class="icon"
+      title={tip("palette.delete")}
+      disabled={!info?.hasActive}
+      onclick={() => run("palette.delete")}
+    >
+      <Trash2 size={16} />
+    </button>
+  </div>
 </section>
 
 <style>
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
   .actions {
     display: flex;
+    justify-content: flex-end;
   }
 
   .swatches {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(18px, 1fr));
+    align-content: start;
     gap: 3px;
     max-height: 160px;
     overflow-y: auto;
+  }
+
+  /* The colors take the space left, whatever their own height: WebKit does not grow a
+     scrolling grid back to its content height once it has shrunk. */
+  .fill {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .fill .swatches {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
   }
 
   .swatch {

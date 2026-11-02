@@ -17,6 +17,7 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "ctrl+shift+s", command: "file.saveAs" },
     { keys: "ctrl+shift+e", command: "file.exportPng" },
     { keys: "ctrl+i", command: "file.importImage" },
+    { keys: "ctrl+q", command: "app.quit" },
 
     { keys: "b", command: "tool.brush" },
     { keys: "e", command: "tool.eraser" },

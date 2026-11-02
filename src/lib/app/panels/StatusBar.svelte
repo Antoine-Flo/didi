@@ -1,74 +1,140 @@
 <script lang="ts">
-  // The bar below the canvas: document size, cursor position, messages, and measurements
-  // (frame rate, tiles, memory).
+  // The bar below the canvas: the document's mode and messages on the left, the view (zoom,
+  // rotation) in the middle, the cursor position and the document's size on the right. The
+  // buttons run commands.
 
+  import { Compass, Maximize, RotateCcw, RotateCw, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { resolve } from "$app/paths";
-  import type { ViewStats } from "#lib/app/canvas/CanvasView.svelte";
+  import ModeSwitch from "#lib/app/panels/ModeSwitch.svelte";
+  import type { Mode } from "#lib/app/modes/mode.js";
   import type { Editor } from "#lib/core/editor/editor.js";
-  import type { Point } from "#lib/render/camera.js";
+  import type { Camera, Point } from "#lib/render/camera.js";
 
   let {
     editor,
-    version,
+    modes,
+    mode,
     cursor,
     busy,
     error,
-    stats,
+    camera,
+    tip,
+    run,
   }: {
     editor: Editor;
-    /** Changes with the document, so the memory is measured again. */
-    version: number;
+    modes: Mode[];
+    /** Id of the document's mode. */
+    mode: string;
     /** Position on the drawing, in pixels. */
     cursor: Point | null;
     /** What is being done (saving…), if anything. */
     busy: string | null;
     error: string | null;
-    stats: ViewStats | null;
+    camera: Camera;
+    tip: (id: string) => string;
+    run: (id: string, params?: unknown) => void;
   } = $props();
 
-  /** CPU memory of layer pixels and of the history (estimate, tiles can be shared). */
-  const memory = $derived.by(() => {
-    void version;
-    const pixels = editor.drawing.layers.reduce((sum, l) => sum + l.tiles.memoryBytes, 0);
-    return { pixels, history: editor.history.bytes };
-  });
-  const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
+  const degrees = (radians: number) => Math.round((radians * 180) / Math.PI);
 </script>
 
 <footer class="panel statusbar">
-  <span>{editor.drawing.width} × {editor.drawing.height} px</span>
-  <span>{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
-  {#if busy}<span>{busy}</span>{/if}
-  {#if error}<span class="error">{error}</span>{/if}
-  <span class="spacer"></span>
-  {#if stats}
-    <span title="Frames per second">{Math.round(stats.fps)} fps</span>
-    <span title="Tiles on the GPU">{stats.tiles} tiles</span>
-  {/if}
-  <span title="Memory of the pixels / of the history (estimate)"
-    >{mb(memory.pixels)} · history {mb(memory.history)}</span
-  >
-  <a href={resolve("lab")}>Lab</a>
+  <div class="status-start">
+    <ModeSwitch {modes} {mode} {tip} {run} />
+    {#if busy}<span>{busy}</span>{/if}
+    {#if error}<span class="error">{error}</span>{/if}
+  </div>
+
+  <div class="view">
+    <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}
+      ><ZoomOut size={16} /></button
+    >
+
+    <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}
+      >{Math.round(camera.zoom * 100)}%</button
+    >
+
+    <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}
+      ><ZoomIn size={16} /></button
+    >
+
+    <button class="icon" title={tip("view.fit")} onclick={() => run("view.fit")}
+      ><Maximize size={16} /></button
+    >
+
+    <button class="icon" title={tip("view.rotateLeft")} onclick={() => run("view.rotateLeft")}
+      ><RotateCcw size={16} /></button
+    >
+
+    <button class="icon" title={tip("view.rotateRight")} onclick={() => run("view.rotateRight")}
+      ><RotateCw size={16} /></button
+    >
+
+    <button
+      class="icon"
+      title="{tip('view.resetRotation')} · {degrees(camera.rotation)}°"
+      onclick={() => run("view.resetRotation")}
+    >
+      <Compass size={16} />
+    </button>
+  </div>
+
+  <div class="status-end">
+    <span class="cursor">{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
+    <span>{editor.drawing.width} × {editor.drawing.height} px</span>
+    <a href={resolve("lab")}>Lab</a>
+  </div>
 </footer>
 
 <style>
+  /* Three columns: the middle one stays centered whatever the sides hold. */
   .statusbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: calc(var(--space) * 2);
     height: 100%;
-    padding: 0 var(--space);
+    padding: 0 calc(var(--space) / 2);
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
-  .spacer {
-    flex: 1;
+  .status-start,
+  .status-end,
+  .view {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .status-start,
+  .status-end {
+    gap: calc(var(--space) * 2);
+  }
+
+  .status-end {
+    justify-content: flex-end;
+    padding-right: calc(var(--space) / 2);
+  }
+
+  .view {
+    color: var(--text);
   }
 
   a {
     color: var(--text-muted);
+  }
+
+  .zoom {
+    width: 4.5em;
+    padding: 0;
+  }
+
+  /* Room for the position, so that the next items do not move. */
+  .cursor {
+    min-width: 10ch;
+    text-align: right;
   }
 
   .error {

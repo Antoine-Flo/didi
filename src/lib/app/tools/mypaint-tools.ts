@@ -1,4 +1,5 @@
-// Brush and eraser: libmypaint brushes.
+// Painting tools: pencil, ink, brush, eraser… Each one offers a set of libmypaint brushes
+// (see $lib/mypaint/brush-sets) and remembers the last one chosen.
 //
 // Like MyPaint, libmypaint brushes do not paint as samples arrive: samples wait in a queue,
 // with their original times (so speed-based dynamics are unchanged), and each frame paints
@@ -6,7 +7,17 @@
 // freezing the interface. After the pen is lifted, the queue keeps draining over the next
 // frames; the stroke becomes an undo step once it is fully painted.
 
-import { Brush as BrushIcon, Eraser as EraserIcon } from "@lucide/svelte";
+import {
+  Blend,
+  Brush as BrushIcon,
+  Droplet,
+  Eraser as EraserIcon,
+  PenTool,
+  Pencil,
+  Sparkles,
+  SprayCan,
+} from "@lucide/svelte";
+import { brushSet } from "#lib/mypaint/brush-sets.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
 import { MyPaintStroke } from "#lib/mypaint/engine.js";
 import {
@@ -34,11 +45,14 @@ export type MyPaintSettings = {
  */
 const MAX_SEGMENT_COST = 4000;
 
-function mypaintTool(id: string, title: string, icon: Tool["icon"], preset: string): Tool {
+/** A tool for the brush set with the same id, starting with the set's first brush. */
+function mypaintTool(id: string, title: string, icon: Tool["icon"]): Tool {
+  const preset = brushSet(id).picks[0];
   return defineTool<MyPaintSettings>({
     id,
     title,
     icon,
+    brushSet: id,
     defaults: { preset, size: bundledBrush(preset).nativeSize, opacity: 1 },
     fields: [
       { kind: "size", key: "size", label: "Size" },
@@ -53,8 +67,16 @@ function mypaintTool(id: string, title: string, icon: Tool["icon"], preset: stri
   });
 }
 
-export const brushTool = mypaintTool("brush", "Brush", BrushIcon, "deevad/basic_digital_brush");
-export const eraserTool = mypaintTool("eraser", "Eraser", EraserIcon, "deevad/large_hard_eraser");
+export const MYPAINT_TOOLS = [
+  mypaintTool("pencil", "Pencil", Pencil),
+  mypaintTool("ink", "Ink", PenTool),
+  mypaintTool("brush", "Brush", BrushIcon),
+  mypaintTool("watercolor", "Watercolor", Droplet),
+  mypaintTool("airbrush", "Airbrush", SprayCan),
+  mypaintTool("blend", "Blend", Blend),
+  mypaintTool("texture", "Texture", Sparkles),
+  mypaintTool("eraser", "Eraser", EraserIcon),
+];
 
 class QueuedStroke implements ToolStroke {
   private readonly stroke: MyPaintStroke;

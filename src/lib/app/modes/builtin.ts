@@ -26,7 +26,6 @@ export const PIXEL_MODE: Mode = {
   },
   tools: ["pixel", "pixelEraser", "picker"],
   eraserTool: "pixelEraser",
-  panels: [],
   // Like Aseprite: B is the pencil, E the eraser.
   bindings: [
     { keys: "b", command: "tool.pixel" },
@@ -55,10 +54,24 @@ export const PAINTING_MODE: Mode = {
     size: { width: 2048, height: 2048 },
     background: "white",
   },
-  tools: ["brush", "eraser", "picker"],
+  tools: [
+    "pencil",
+    "ink",
+    "brush",
+    "watercolor",
+    "airbrush",
+    "blend",
+    "texture",
+    "eraser",
+    "picker",
+  ],
   eraserTool: "eraser",
-  panels: ["brushes"],
-  bindings: [],
+  // B (brush), E (eraser) and I (picker) are common shortcuts.
+  bindings: [
+    { keys: "n", command: "tool.pencil" },
+    { keys: "a", command: "tool.airbrush" },
+    { keys: "s", command: "tool.blend" },
+  ],
 };
 
 export const BUILTIN_MODES = [PIXEL_MODE, PAINTING_MODE];

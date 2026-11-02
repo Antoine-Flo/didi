@@ -4,14 +4,17 @@
   import { isTauri } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import "#lib/app/shell/ui.css";
-  import BrushBrowser from "#lib/app/panels/BrushBrowser.svelte";
-  import CanvasView, { type Insets, type ViewStats } from "#lib/app/canvas/CanvasView.svelte";
+  import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
   import ColorPicker from "#lib/app/panels/ColorPicker.svelte";
   import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
   import LayersPanel from "#lib/app/panels/LayersPanel.svelte";
   import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
   import StatusBar from "#lib/app/panels/StatusBar.svelte";
   import ToolBar from "#lib/app/panels/ToolBar.svelte";
+  import ToolButton from "#lib/app/panels/ToolButton.svelte";
+  import Splitter from "#lib/app/widgets/Splitter.svelte";
+  import { LayoutPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
+  import LayoutMenu from "#lib/app/shell/LayoutMenu.svelte";
   import Menu from "#lib/app/widgets/Menu.svelte";
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
@@ -24,6 +27,8 @@
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
+  import MenuBar from "#lib/app/shell/MenuBar.svelte";
+  import { defaultMenus } from "#lib/app/commands/default-menus.js";
   import { createModeRegistry } from "#lib/app/modes/builtin.js";
   import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
   import { newEditor } from "#lib/app/files/new-drawing.js";
@@ -153,24 +158,45 @@
   let camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
   let cursor = $state<Point | null>(null);
   let error = $state<string | null>(null);
-  let stats = $state<ViewStats | null>(null);
   let canvasView = $state<CanvasView | null>(null);
   let fileInput: HTMLInputElement;
   let paletteInput: HTMLInputElement;
   let palettes = $state.raw<PaletteLibrary | null>(null);
   let paletteVersion = $state(0);
   let app: HTMLDivElement;
-  let left: HTMLElement;
-  let right: HTMLElement;
+  let toolColumn: HTMLElement;
+  let panelColumn: HTMLElement;
   let top: HTMLElement;
   let bottom: HTMLElement;
+
+  // The layout (the side of the tools, the sizes of resizable panels), kept from one session
+  // to the next.
+  const layout = new LayoutPrefs();
+  /** Popups of the tool column open towards the canvas. */
+  const popupSide = $derived(layout.hand === "left" ? "left" : "right");
+  let palettePanel: HTMLElement;
+  let layersPanel: HTMLElement;
+  const MIN_PALETTE_HEIGHT = 60;
+  /** Set by the user, else undefined: the palette is as tall as its content. */
+  const paletteHeight = $derived(layout.size("palette"));
+
+  /** The palette's height, and how far it can go: the layers keep their minimum height. */
+  function measurePalette() {
+    const size = palettePanel.getBoundingClientRect().height;
+    const layers = layersPanel.getBoundingClientRect().height;
+    const layersMin = parseFloat(getComputedStyle(layersPanel).minHeight) || 0;
+    return { size, min: MIN_PALETTE_HEIGHT, max: size + Math.max(0, layers - layersMin) };
+  }
+
+  const leftColumn = () => (layout.hand === "left" ? panelColumn : toolColumn);
+  const rightColumn = () => (layout.hand === "left" ? toolColumn : panelColumn);
 
   /** Space taken by the floating panels over the canvas, margins included. */
   function insets(): Insets {
     const box = app.getBoundingClientRect();
     return {
-      left: left.getBoundingClientRect().right - box.left,
-      right: box.right - right.getBoundingClientRect().left,
+      left: leftColumn().getBoundingClientRect().right - box.left,
+      right: box.right - rightColumn().getBoundingClientRect().left,
       top: top.getBoundingClientRect().bottom - box.top,
       bottom: box.bottom - bottom.getBoundingClientRect().top,
     };
@@ -186,6 +212,12 @@
         session.setMode(id);
       },
       modes,
+      get hand() {
+        return layout.hand;
+      },
+      set hand(hand) {
+        layout.hand = hand;
+      },
       get tool() {
         return tool;
       },
@@ -202,12 +234,13 @@
       },
       importImage: () => fileInput.click(),
       newDocument: () => (startOpen = true),
-      openDocument: () => session.open(),
+      openDocument: (path) => session.open(path),
       saveDocument: () => session.save(),
       saveDocumentAs: () => session.saveAs(),
       exportPng: () => session.exportPng(),
       importPalette: () => paletteInput.click(),
       openCommandPalette: () => (paletteOpen = true),
+      quit: isTauri() ? () => void getCurrentWindow().close() : null,
     }),
   );
 
@@ -222,12 +255,6 @@
     editor.commands.execute(id, params);
   }
 
-  /** Whether a command can run now, for buttons. */
-  function enabled(id: string): boolean {
-    void version;
-    return editor.commands.isEnabled(id);
-  }
-
   /** Tooltip with the command's title and shortcut, e.g. "Undo (Ctrl+Z)". */
   function tip(id: string): string {
     const title = editor.commands.get(id)?.title ?? id;
@@ -235,11 +262,31 @@
     return keys.length ? `${title} (${keys[0]})` : title;
   }
 
+  /** A dialog is open: the menus do nothing, and the title bar is dimmed. */
+  const dialogOpen = $derived(startOpen || paletteOpen || unsavedRequest !== null);
+
+  /** Whether a command can run now, for menus. */
+  function enabled(id: string, params?: unknown): boolean {
+    void version;
+    return editor.commands.has(id) && editor.commands.isEnabled(id, params);
+  }
+
+  // The title bar's menus. Undo and redo name their step, e.g. "Undo Brush".
+  const menus = $derived.by(() => {
+    void version;
+    return defaultMenus({
+      recent: session.recent,
+      undoLabel: editor.history.undoLabel,
+      redoLabel: editor.history.redoLabel,
+    });
+  });
+
   onMount(() => {
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
       .catch((e) => (error = `Brush engine unavailable: ${e instanceof Error ? e.message : e}`));
 
+    void layout.load(notify);
     loadPalettes(notify).then((library) => {
       palettes = library;
       library.subscribe(() => paletteVersion++);
@@ -251,7 +298,7 @@
     const unlisten = window.onCloseRequested(async (event) => {
       event.preventDefault();
       if (!(await session.confirmDiscard())) return;
-      await Promise.all([session.closing(), flushPalettes()]);
+      await Promise.all([session.closing(), flushPalettes(), layout.flush()]);
       await window.destroy();
     });
     return () => void unlisten.then((fn) => fn());
@@ -278,9 +325,19 @@
     if (isTauri()) getCurrentWindow().setTitle(title);
     else document.title = title;
   });
-  $effect(() => () => {
-    windowTitle.name = "Didi";
-    windowTitle.dirty = false;
+  $effect(() => {
+    windowTitle.dimmed = dialogOpen;
+  });
+  $effect(() => {
+    windowTitle.menu = menuBar;
+    windowTitle.end = layoutMenu;
+    return () => {
+      windowTitle.dimmed = false;
+      windowTitle.name = "Didi";
+      windowTitle.dirty = false;
+      windowTitle.menu = null;
+      windowTitle.end = null;
+    };
   });
 
   /** Imports images as layers and .hex files as palettes. */
@@ -328,6 +385,7 @@
 
 <div
   class="app"
+  class:left-handed={layout.hand === "left"}
   role="application"
   bind:this={app}
   ondragover={(e) => e.preventDefault()}
@@ -347,80 +405,91 @@
         {insets}
         oncamera={(c) => (camera = c)}
         oncursor={(p) => (cursor = p)}
-        onstats={(s) => (stats = s)}
       />
     {/key}
   </div>
 
-  <aside class="panel left" class:compact={!mode.panels.includes("brushes")} bind:this={left}>
-    <section class="section">
-      <div class="tools">
-        {#each shownTools as t (t.id)}
-          {@const Icon = t.icon}
-          <button
-            class="icon"
-            class:active={tool === t.id}
-            title={tip(`tool.${t.id}`)}
-            onclick={() => run(`tool.${t.id}`)}
-          >
-            <Icon size={16} />
-          </button>
-        {/each}
-        {#if otherTools.length > 0}
-          <Menu
-            title="More tools"
-            items={otherTools.map((t) => ({
-              id: t.id,
-              label: tip(`tool.${t.id}`),
-              icon: t.icon,
-              active: t.id === tool,
-            }))}
-            onselect={(id) => run(`tool.${id}`)}
-          >
-            <Ellipsis size={16} />
-          </Menu>
-        {/if}
-      </div>
-    </section>
-    {#if mode.panels.includes("brushes")}
-      <section class="section brushes">
-        <span class="section-title">Brushes</span>
-        <BrushBrowser
-          eraser={tool === "eraser"}
-          selected={String(options.tools[tool === "eraser" ? "eraser" : "brush"].preset)}
-          onselect={(id) => run("brush.select", { id })}
-        />
-      </section>
+  <aside class="panel tool-column" bind:this={toolColumn}>
+    {#each shownTools as t (t.id)}
+      <ToolButton
+        tool={t}
+        active={tool === t.id}
+        preset={t.brushSet ? String(options.tools[t.id].preset) : undefined}
+        side={popupSide}
+        {tip}
+        {run}
+      />
+    {/each}
+    {#if otherTools.length > 0}
+      <Menu
+        title="More tools"
+        side={popupSide}
+        items={otherTools.map((t) => ({
+          id: t.id,
+          label: tip(`tool.${t.id}`),
+          icon: t.icon,
+          active: t.id === tool,
+        }))}
+        onselect={(id) => run(`tool.${id}`)}
+      >
+        <Ellipsis size={16} />
+      </Menu>
     {/if}
   </aside>
 
+  <!-- Separate panels, with a small gap between them (like Blender). -->
+  <aside class="panel-column" bind:this={panelColumn}>
+    <div class="panel">
+      <section class="section">
+        <ColorPicker color={options.color} onchange={(c) => (options.color = c)} />
+      </section>
+    </div>
+
+    <div
+      class="panel palette-panel"
+      style:height={paletteHeight !== undefined ? `${paletteHeight}px` : undefined}
+      bind:this={palettePanel}
+    >
+      <PalettePanel
+        library={palettes}
+        version={paletteVersion}
+        color={options.color}
+        fill={paletteHeight !== undefined}
+        {tip}
+        {run}
+      />
+    </div>
+
+    <Splitter
+      orientation="horizontal"
+      measure={measurePalette}
+      onresize={(size) => layout.setSize("palette", size)}
+      onreset={() => layout.resetSize("palette")}
+    />
+
+    <div class="panel grow layers-panel" bind:this={layersPanel}>
+      <LayersPanel {editor} {version} {tip} {run} />
+    </div>
+  </aside>
+
+  <!-- The tool's options above the canvas, centered; the status bar below, the whole
+       width, like the title bar. -->
   <div class="bar top" bind:this={top}>
-    <ToolBar
+    <ToolBar tool={activeTool} settings={options.tools[tool]} />
+  </div>
+
+  <div class="bar bottom" bind:this={bottom}>
+    <StatusBar
+      {editor}
       modes={modes.list()}
       mode={mode.id}
-      tool={activeTool}
-      settings={options.tools[tool]}
+      {cursor}
+      busy={session.busy}
+      {error}
       {camera}
       {tip}
       {run}
-      {enabled}
     />
-  </div>
-
-  <aside class="panel right" bind:this={right}>
-    <section class="section">
-      <span class="section-title">Color</span>
-
-      <ColorPicker color={options.color} onchange={(c) => (options.color = c)} />
-    </section>
-
-    <PalettePanel library={palettes} version={paletteVersion} color={options.color} {tip} {run} />
-
-    <LayersPanel {editor} {version} {tip} {run} />
-  </aside>
-
-  <div class="bar bottom" bind:this={bottom}>
-    <StatusBar {editor} {version} {cursor} busy={session.busy} {error} {stats} />
   </div>
 
   <input
@@ -447,6 +516,21 @@
   />
 </div>
 
+{#snippet layoutMenu()}
+  <LayoutMenu hand={layout.hand} disabled={dialogOpen} {tip} {run} />
+{/snippet}
+
+{#snippet menuBar()}
+  <MenuBar
+    {menus}
+    disabled={dialogOpen}
+    title={(id) => editor.commands.get(id)?.title ?? id}
+    shortcut={(id) => keymap.chordsFor(id).map(formatChord)[0]}
+    {enabled}
+    {run}
+  />
+{/snippet}
+
 <CommandPalette {editor} {keymap} bind:open={paletteOpen} />
 
 <StartScreen
@@ -465,14 +549,23 @@
 <UnsavedDialog request={unsavedRequest} />
 
 <style>
-  /* The canvas fills the window (below the title bar); the panels float over it, inset
-     from the edges. */
+  /* The canvas fills the window, under the title bar too; the panels float over it, inset
+     from the edges: the tool's options centered at the top, the status bar the whole width
+     at the bottom, the tools on one side and the other panels on the other: the tools on the
+     left for right-handed users, on the right for left-handed ones (the whole layout is
+     mirrored). */
   .app {
     position: relative;
-    height: 100%;
+    height: calc(100% + var(--titlebar-height));
+    margin-top: calc(-1 * var(--titlebar-height));
     overflow: hidden;
-    --left-width: 200px;
-    --right-width: 200px;
+    --panel-width: 200px;
+    /* Below the title bar. */
+    --top-inset: calc(var(--titlebar-height) + var(--space));
+    /* Like the title bar. */
+    --bar-height: calc(var(--control-height) + var(--space));
+    /* Above the status bar. */
+    --bottom-inset: calc(var(--bar-height) + 2 * var(--space));
   }
 
   .canvas {
@@ -480,56 +573,87 @@
     inset: 0;
   }
 
-  .left,
-  .right {
-    position: absolute;
-    top: var(--space);
-    bottom: var(--space);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .left {
-    left: var(--space);
-    width: var(--left-width);
-  }
-
-  /* Without the brush browser, the panel only takes the height of the tools. */
-  .left.compact {
-    bottom: auto;
-  }
-
-  .right {
-    right: var(--space);
-    width: var(--right-width);
-  }
-
-  .tools {
-    display: flex;
-    gap: calc(var(--space) / 2);
-  }
-
-  .brushes,
-  .right :global(.layers) {
-    flex: 1;
-    min-height: 0;
-  }
-
-  /* The bars above and below the canvas, between the side panels. */
   .bar {
     position: absolute;
-    left: calc(var(--left-width) + 2 * var(--space));
-    right: calc(var(--right-width) + 2 * var(--space));
+    height: var(--bar-height);
   }
 
+  /* Centered by the layout (a transform could blur the text), as wide as its content,
+     between the side panels' widths (the same on both sides). */
   .top {
-    top: var(--space);
-    height: calc(var(--control-height) + var(--space));
+    top: var(--top-inset);
+    left: 0;
+    right: 0;
+    width: max-content;
+    max-width: calc(100% - 2 * (var(--panel-width) + 2 * var(--space)));
+    margin: 0 auto;
   }
 
   .bottom {
     bottom: var(--space);
-    height: var(--control-height);
+    left: var(--space);
+    right: var(--space);
+  }
+
+  /* The tools, in a thin column, centered vertically by the layout, not by a transform: a
+     translation of half a pixel blurs the text. */
+  .tool-column {
+    position: absolute;
+    top: var(--top-inset);
+    bottom: var(--bottom-inset);
+    left: var(--space);
+    height: max-content;
+    margin: auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--space) / 2);
+    padding: calc(var(--space) / 2);
+  }
+
+  .panel-column {
+    position: absolute;
+    top: var(--top-inset);
+    right: var(--space);
+    bottom: var(--bottom-inset);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--space) / 2);
+    width: var(--panel-width);
+  }
+
+  .left-handed .tool-column {
+    right: var(--space);
+    left: auto;
+  }
+
+  .left-handed .panel-column {
+    right: auto;
+    left: var(--space);
+  }
+
+  .panel-column .panel {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .panel-column .grow {
+    flex: 1;
+  }
+
+  /* Gives way first when the window is too short for a resized palette. */
+  .panel-column .palette-panel {
+    flex: 0 1 auto;
+  }
+
+  .layers-panel {
+    min-height: 120px;
+  }
+
+  .panel-column :global(.layers) {
+    flex: 1;
+    min-height: 0;
   }
 </style>

@@ -1,6 +1,7 @@
 <script lang="ts">
   // Shown at start (like Blender's splash screen) and by "New document": create a document
-  // in one click, or open a recent one. Clicking outside keeps the current document.
+  // (choose a mode, a size and a background, then "New document"), or open a recent one.
+  // Clicking outside keeps the current document.
   //
   // A new document is created in a mode (pixel art, painting…), chosen first: each mode
   // offers its own sizes and background.
@@ -92,7 +93,7 @@
          dialog, not to the card, when the window takes it at start. -->
     <Dialog.Content
       bind:ref={content}
-      class="start panel"
+      class="start-screen panel"
       tabindex={-1}
       interactOutsideBehavior="ignore"
       onOpenAutoFocus={(e) => {
@@ -127,8 +128,8 @@
               {#each sizes as [w, h] (`${w}x${h}`)}
                 <button
                   class="size"
-                  class:default={w === defaults.size.width && h === defaults.size.height}
-                  onclick={() => create(w, h)}>{w} × {h}</button
+                  class:active={w === width && h === height}
+                  onclick={() => ({ width, height } = { width: w, height: h })}>{w} × {h}</button
                 >
               {/each}
             </div>
@@ -215,7 +216,7 @@
         <button
           class="primary"
           disabled={!validSize(width) || !validSize(height)}
-          onclick={() => create(width, height)}>New image</button
+          onclick={() => create(width, height)}>New document</button
         >
         <button
           onclick={() => {
@@ -231,7 +232,7 @@
 <style>
   /* Centered below the title bar by the layout, not by a transform: a translation of half
      a pixel blurs the text. */
-  :global(.start) {
+  :global(.start-screen) {
     position: fixed;
     inset: var(--titlebar-height) 0 0;
     z-index: 51;
@@ -245,7 +246,7 @@
     background: var(--popup);
   }
 
-  :global(.start:focus-visible) {
+  :global(.start-screen:focus-visible) {
     outline: none;
   }
 
@@ -297,7 +298,7 @@
     background: var(--hover);
   }
 
-  /* The chosen mode: the same highlighted border as the default size. */
+  /* The chosen mode: the same highlighted border as the chosen size. */
   .mode.active {
     border-color: var(--text-faint);
   }
@@ -336,7 +337,8 @@
     border-color: var(--text-faint);
   }
 
-  .size.default {
+  /* The size that will be created: the same highlighted border as the chosen mode. */
+  .size.active {
     border-color: var(--text-faint);
   }
 

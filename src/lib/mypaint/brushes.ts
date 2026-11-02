@@ -8,7 +8,7 @@ export interface BundledBrush {
   id: string;
   name: string;
   pack: string;
-  /** Erasers are offered for the eraser tool. */
+  /** Erasers are offered for the eraser tool (see brush-sets.ts). */
   eraser: boolean;
   /**
    * The diameter the brush was designed for, in pixels, at the pressure that makes it
@@ -29,31 +29,6 @@ const files = import.meta.glob("./brushes/*/*.myb", {
   import: "default",
   eager: true,
 }) as Record<string, string>;
-
-/** A first selection, shown before the packs. */
-export const ESSENTIALS: string[] = [
-  "deevad/basic_digital_brush",
-  "deevad/2B_pencil",
-  "deevad/liner",
-  "deevad/airbrush",
-  "classic/charcoal",
-  "deevad/chalk",
-  "deevad/watercolor_glazing",
-  "deevad/basic_digital_brush_smudging",
-  "deevad/blending",
-  "deevad/large_hard_eraser",
-  "deevad/kneaded_eraser",
-];
-
-export const PACKS: Record<string, string> = {
-  deevad: "David Revoy",
-  classic: "Classic",
-  tanda: "Tanda (oil, acrylic, watercolor)",
-  ramon: "Ramón Miranda",
-  kaerhon_v1: "Kaerhon",
-  Dieterle: "Dieterle",
-  experimental: "Experimental",
-};
 
 /** "8B_Pencil_1" → "8B Pencil 1". */
 function prettify(name: string): string {
@@ -93,15 +68,4 @@ export function bundledBrush(id: string): BundledBrush {
   const brush = byId.get(id);
   if (!brush) throw new Error(`Unknown brush ${id}`);
   return brush;
-}
-
-/** Groups for a brush menu: essentials first, then each pack. */
-export function brushGroups(eraser: boolean): { label: string; brushes: BundledBrush[] }[] {
-  const keep = (b: BundledBrush) => b.eraser === eraser;
-  const essentials = ESSENTIALS.map(bundledBrush).filter(keep);
-  const packs = Object.keys(PACKS).map((pack) => ({
-    label: PACKS[pack],
-    brushes: BUNDLED_BRUSHES.filter((b) => b.pack === pack && keep(b)),
-  }));
-  return [{ label: "Essentials", brushes: essentials }, ...packs].filter((g) => g.brushes.length);
 }

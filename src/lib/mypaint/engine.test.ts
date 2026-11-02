@@ -3,7 +3,7 @@ import { Drawing } from "#lib/core/document/drawing.js";
 import { History } from "#lib/core/history/history.js";
 import { capture, expectSameState, fill, firstDifference } from "#lib/core/test-utils.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
-import { BUNDLED_BRUSHES, brushGroups, bundledBrush } from "./brushes";
+import { BUNDLED_BRUSHES, bundledBrush } from "./brushes";
 import { loadMyPaint, MyPaintStroke, rgbToHsv, type Brush, type MyPaint } from "./engine";
 import { parseMyb } from "./myb";
 
@@ -67,18 +67,6 @@ describe("libmypaint engine", () => {
     expect(erased).toBeLessThan(expected * 1.15);
     // Without a pressure curve, the size is the diameter.
     expect(bundledBrush("deevad/liner").pressureSizeFactor).toBe(1);
-  });
-
-  it("groups brushes for menus, essentials first", () => {
-    const groups = brushGroups(false);
-    expect(groups[0].label).toBe("Essentials");
-    expect(groups[0].brushes.map((b) => b.name)).toContain("2B pencil");
-    expect(groups.flatMap((g) => g.brushes).every((b) => !b.eraser)).toBe(true);
-    expect(
-      brushGroups(true)
-        .flatMap((g) => g.brushes)
-        .every((b) => b.eraser),
-    ).toBe(true);
   });
 
   it("sets size and color", () => {

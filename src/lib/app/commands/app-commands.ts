@@ -6,9 +6,11 @@ import { fromHex } from "#lib/core/color/color.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import type { PaletteLibrary } from "#lib/core/color/palette.js";
+import { setOfBrush } from "#lib/mypaint/brush-sets.js";
 import { bundledBrush, findBundledBrush } from "#lib/mypaint/brushes.js";
 import type { ModeRegistry } from "#lib/app/modes/mode.js";
 import type { ToolOptions, ToolRegistry } from "#lib/app/tools/tool.js";
+import type { Hand } from "#lib/app/shell/layout-prefs.svelte.js";
 
 /** The view controls of the canvas, once it is mounted. */
 export interface ViewControls {
@@ -29,18 +31,23 @@ export interface AppHost {
   readonly tools: ToolRegistry;
   readonly options: ToolOptions;
   readonly view: ViewControls | null;
+  /** The user's drawing hand: the tools are on the other side (left for right-handed users). */
+  hand: Hand;
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
   importImage(): void;
   /** Shows the start screen, to create a document or open a recent one. */
   newDocument(): void;
-  openDocument(): void;
+  /** Opens a document: asks which one, unless `path` is given (e.g. a recent file). */
+  openDocument(path?: string): void;
   saveDocument(): void;
   saveDocumentAs(): void;
   exportPng(): void;
   /** Asks for a .hex file and adds it as a new palette. */
   importPalette(): void;
   openCommandPalette(): void;
+  /** Closes the app (offering to save first). Null where it cannot (in a browser). */
+  readonly quit: (() => void) | null;
 }
 
 const ROTATION_STEP = Math.PI / 12;
@@ -81,12 +88,12 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       id: "brush.select",
       title: "Select brush",
       needsParams: true,
-      enabled: (_, { id }) => findBundledBrush(id) !== undefined,
+      enabled: (_, { id }) => findBundledBrush(id) !== undefined && setOfBrush(id) !== undefined,
       run(_, { id }) {
-        // An eraser brush selects the eraser tool, any other brush the brush tool. Each brush
-        // starts at the size it was designed for.
+        // Selects the tool of the brush's set (a pencil, the pencil tool). Each brush starts
+        // at the size it was designed for.
         const brush = bundledBrush(id);
-        host.tool = brush.eraser ? "eraser" : "brush";
+        host.tool = setOfBrush(id)!.id;
         const settings = host.options.tools[host.tool];
         settings.preset = id;
         settings.size = brush.nativeSize;
@@ -173,7 +180,11 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
 
     registry.register({ id: "file.new", title: "New document…", run: () => host.newDocument() }),
-    registry.register({ id: "file.open", title: "Open…", run: () => host.openDocument() }),
+    registry.register<{ path?: string } | undefined>({
+      id: "file.open",
+      title: "Open…",
+      run: (_, params) => host.openDocument(params?.path),
+    }),
     registry.register({ id: "file.save", title: "Save", run: () => host.saveDocument() }),
     registry.register({ id: "file.saveAs", title: "Save as…", run: () => host.saveDocumentAs() }),
     registry.register({ id: "file.exportPng", title: "Export PNG…", run: () => host.exportPng() }),
@@ -186,6 +197,22 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       id: "app.commandPalette",
       title: "Command palette",
       run: () => host.openCommandPalette(),
+    }),
+    registry.register({
+      id: "view.rightHanded",
+      title: "Layout: Right-handed (tools on the left)",
+      run: () => (host.hand = "right"),
+    }),
+    registry.register({
+      id: "view.leftHanded",
+      title: "Layout: Left-handed (tools on the right)",
+      run: () => (host.hand = "left"),
+    }),
+    registry.register({
+      id: "app.quit",
+      title: "Quit",
+      enabled: () => host.quit !== null,
+      run: () => host.quit!(),
     }),
   ];
   return () => unregister.forEach((fn) => fn());

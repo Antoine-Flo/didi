@@ -161,6 +161,58 @@ input[type="range"]::-webkit-slider-thumb {
   background: none;
 }
 
+/* Menus drawn by the app (Bits UI): Menu, the menu bar. */
+.menu-content {
+  z-index: 60;
+  box-sizing: border-box;
+  padding: calc(var(--space) / 2);
+  background: var(--popup);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  height: var(--control-height);
+  padding: 0 var(--space);
+  border-radius: var(--radius-small);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menu-item[data-highlighted] {
+  background: var(--hover);
+}
+
+.menu-item[data-active] {
+  background: var(--selected);
+}
+
+.menu-item[data-disabled] {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+/* The shortcut, or the arrow of a submenu, at the right of an item. */
+.menu-item-end {
+  margin-left: auto;
+  padding-left: calc(var(--space) * 2);
+  color: var(--text-muted);
+}
+
+.menu-item[data-disabled] .menu-item-end {
+  color: var(--text-faint);
+}
+
+.menu-separator {
+  height: 1px;
+  margin: calc(var(--space) / 2) 0;
+  background: var(--border);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

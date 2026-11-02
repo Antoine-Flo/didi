@@ -25,6 +25,7 @@ function setup(withView = true) {
     tools,
     options: tools.defaultOptions(),
     view: withView ? view : null,
+    hand: "right",
     palettes: new PaletteLibrary([{ name: "A", colors: [] }]),
     importImage: vi.fn(),
     newDocument: vi.fn(),
@@ -34,6 +35,7 @@ function setup(withView = true) {
     exportPng: vi.fn(),
     importPalette: vi.fn(),
     openCommandPalette: vi.fn(),
+    quit: vi.fn(),
   };
   const unregister = registerAppCommands(editor.commands, host);
   return { editor, host, view, unregister };
@@ -72,17 +74,26 @@ describe("app commands", () => {
     expect(editor.commands.isEnabled("brush.grow")).toBe(false);
   });
 
-  it("selects brushes, switching between the brush and eraser tools", () => {
+  it("selects brushes with the tool of their set, which remembers them", () => {
     const { editor, host } = setup();
     host.tool = "pixel";
-    editor.commands.execute("brush.select", { id: "deevad/2B_pencil" });
-    expect(host.tool).toBe("brush");
-    expect(host.options.tools.brush.preset).toBe("deevad/2B_pencil");
+    editor.commands.execute("brush.select", { id: "classic/charcoal" });
+    expect(host.tool).toBe("texture");
+    expect(host.options.tools.texture.preset).toBe("classic/charcoal");
     editor.commands.execute("brush.select", { id: "deevad/kneaded_eraser" });
     expect(host.tool).toBe("eraser");
     expect(host.options.tools.eraser.preset).toBe("deevad/kneaded_eraser");
-    expect(host.options.tools.brush.preset).toBe("deevad/2B_pencil");
+    expect(host.options.tools.texture.preset).toBe("classic/charcoal");
+    expect(host.options.tools.pencil.preset).toBe("deevad/2B_pencil");
     expect(editor.commands.isEnabled("brush.select", { id: "nope/nope" })).toBe(false);
+  });
+
+  it("switches the layout for left-handed users and back", () => {
+    const { editor, host } = setup();
+    editor.commands.execute("view.leftHanded");
+    expect(host.hand).toBe("left");
+    editor.commands.execute("view.rightHanded");
+    expect(host.hand).toBe("right");
   });
 
   it("sets the color, and edits palettes", () => {

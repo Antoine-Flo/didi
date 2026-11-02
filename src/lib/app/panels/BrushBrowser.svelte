@@ -1,20 +1,19 @@
 <script lang="ts">
-  // Bundled brushes with their previews, one group at a time. Erasers are shown for the
-  // eraser tool, painting brushes for the others.
+  // The brushes of one set, with their previews: the first selection, then the others under
+  // "More brushes", folded unless the current brush is there.
 
+  import { ChevronDown, ChevronRight } from "@lucide/svelte";
   import { asset } from "$app/paths";
   import type { AssetPath } from "$app/types";
-  import Select from "#lib/app/widgets/Select.svelte";
-  import { brushGroups } from "#lib/mypaint/brushes.js";
+  import { setBrushes, type BrushSet } from "#lib/mypaint/brush-sets.js";
 
   let {
-    eraser,
+    set,
     selected,
     onselect,
-
-    /** Id of the current brush. */
   }: {
-    eraser: boolean;
+    set: BrushSet;
+    /** Id of the current brush. */
     selected: string;
     onselect: (id: string) => void;
   } = $props();
@@ -22,23 +21,14 @@
   /** Previews are in static/brushes/, one per bundled brush. */
   const preview = (id: string) => `brushes/${id}.png` as AssetPath;
 
-  const groups = $derived(brushGroups(eraser));
-  // The open group, for brushes and for erasers.
-  let open = $state({ brush: "Essentials", eraser: "Essentials" });
-  const kind = $derived(eraser ? "eraser" : "brush");
-  const group = $derived(groups.find((g) => g.label === open[kind]) ?? groups[0]);
+  const brushes = $derived(setBrushes(set));
+  // svelte-ignore state_referenced_locally
+  let showMore = $state(set.more.includes(selected));
 </script>
 
-<div class="browser">
-  <Select
-    title="Brush set"
-    items={groups.map((g) => ({ value: g.label, label: g.label }))}
-    value={group.label}
-    onchange={(label) => (open[kind] = label)}
-  />
-
+{#snippet list(items: typeof brushes.picks)}
   <ul>
-    {#each group.brushes as brush (brush.id)}
+    {#each items as brush (brush.id)}
       <li>
         <button class:active={brush.id === selected} onclick={() => onselect(brush.id)}>
           <img src={asset(preview(brush.id))} alt="" loading="lazy" draggable="false" />
@@ -48,6 +38,19 @@
       </li>
     {/each}
   </ul>
+{/snippet}
+
+<div class="browser">
+  {@render list(brushes.picks)}
+
+  {#if brushes.more.length > 0}
+    <button class="more" onclick={() => (showMore = !showMore)}>
+      {#if showMore}<ChevronDown size={14} />{:else}<ChevronRight size={14} />{/if}
+      More brushes
+    </button>
+
+    {#if showMore}{@render list(brushes.more)}{/if}
+  {/if}
 </div>
 
 <style>
@@ -55,18 +58,15 @@
     display: flex;
     flex-direction: column;
     gap: calc(var(--space) / 2);
-    min-height: 0;
   }
 
   ul {
-    min-height: 0;
     margin: 0;
     padding: 0;
-    overflow-y: auto;
     list-style: none;
   }
 
-  button {
+  li button {
     display: flex;
     align-items: center;
     gap: var(--space);
@@ -87,5 +87,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .more {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space) / 2);
+    padding: 0 calc(var(--space) / 2);
+    color: var(--text-muted);
   }
 </style>

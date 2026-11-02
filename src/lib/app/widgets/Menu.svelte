@@ -1,5 +1,6 @@
 <script lang="ts">
-  // A menu opened by an icon button, drawn by the app (Bits UI), like `Select`.
+  // A menu opened by an icon button, drawn by the app (Bits UI), like `Select`. Styles are
+  // shared with the menu bar, in ui.css.
 
   import { DropdownMenu } from "bits-ui";
   import { onDestroy, type Component, type Snippet } from "svelte";
@@ -9,11 +10,14 @@
     items,
     onselect,
     title,
+    side = "bottom",
     children,
   }: {
     items: { id: string; label: string; icon?: Component<{ size?: number }>; active?: boolean }[];
     onselect: (id: string) => void;
     title?: string;
+    /** Where the menu opens, next to the button. */
+    side?: "top" | "right" | "bottom" | "left";
     /** The content of the button. */
     children: Snippet;
   } = $props();
@@ -34,7 +38,7 @@
     {@render children()}
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
-    <DropdownMenu.Content class="menu-content" side="bottom" sideOffset={4} collisionPadding={8}>
+    <DropdownMenu.Content class="menu-content" {side} sideOffset={4} collisionPadding={8}>
       {#each items as item (item.id)}
         {@const Icon = item.icon}
         <DropdownMenu.Item
@@ -49,34 +53,3 @@
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>
-
-<style>
-  :global(.menu-content) {
-    z-index: 60;
-    box-sizing: border-box;
-    padding: calc(var(--space) / 2);
-    background: var(--popup);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-  }
-
-  :global(.menu-item) {
-    display: flex;
-    align-items: center;
-    gap: var(--space);
-    height: var(--control-height);
-    padding: 0 var(--space);
-    border-radius: var(--radius-small);
-    white-space: nowrap;
-    cursor: pointer;
-  }
-
-  :global(.menu-item[data-highlighted]) {
-    background: var(--hover);
-  }
-
-  :global(.menu-item[data-active]) {
-    background: var(--selected);
-  }
-</style>

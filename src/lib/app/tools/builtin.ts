@@ -1,11 +1,11 @@
 // The tools that come with Didi, registered like any other.
 
-import { brushTool, eraserTool } from "./mypaint-tools";
+import { MYPAINT_TOOLS } from "./mypaint-tools";
 import { pickerTool } from "./picker-tool";
 import { pixelBrushTool, pixelEraserTool } from "./pixel-tools";
 import { ToolRegistry } from "./tool";
 
-export const BUILTIN_TOOLS = [brushTool, eraserTool, pixelBrushTool, pixelEraserTool, pickerTool];
+export const BUILTIN_TOOLS = [...MYPAINT_TOOLS, pixelBrushTool, pixelEraserTool, pickerTool];
 
 /** A registry with the built-in tools. */
 export function createToolRegistry(): ToolRegistry {

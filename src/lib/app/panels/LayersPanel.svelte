@@ -85,39 +85,6 @@
 </script>
 
 <section class="section layers">
-  <div class="header">
-    <span class="section-title">Layers</span>
-    <div class="actions">
-      <button class="icon" title={tip("layer.add")} onclick={() => run("layer.add")}>
-        <Plus size={16} />
-      </button>
-      <button
-        class="icon"
-        title={tip("layer.moveUp")}
-        disabled={!active || active.index >= count - 1}
-        onclick={() => run("layer.moveUp")}
-      >
-        <ArrowUp size={16} />
-      </button>
-      <button
-        class="icon"
-        title={tip("layer.moveDown")}
-        disabled={!active || active.index <= 0}
-        onclick={() => run("layer.moveDown")}
-      >
-        <ArrowDown size={16} />
-      </button>
-      <button
-        class="icon"
-        title={tip("layer.remove")}
-        disabled={!active}
-        onclick={() => run("layer.remove")}
-      >
-        <Trash2 size={16} />
-      </button>
-    </div>
-  </div>
-
   {#if active}
     <div class="props">
       <div class="blend">
@@ -185,6 +152,36 @@
       </li>
     {/each}
   </ul>
+
+  <div class="actions">
+    <button class="icon" title={tip("layer.add")} onclick={() => run("layer.add")}>
+      <Plus size={16} />
+    </button>
+    <button
+      class="icon"
+      title={tip("layer.moveUp")}
+      disabled={!active || active.index >= count - 1}
+      onclick={() => run("layer.moveUp")}
+    >
+      <ArrowUp size={16} />
+    </button>
+    <button
+      class="icon"
+      title={tip("layer.moveDown")}
+      disabled={!active || active.index <= 0}
+      onclick={() => run("layer.moveDown")}
+    >
+      <ArrowDown size={16} />
+    </button>
+    <button
+      class="icon"
+      title={tip("layer.remove")}
+      disabled={!active}
+      onclick={() => run("layer.remove")}
+    >
+      <Trash2 size={16} />
+    </button>
+  </div>
 </section>
 
 <style>
@@ -193,14 +190,9 @@
     --slider-label-width: 4.5em;
   }
 
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
   .actions {
     display: flex;
+    justify-content: flex-end;
   }
 
   .props {
@@ -224,6 +216,7 @@
   }
 
   ul {
+    flex: 1;
     min-height: 0;
     margin: 0;
     padding: 0;

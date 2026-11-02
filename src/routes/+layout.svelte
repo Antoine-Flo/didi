@@ -12,7 +12,13 @@
 
 <!-- The window has no system title bar: every page shows ours above its content. -->
 <div class="window">
-  <Titlebar title={windowTitle.name} dirty={windowTitle.dirty} />
+  <Titlebar
+    title={windowTitle.name}
+    dirty={windowTitle.dirty}
+    menu={windowTitle.menu}
+    end={windowTitle.end}
+    dimmed={windowTitle.dimmed}
+  />
   <div class="content">{@render children()}</div>
 </div>
 

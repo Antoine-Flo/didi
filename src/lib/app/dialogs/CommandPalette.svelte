@@ -34,17 +34,17 @@
   <Dialog.Portal>
     <!-- Closes on click (after the release), not on press: the press must not reach the
          canvas once the palette is gone, or it would start a stroke. -->
-    <Dialog.Overlay class="palette-overlay" onclick={() => (open = false)} />
-    <Dialog.Content class="palette" interactOutsideBehavior="ignore">
+    <Dialog.Overlay class="command-palette-overlay" onclick={() => (open = false)} />
+    <Dialog.Content class="command-palette" interactOutsideBehavior="ignore">
       <Dialog.Title class="sr-only">Command palette</Dialog.Title>
       <Command.Root>
-        <Command.Input class="palette-input" placeholder="Search for a command…" />
-        <Command.List class="palette-list">
+        <Command.Input class="command-palette-input" placeholder="Search for a command…" />
+        <Command.List class="command-palette-list">
           <Command.Viewport>
-            <Command.Empty class="palette-empty">No command found.</Command.Empty>
+            <Command.Empty class="command-palette-empty">No command found.</Command.Empty>
             {#each items as item (item.id)}
               <Command.Item
-                class="palette-item"
+                class="command-palette-item"
                 value={item.id}
                 keywords={[item.title]}
                 disabled={!item.enabled}
@@ -63,7 +63,7 @@
 
 <style>
   /* Below the title bar, which stays usable. */
-  :global(.palette-overlay) {
+  :global(.command-palette-overlay) {
     position: fixed;
     inset: var(--titlebar-height) 0 0;
     z-index: 50;
@@ -72,7 +72,7 @@
 
   /* Centered by the layout, not by a transform: a translation of half a pixel blurs the
      text. */
-  :global(.palette) {
+  :global(.command-palette) {
     position: fixed;
     top: 15vh;
     right: 0;
@@ -87,7 +87,7 @@
     box-shadow: var(--shadow);
   }
 
-  :global(.palette-input) {
+  :global(.command-palette-input) {
     box-sizing: border-box;
     width: 100%;
     height: calc(var(--control-height) + var(--space));
@@ -100,13 +100,13 @@
     outline: none;
   }
 
-  :global(.palette-list) {
+  :global(.command-palette-list) {
     max-height: 50vh;
     overflow-y: auto;
     padding: calc(var(--space) / 2);
   }
 
-  :global(.palette-item) {
+  :global(.command-palette-item) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -117,16 +117,16 @@
     cursor: pointer;
   }
 
-  :global(.palette-item[data-selected]) {
+  :global(.command-palette-item[data-selected]) {
     background: var(--selected);
   }
 
-  :global(.palette-item[data-disabled]) {
+  :global(.command-palette-item[data-disabled]) {
     color: var(--text-faint);
     cursor: default;
   }
 
-  :global(.palette-empty) {
+  :global(.command-palette-empty) {
     padding: var(--space);
     color: var(--text-faint);
   }

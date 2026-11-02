@@ -88,6 +88,11 @@ export interface Tool<S extends ToolSettings = ToolSettings> {
   readonly fields?: readonly ToolField[];
   /** Shown in the tool bar when there are no fields. */
   readonly hint?: string;
+  /**
+   * Id of the brush set it offers (see $lib/mypaint/brush-sets), in a popup next to its
+   * button. Its settings then have a `preset`: the brush in use.
+   */
+  readonly brushSet?: string;
   /** False for tools that work without an editable layer (e.g. the picker). */
   readonly needsLayer?: boolean;
   cursor(settings: S): BrushCursor;

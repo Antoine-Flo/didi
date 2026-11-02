@@ -20,9 +20,6 @@ export interface NewDocumentOptions {
   background: Background;
 }
 
-/** Panels that only some modes show. */
-export type OptionalPanel = "brushes";
-
 export interface Mode {
   /** Unique, e.g. "pixel". Saved in documents; its command is `mode.<id>`. */
   readonly id: string;
@@ -36,7 +33,6 @@ export interface Mode {
   readonly tools: readonly string[];
   /** The tool of the pen's eraser end. */
   readonly eraserTool: string;
-  readonly panels: readonly OptionalPanel[];
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }
