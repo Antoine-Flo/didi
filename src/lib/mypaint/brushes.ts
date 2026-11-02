@@ -10,8 +10,17 @@ export interface BundledBrush {
   pack: string;
   /** Erasers are offered for the eraser tool. */
   eraser: boolean;
-  /** The diameter the brush was designed for, in pixels. */
+  /**
+   * The diameter the brush was designed for, in pixels, at the pressure that makes it
+   * largest (see `pressureSizeFactor`).
+   */
   nativeSize: number;
+  /**
+   * The brush's largest diameter over the pressure range, relative to its base diameter
+   * (libmypaint's radius): many brushes grow (or shrink) with pressure. Like Krita, the size
+   * shown to the user is that largest diameter.
+   */
+  pressureSizeFactor: number;
   myb: MybBrush;
 }
 
@@ -59,12 +68,16 @@ export const BUNDLED_BRUSHES: BundledBrush[] = Object.entries(files)
     const id = `${pack}/${name}`;
     const myb = parseMyb(text);
     const radius = Math.exp(myb.settings.radius_logarithmic?.base_value ?? Math.log(2));
+    // libmypaint adds each input's curve to the log of the radius.
+    const curve = myb.settings.radius_logarithmic?.inputs.pressure;
+    const factor = curve?.length ? Math.exp(Math.max(...curve.map(([, y]) => y))) : 1;
     return {
       id,
       name: prettify(name),
       pack,
       eraser: (myb.settings.eraser?.base_value ?? 0) > 0.5,
-      nativeSize: Math.round(radius * 2 * 10) / 10,
+      nativeSize: Math.round(radius * 2 * factor * 10) / 10,
+      pressureSizeFactor: factor,
       myb,
     };
   })

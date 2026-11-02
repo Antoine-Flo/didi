@@ -20,7 +20,7 @@
 </script>
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { Application } from "pixi.js";
   import { consumeDismissal } from "#lib/app/canvas/dismissal.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
@@ -51,7 +51,10 @@
   }: {
     editor: Editor;
     painter?: Painter;
-    /** Current brush outline, read on every pointer move. `eraser`: the pen's eraser is used. */
+    /**
+     * Brush outline for the current tool. `eraser`: the pen's eraser end is used. Reactive:
+     * when what it reads changes (tool, size…), the outline is redrawn at once.
+     */
     brushCursor?: (eraser: boolean) => BrushCursor;
     /** Panels over the view: fitting and zooming use the area between them. */
     insets?: () => Insets;
@@ -71,10 +74,10 @@
   let panning: { id: number; x: number; y: number } | null = $state(null);
   /** Native pen events draw (Linux): DOM pointer events then only pan the view. */
   let nativeInput = false;
-  let stroking = false;
+  let stroking = $state(false);
   /** The pen's eraser end is near the tablet (hovering), or was used to start the stroke. */
-  let hoverEraser = false;
-  let strokeEraser = false;
+  let hoverEraser = $state(false);
+  let strokeEraser = $state(false);
   /** Last cursor position, in canvas pixels, to redraw the outline when the pen flips. */
   let lastCursor: Point | null = null;
   let destroyed = false;
@@ -221,10 +224,7 @@
     const pen = e.source === "pen" || e.source === "eraser";
     const pressure = pen ? e.pressure : 1;
     const extra = { tiltX: e.tiltX, tiltY: e.tiltY, time: e.time };
-    if (pen && (e.source === "eraser") !== hoverEraser) {
-      hoverEraser = e.source === "eraser";
-      updateCursor(lastCursor);
-    }
+    if (pen) hoverEraser = e.source === "eraser";
     if (e.phase === "move") {
       if (!stroking) return;
       if (!e.pressed && pendingEnd === null) {
@@ -263,13 +263,23 @@
     pendingEnd = null;
     if (stroking) painter?.end();
     stroking = false;
-    updateCursor(lastCursor);
   }
 
+  /** The outline's shape. Recomputed only when the tool or its settings change. */
+  const cursorShape: BrushCursor = $derived(
+    brushCursor?.(stroking ? strokeEraser : hoverEraser) ?? { kind: "none" },
+  );
+  // A new shape (other tool, size changed by a shortcut…) shows at once, without waiting
+  // for the pen to move.
+  $effect(() => {
+    void cursorShape;
+    untrack(() => updateCursor(lastCursor));
+  });
+
+  /** Moves the outline to `p` (canvas pixels), or hides it. */
   function updateCursor(p: Point | null) {
     lastCursor = p;
-    const eraser = stroking ? strokeEraser : hoverEraser;
-    view?.setBrushCursor(p && brushCursor ? { ...brushCursor(eraser), x: p.x, y: p.y } : null);
+    view?.setBrushCursor(p ? { ...cursorShape, x: p.x, y: p.y } : null);
   }
 
   function onKeyDown(e: KeyboardEvent) {

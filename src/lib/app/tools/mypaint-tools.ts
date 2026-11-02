@@ -21,7 +21,7 @@ import {
 export type MyPaintSettings = {
   /** Bundled MyPaint brush id (see $lib/mypaint/brushes). */
   preset: string;
-  /** Diameter in canvas pixels. */
+  /** Largest diameter in canvas pixels, at the pressure that makes the brush largest. */
   size: number;
   /** Multiplies the brush's own opacity, 0 to 1. */
   opacity: number;
@@ -79,7 +79,8 @@ class QueuedStroke implements ToolStroke {
     private readonly label: string,
   ) {
     const brush = context.brush(settings.preset);
-    brush.size = settings.size;
+    // libmypaint's size is the base diameter, which pressure then changes.
+    brush.size = settings.size / bundledBrush(settings.preset).pressureSizeFactor;
     brush.setColor(context.color);
     this.size = settings.size;
     this.now = context.now;

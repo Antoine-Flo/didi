@@ -72,6 +72,23 @@ describe("Painter", () => {
     expect(editor.history.undoLabel).toBe("Eraser");
   });
 
+  it("paints as wide as the size at full pressure, like the brush outline", () => {
+    // The large hard eraser grows about 3.2 times with pressure.
+    const { editor, painter, state, pixel } = setup("eraser");
+    const all = { x: 0, y: 0, width: 200, height: 200 };
+    editor.drawing.writePixels(editor.activeLayer!.id, all, fill(all, [0, 0, 255, 255]));
+    state.options.tools.eraser.size = 60;
+    const [first, ...rest] = line(100);
+    painter.begin(first);
+    painter.move(rest);
+    painter.end();
+    painter.drain();
+    let erased = 0;
+    for (let y = 0; y < 200; y++) if (pixel(70, y)[3] < 128) erased++;
+    expect(erased).toBeGreaterThan(60 * 0.85);
+    expect(erased).toBeLessThan(60 * 1.15);
+  });
+
   it("paints crisp pixels with the pixel tool", () => {
     const { painter, pixel } = setup("pixel");
     painter.begin({ x: 10.7, y: 10.2, pressure: 0.3 });
