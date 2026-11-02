@@ -2,10 +2,10 @@
 
 Règle : on ne passe à la phase suivante que si la précédente est **stable, testée et performante**.
 
-## Où on en est (2026-11-01)
+## Où on en est (2026-11-02)
 
 - **Fait** : phases 0 à 4, et la phase 5 sauf la vérification sur machine modeste. Didi tourne sous Linux et Windows (testé).
-- **Prochaine étape** : phase 5b, les outils essentiels (pot de peinture et gomme pixel en premier), puis le jalon v0.1.
+- **Prochaine étape** : phase 5b, les modes pixel art et peinture (registre d'outils d'abord), puis la phase 5c, les outils essentiels, et le jalon v0.1.
 - **Ensuite** : phase 6, le pont Godot.
 - **Reporté, à reprendre plus tard** : import de `.myb`, actions des boutons du stylet, rejeu de traits enregistrés (phase 3) ; roue rapide et fenêtre des paramètres `.myb` (phase 4) ; peinture dans un worker pour les pinceaux géants ; lecture native du stylet sous Windows si la comparaison avec Krita le justifie.
 
@@ -84,12 +84,25 @@ Règle : on ne passe à la phase suivante que si la précédente est **stable, t
 - ✅ Barre de titre dessinée par l'app (comme Zed ou Discord) : nom du document, `●` si non enregistré, boutons réduire, agrandir et fermer. À vérifier au stylet et au redimensionnement sous Linux et Windows ; macOS (boutons natifs en surimpression) en phase 10.
 - ✅ CI à jour (actions v7, Node 26, Ubuntu 26.04) ; dépendances à jour (SvelteKit 3). Pas de build Windows automatique : chacun compile, la version prête à l'emploi sera sur Steam.
 
-## Phase 5b — Outils essentiels
+## Phase 5b — Modes pixel art et peinture
 
-Ce qu'il faut pour dessiner de vrais assets de jeu sans repasser par un autre logiciel. Peu d'outils, mais soignés et testés.
+Deux modes, chacun ne montrant que ce dont il a besoin, dans une interface commune (voir `DECISIONS.md`).
+
+- ✅ Registre d'outils : chaque outil est une définition (titre, icône, réglages, curseur, comportement) au lieu d'une liste fixe. Aucun changement visible.
+- ✅ Registre de modes : outils de la barre, outil du bout gomme, panneaux affichés, raccourcis. Pixel art et Peinture sont les deux premiers. (Les réglages de vue viendront avec le mode pixel art.)
+- ✅ Mode enregistré dans le `.didi` (changer de mode est une modification non enregistrée, pas une étape d'annulation), commande pour en changer, sélecteur dans la barre du haut.
+- Écran de démarrage : choix pixel art ou peinture clair et visible, formats propres à chaque mode.
+- Mode pixel art : pas de navigateur de pinceaux, tailles en pixels entiers, grille et zoom entier, palette mise en avant.
+- ✅ Outils des autres modes accessibles (bouton « plus d'outils », palette de commandes). Gomme pixel ajoutée (bout gomme du stylet en pixel art).
+- Épingler un outil d'un autre mode dans la barre.
+
+## Phase 5c — Outils essentiels
+
+Ce qu'il faut pour dessiner de vrais assets de jeu sans repasser par un autre logiciel. Peu d'outils, mais soignés et testés, chacun déclaré dans son mode.
 
 - Pot de peinture (remplissage, avec tolérance ; exact au pixel pour le pixel art).
 - Gomme pixel (pixel-perfect, sans bords doux).
+- Formes : ligne, rectangle, ellipse (au pixel en pixel art).
 - Pipette rapide (Alt + clic) avec n'importe quel outil.
 - Sélection rectangulaire, déplacement de la sélection ou du calque, copier-coller.
 - Retourner horizontalement et verticalement (calque ou sélection).
@@ -116,6 +129,7 @@ Ce qu'il faut pour dessiner de vrais assets de jeu sans repasser par un autre lo
 
 - Timeline, onion skin, tags d'animation.
 - Palettes indexées.
+- Outils pixel art repris d'Aseprite : jumble (mélange de pixels), contour, ombrage selon la palette, symétrie…
 
 ## Phase 9 — Extensibilité
 

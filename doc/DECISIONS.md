@@ -4,6 +4,24 @@ Les choix importants, avec ce qui les justifie. Les plus récents en haut.
 
 ---
 
+## Modes : pixel art et peinture
+
+**Date** : 2026-11-02 · **Phase** : 5b
+
+**Décision** : chaque document a un mode, **Pixel art** ou **Peinture** (`Painting` dans l'interface). Comme Aseprite, un mode ne montre que ce dont il a besoin : le pixel art n'affiche pas le navigateur de pinceaux, par exemple. Mais l'interface reste celle de Didi, la même dans tous les modes.
+
+**Pourquoi** : Krita et Aseprite sont deux façons de travailler très différentes. Tout montrer en même temps alourdit l'interface pour les deux. Garder une seule organisation rend l'app cohérente d'un mode à l'autre.
+
+**Principes** :
+
+- **Même disposition partout** : outils et pinceaux à gauche, couleur et calques en colonne à droite, options en haut. Un mode change le contenu, pas la place des panneaux. Des dispositions différentes selon le mode pourront venir plus tard, avec la personnalisation des panneaux.
+- **Montrer n'est pas interdire** : tous les outils sont dans un même registre et utilisables dans tous les modes. Un mode choisit seulement les outils de sa barre, les panneaux affichés, les réglages de vue par défaut (grille, zoom entier) et ses raccourcis. Les autres outils restent accessibles par un bouton « plus d'outils » au bout de la barre, par la palette de commandes, et peuvent être épinglés dans la barre du mode.
+- **Un outil fait la même chose dans tous les modes** : le pinceau pixel reste un pinceau pixel en peinture. Ce sont les raccourcis qui changent : `E` donne la gomme pixel en pixel art, la gomme douce en peinture.
+- **Le mode est lié au document** : il est enregistré dans le `.didi` (un fichier sans mode s'ouvre en peinture) et on peut en changer à tout moment.
+- **Écran de démarrage** : le choix pixel art ou peinture est clair et visible, chacun avec ses formats.
+- **Extensible** : un mode est une simple description (outils, panneaux, vue, raccourcis) enregistrée dans un registre, comme les commandes. D'autres modes pourront être ajoutés, par des plugins ou des fichiers.
+- On reprend d'Aseprite ce qui est vraiment essentiel pour ne pas perdre ceux qui en viennent (raccourcis, quelques outils), au cas par cas.
+
 ## Barre de titre dessinée par l'app
 
 **Date** : 2026-11-01 · **Phase** : 5

@@ -63,15 +63,17 @@ Dans `src/lib/core/`, rangé du plus simple au plus haut niveau (hors tests, cha
 
 Dans `src/lib/app/`, chaque test est à côté du fichier qu'il teste :
 
-| Sous-dossier | Contenu                                                                                                                              |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `shell/`     | La fenêtre et l'apparence : barre de titre, thème (`theme.ts`), styles de base (`ui.css`).                                           |
-| `widgets/`   | Composants génériques, sans logique métier (`Select`, `Slider`).                                                                     |
-| `panels/`    | Les panneaux flottants : pinceaux, couleur, palette, calques, barre d'outils (`ToolBar`) et barre d'état (`StatusBar`).              |
-| `dialogs/`   | Ce qui s'ouvre par-dessus : écran de démarrage, confirmation, palette de commandes.                                                  |
-| `canvas/`    | La toile et la peinture : affichage (`CanvasView.svelte`), liaison entre le stylet et le moteur (`painter.ts`), outils (`tools.ts`). |
-| `commands/`  | Commandes de l'interface (`app-commands.ts`) et raccourcis (`keymap.ts`, `default-keymap.ts`).                                       |
-| `files/`     | Document ouvert et fichiers (`session.svelte.ts`, `files.ts`, `file-worker.ts`), récents, import d'images, palettes enregistrées.    |
+| Sous-dossier | Contenu                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `shell/`     | La fenêtre et l'apparence : barre de titre, thème (`theme.ts`), styles de base (`ui.css`).                                                 |
+| `widgets/`   | Composants génériques, sans logique métier (`Select`, `Slider`).                                                                           |
+| `panels/`    | Les panneaux flottants : pinceaux, couleur, palette, calques, barre d'outils (`ToolBar`) et barre d'état (`StatusBar`).                    |
+| `dialogs/`   | Ce qui s'ouvre par-dessus : écran de démarrage, confirmation, palette de commandes.                                                        |
+| `canvas/`    | La toile : affichage (`CanvasView.svelte`), liaison entre le stylet et l'outil actif (`painter.ts`).                                       |
+| `tools/`     | Les outils : définition et registre (`tool.ts`), outils fournis (`builtin.ts`), un fichier par famille (pinceaux MyPaint, pixel, pipette). |
+| `modes/`     | Les modes (pixel art, peinture) : définition et registre (`mode.ts`), modes fournis (`builtin.ts`).                                        |
+| `commands/`  | Commandes de l'interface (`app-commands.ts`) et raccourcis (`keymap.ts`, `default-keymap.ts`).                                             |
+| `files/`     | Document ouvert et fichiers (`session.svelte.ts`, `files.ts`, `file-worker.ts`), récents, import d'images, palettes enregistrées.          |
 
 Imports (SvelteKit 3) : `#lib/…` au lieu de `$lib/…`, avec l'extension `.js` (ex. `#lib/core/editor/editor.js`). La configuration de SvelteKit est dans `vite.config.js` (plus de `svelte.config.js`).
 
@@ -86,6 +88,8 @@ Imports (SvelteKit 3) : `#lib/…` au lieu de `$lib/…`, avec l'extension `.js`
 
 - **Textes en anglais**, sans traduction (voir `DECISIONS.md`).
 - **Couleurs et tailles** : uniquement les variables du thème (`var(--panel)`…), jamais de couleur en dur.
+- **Nouveau mode** : une description (outils de la barre, outil du bout gomme, panneaux, raccourcis) ajoutée à `modes/builtin.ts`. Sa commande `mode.<id>` et son bouton viennent seuls.
+- **Nouvel outil** : une définition (`defineTool`) avec ses réglages, ses contrôles pour la barre d'options, son curseur et son tracé, ajoutée à `builtin.ts`. Sa commande `tool.<id>` et son bouton viennent seuls.
 - **Nouvelle action** : l'enregistrer comme commande (titre en anglais), puis l'associer à une touche dans `default-keymap.ts` si besoin. Elle apparaît alors dans la palette de commandes (Ctrl+K).
 
 ## Le moteur de pinceau (libmypaint)

@@ -2,12 +2,6 @@
 
 Logiciel de dessin pour tablette graphique, aussi à l'aise en pixel art qu'en peinture 2D, intégré à Godot.
 
-- Vision : [`doc/PROJET.md`](doc/PROJET.md)
-- Avancement : [`doc/ROADMAP.md`](doc/ROADMAP.md)
-- Choix techniques : [`doc/DECISIONS.md`](doc/DECISIONS.md)
-- Développement : [`doc/DEVELOPPEMENT.md`](doc/DEVELOPPEMENT.md)
-- Idées à explorer : [`doc/EXPERIMENTAL.md`](doc/EXPERIMENTAL.md)
-
 ## Démarrer
 
 ```

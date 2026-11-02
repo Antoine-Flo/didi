@@ -11,3 +11,6 @@ vite.config.ts.timestamp-*
 
 # Brush comparison output (npm run compare:brushes)
 tools/brush-compare/out/
+
+# Documentation, locale uniquement
+/doc/
