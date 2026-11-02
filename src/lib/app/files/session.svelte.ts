@@ -1,4 +1,4 @@
-// The open document: its editor, file and unsaved changes, and the file actions (new,
+// The open document: its editor, mode, file and unsaved changes, and the file actions (new,
 // open, save, save as, export), recent files and crash recovery.
 //
 // Recovery: two minutes after a change, a copy of the document is written to the app data
@@ -29,6 +29,7 @@ import {
   saveDocument,
 } from "./files";
 import { newEditor, type Background } from "./new-drawing";
+import { DEFAULT_MODE } from "#lib/app/modes/mode.js";
 import { loadRecent, saveRecent, withRecent, type RecentFile } from "./recent";
 
 export type UnsavedChoice = "save" | "discard" | "cancel";
@@ -62,6 +63,8 @@ export class Session {
   /** The document's file, null until it is saved. */
   path = $state<string | null>(null);
   name = $state("Untitled");
+  /** Id of the document's mode (see $lib/app/modes), saved with it. */
+  mode = $state(DEFAULT_MODE);
   /** A file action in progress ("Saving…"), shown to the user. */
   busy = $state<string | null>(null);
   recent = $state.raw<RecentFile[]>([]);
@@ -70,6 +73,8 @@ export class Session {
 
   /** History marker of the last save: see History.marker. */
   private savedMarker = $state.raw<unknown>(null);
+  /** The mode at the last save. */
+  private savedMode = $state(DEFAULT_MODE);
   /** Bumped on every history change, to recompute `dirty`. */
   private revision = $state(0);
   private extensions: Record<string, unknown> = {};
@@ -88,7 +93,7 @@ export class Session {
   /** Whether the document has changes that are not saved. */
   get dirty(): boolean {
     void this.revision;
-    return this.editor.history.marker !== this.savedMarker;
+    return this.editor.history.marker !== this.savedMarker || this.mode !== this.savedMode;
   }
 
   /** Loads the recent files, and sets aside a copy left by a crash. Call once at start. */
@@ -117,9 +122,21 @@ export class Session {
     return choice === "discard";
   }
 
-  async newDocument(width: number, height: number, background: Background) {
+  async newDocument(
+    width: number,
+    height: number,
+    background: Background,
+    mode: string = DEFAULT_MODE,
+  ) {
     if (!(await this.confirmDiscard())) return;
-    this.replace(newEditor(width, height, background), null, "Untitled");
+    this.replace(newEditor(width, height, background), null, "Untitled", mode);
+  }
+
+  /** Changes the document's mode: an unsaved change, but not an undo step. */
+  setMode(id: string) {
+    if (id === this.mode) return;
+    this.mode = id;
+    this.scheduleRecovery();
   }
 
   /** Opens a .didi file: the given one, or one chosen by the user. */
@@ -129,7 +146,7 @@ export class Session {
     if (!path) return;
     await this.run(`Opening ${fileName(path)}…`, `Cannot open ${fileName(path)}`, async () => {
       const { doc, thumbnail } = await openDocument(path);
-      this.replace(editorFromDocument(doc), path, documentName(path));
+      this.replace(editorFromDocument(doc), path, documentName(path), doc.mode ?? DEFAULT_MODE);
       this.extensions = doc.extensions;
       if (thumbnail) await this.addRecent(path, thumbnail);
     });
@@ -168,7 +185,7 @@ export class Session {
       const bytes = await readDataBytes(PREVIOUS.file);
       if (!bytes) throw new Error("the copy is missing");
       const { doc } = await decodeDocument(bytes);
-      this.replace(editorFromDocument(doc), info.path, info.name);
+      this.replace(editorFromDocument(doc), info.path, info.name, doc.mode ?? DEFAULT_MODE);
       this.extensions = doc.extensions;
       // Not saved yet: the recovered changes are not in any file.
       this.savedMarker = {};
@@ -189,13 +206,15 @@ export class Session {
 
   private async saveTo(path: string): Promise<boolean> {
     // The state being saved: later changes, during the save, stay unsaved.
-    const doc = documentFromEditor(this.editor, this.extensions);
+    const doc = documentFromEditor(this.editor, this.extensions, this.mode);
     const marker = this.editor.history.marker;
+    const mode = this.mode;
     return this.run(`Saving ${fileName(path)}…`, `Cannot save ${fileName(path)}`, async () => {
       const thumbnail = await saveDocument(path, doc);
       this.path = path;
       this.name = documentName(path);
       this.savedMarker = marker;
+      this.savedMode = mode;
       await this.removeRecovery();
       await this.addRecent(path, thumbnail);
     });
@@ -221,10 +240,11 @@ export class Session {
     return false;
   }
 
-  private replace(editor: Editor, path: string | null, name: string) {
+  private replace(editor: Editor, path: string | null, name: string, mode: string) {
     this.setEditor(editor);
     this.path = path;
     this.name = name;
+    this.mode = this.savedMode = mode;
     this.extensions = {};
     this.savedMarker = editor.history.marker;
     void this.removeRecovery();
@@ -261,7 +281,9 @@ export class Session {
 
   private async writeRecovery() {
     if (!this.dirty) return;
-    const { file } = await encodeDocument(documentFromEditor(this.editor, this.extensions));
+    const { file } = await encodeDocument(
+      documentFromEditor(this.editor, this.extensions, this.mode),
+    );
     await writeDataBytes(RECOVERY.file, file);
     const info: RecoveryInfo = { name: this.name, path: this.path, time: Date.now() };
     await writeDataFile(RECOVERY.info, JSON.stringify(info));

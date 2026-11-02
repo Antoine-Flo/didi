@@ -6,12 +6,14 @@
 //   thumbnail.png      a small preview, for file lists
 //
 // document.json:
-//   { "format": "didi", "version": 1, "width": 2048, "height": 2048, "activeLayer": 1,
+//   { "format": "didi", "version": 1, "width": 2048, "height": 2048, "mode": "pixel",
+//     "activeLayer": 1,
 //     "layers": [{ "name": "Background", "file": "layers/1.png", "visible": true,
 //                  "locked": false, "opacity": 1, "blendMode": "normal" }, …],
 //     "extensions": {} }
 //
-// `extensions` holds data of other modules (e.g. the Godot link): kept as is, even when
+// `mode` is the editor mode the document is drawn in (e.g. "pixel"), chosen by the app;
+// it may be missing (files from before modes). `extensions` holds data of other modules (e.g. the Godot link): kept as is, even when
 // not understood. Older versions are migrated when read; newer ones are refused.
 
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
@@ -35,6 +37,8 @@ export interface DocumentData {
   layers: { props: LayerProps; tiles: TileSnapshot }[];
   /** Index of the active layer, -1 if there is none. */
   active: number;
+  /** The editor mode, e.g. "pixel". Null if the file has none. */
+  mode: string | null;
   /** Data of other modules, kept as is. */
   extensions: Record<string, unknown>;
 }
@@ -51,6 +55,7 @@ interface DocumentJson {
   version: number;
   width: number;
   height: number;
+  mode?: string;
   activeLayer: number;
   layers: LayerEntry[];
   extensions: Record<string, unknown>;
@@ -63,6 +68,7 @@ const MIGRATIONS: Record<number, (doc: Record<string, unknown>) => Record<string
 export function documentFromEditor(
   editor: Editor,
   extensions: Record<string, unknown> = {},
+  mode: string | null = null,
 ): DocumentData {
   const { drawing } = editor;
   const active = editor.activeLayer;
@@ -80,6 +86,7 @@ export function documentFromEditor(
       tiles: l.tiles.snapshot(l.tiles.keys()),
     })),
     active: active ? drawing.indexOf(active.id) : -1,
+    mode,
     extensions,
   };
 }
@@ -184,6 +191,7 @@ export function writeDidi(
     version: DIDI_VERSION,
     width: data.width,
     height: data.height,
+    ...(data.mode !== null && { mode: data.mode }),
     activeLayer: data.active,
     layers,
     extensions: data.extensions,
@@ -262,7 +270,8 @@ export function readDidi(bytes: Uint8Array): DocumentData {
     typeof doc.extensions === "object" && doc.extensions !== null && !Array.isArray(doc.extensions)
       ? (doc.extensions as Record<string, unknown>)
       : {};
-  return { width, height, layers, active, extensions };
+  const mode = typeof doc.mode === "string" && doc.mode !== "" ? doc.mode : null;
+  return { width, height, layers, active, mode, extensions };
 }
 
 function migrate(raw: Record<string, unknown>): Record<string, unknown> {

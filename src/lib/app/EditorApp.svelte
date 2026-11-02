@@ -1,21 +1,18 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
+  import { Ellipsis } from "@lucide/svelte";
   import { isTauri } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { Brush, Eraser, Grid2x2, Pipette } from "@lucide/svelte";
   import "#lib/app/shell/ui.css";
   import BrushBrowser from "#lib/app/panels/BrushBrowser.svelte";
-  import CanvasView, {
-    type BrushCursor,
-    type Insets,
-    type ViewStats,
-  } from "#lib/app/canvas/CanvasView.svelte";
+  import CanvasView, { type Insets, type ViewStats } from "#lib/app/canvas/CanvasView.svelte";
   import ColorPicker from "#lib/app/panels/ColorPicker.svelte";
   import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
   import LayersPanel from "#lib/app/panels/LayersPanel.svelte";
   import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
   import StatusBar from "#lib/app/panels/StatusBar.svelte";
   import ToolBar from "#lib/app/panels/ToolBar.svelte";
+  import Menu from "#lib/app/widgets/Menu.svelte";
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
@@ -27,7 +24,9 @@
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
-  import { defaultToolOptions, TOOLS, type ToolId } from "#lib/app/canvas/tools.js";
+  import { createModeRegistry } from "#lib/app/modes/builtin.js";
+  import { createToolRegistry } from "#lib/app/tools/builtin.js";
+  import type { BrushCursor, Tool } from "#lib/app/tools/tool.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
   import { loadMyPaint } from "#lib/mypaint/engine.js";
@@ -62,11 +61,47 @@
   // svelte-ignore state_referenced_locally
   let startOpen = $state(!initial);
 
-  let tool = $state<ToolId>("brush");
-  let options = $state(defaultToolOptions());
+  const tools = createToolRegistry();
+  const modes = createModeRegistry();
+  /** The document's mode: which tools and panels are shown. */
+  const mode = $derived(modes.resolve(session.mode));
+  /** Id of the active tool. */
+  // svelte-ignore state_referenced_locally
+  let tool = $state(mode.tools[0]);
+  let options = $state(tools.defaultOptions());
+  const activeTool = $derived(tools.get(tool));
+
+  /** The tool used now. The pen's eraser end uses the mode's eraser. */
+  function toolFor(eraser: boolean): Tool {
+    return eraser ? tools.get(mode.eraserTool) : activeTool;
+  }
+
+  // Each mode remembers its last tool: switching back finds it again.
+  const lastTool: Record<string, string> = {};
+  // svelte-ignore state_referenced_locally
+  let shownMode = mode.id;
+  $effect.pre(() => {
+    const next = mode;
+    untrack(() => {
+      if (next.id === shownMode) return;
+      lastTool[shownMode] = tool;
+      shownMode = next.id;
+      tool = lastTool[next.id] ?? next.tools[0];
+    });
+  });
+
+  /** The mode's tools, and the active one if it comes from elsewhere (e.g. Ctrl+K). */
+  const shownTools = $derived(
+    [...mode.tools, ...(mode.tools.includes(tool) ? [] : [tool])]
+      .filter((id) => tools.has(id))
+      .map((id) => tools.get(id)),
+  );
+  /** The tools of the other modes, in the "more tools" menu. */
+  const otherTools = $derived(tools.list().filter((t) => !mode.tools.includes(t.id)));
+
   // One painter for the whole session: it keeps the brushes it has loaded.
   const painter = new Painter(session.editor, {
-    tool: () => tool,
+    tool: toolFor,
     options: () => $state.snapshot(options),
     onPick: (color) => (options.color = color),
     onMessage: notify,
@@ -81,16 +116,15 @@
     }, 6000);
   }
 
-  const keymap = new KeymapIndex(DEFAULT_KEYMAP);
+  // The common shortcuts, and the mode's own, which win.
+  const keymap = $derived(
+    new KeymapIndex({ version: 1, bindings: [...DEFAULT_KEYMAP.bindings, ...mode.bindings] }),
+  );
   let paletteOpen = $state(false);
 
-  const TOOL_ICONS = { brush: Brush, eraser: Eraser, pixel: Grid2x2, picker: Pipette };
-
   function brushCursor(eraser: boolean): BrushCursor {
-    if (eraser || tool === "eraser") return { kind: "circle", size: options.eraser.size };
-    if (tool === "brush") return { kind: "circle", size: options.brush.size };
-    if (tool === "pixel") return { kind: "square", size: options.pixel.size };
-    return { kind: "none" };
+    const t = toolFor(eraser);
+    return t.cursor(options.tools[t.id] ?? t.defaults);
   }
 
   // Bumped on every change, so the UI re-reads the editor.
@@ -124,12 +158,20 @@
   // Registered before the first render, which shows the commands' titles.
   $effect.pre(() =>
     registerAppCommands(editor.commands, {
+      get mode() {
+        return session.mode;
+      },
+      set mode(id) {
+        session.setMode(id);
+      },
+      modes,
       get tool() {
         return tool;
       },
       set tool(id) {
         tool = id;
       },
+      tools,
       options,
       get view() {
         return canvasView;
@@ -289,11 +331,11 @@
     {/key}
   </div>
 
-  <aside class="panel left" bind:this={left}>
+  <aside class="panel left" class:compact={!mode.panels.includes("brushes")} bind:this={left}>
     <section class="section">
       <div class="tools">
-        {#each TOOLS as t (t.id)}
-          {@const Icon = TOOL_ICONS[t.id]}
+        {#each shownTools as t (t.id)}
+          {@const Icon = t.icon}
           <button
             class="icon"
             class:active={tool === t.id}
@@ -303,20 +345,45 @@
             <Icon size={16} />
           </button>
         {/each}
+        {#if otherTools.length > 0}
+          <Menu
+            title="More tools"
+            items={otherTools.map((t) => ({
+              id: t.id,
+              label: tip(`tool.${t.id}`),
+              icon: t.icon,
+              active: t.id === tool,
+            }))}
+            onselect={(id) => run(`tool.${id}`)}
+          >
+            <Ellipsis size={16} />
+          </Menu>
+        {/if}
       </div>
     </section>
-    <section class="section brushes">
-      <span class="section-title">Brushes</span>
-      <BrushBrowser
-        eraser={tool === "eraser"}
-        selected={tool === "eraser" ? options.eraser.preset : options.brush.preset}
-        onselect={(id) => run("brush.select", { id })}
-      />
-    </section>
+    {#if mode.panels.includes("brushes")}
+      <section class="section brushes">
+        <span class="section-title">Brushes</span>
+        <BrushBrowser
+          eraser={tool === "eraser"}
+          selected={String(options.tools[tool === "eraser" ? "eraser" : "brush"].preset)}
+          onselect={(id) => run("brush.select", { id })}
+        />
+      </section>
+    {/if}
   </aside>
 
   <div class="bar top" bind:this={top}>
-    <ToolBar {tool} bind:options {camera} {tip} {run} {enabled} />
+    <ToolBar
+      modes={modes.list()}
+      mode={mode.id}
+      tool={activeTool}
+      settings={options.tools[tool]}
+      {camera}
+      {tip}
+      {run}
+      {enabled}
+    />
   </div>
 
   <aside class="panel right" bind:this={right}>
@@ -401,6 +468,11 @@
   .left {
     left: var(--space);
     width: var(--left-width);
+  }
+
+  /* Without the brush browser, the panel only takes the height of the tools. */
+  .left.compact {
+    bottom: auto;
   }
 
   .right {

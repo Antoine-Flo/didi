@@ -1,4 +1,4 @@
-// Interface commands: tools, brushes, colors, palettes, view, files. Most take no params,
+// Interface commands: modes, tools, brushes, colors, palettes, view, files. Most take no params,
 // so they can be bound to shortcuts, listed in the command palette and later put in the
 // quick wheel; those that need params are marked `needsParams`.
 
@@ -7,7 +7,8 @@ import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import type { PaletteLibrary } from "#lib/core/color/palette.js";
 import { bundledBrush, findBundledBrush } from "#lib/mypaint/brushes.js";
-import { TOOLS, stepToolSize, type ToolId, type ToolOptions } from "#lib/app/canvas/tools.js";
+import type { ModeRegistry } from "#lib/app/modes/mode.js";
+import type { ToolOptions, ToolRegistry } from "#lib/app/tools/tool.js";
 
 /** The view controls of the canvas, once it is mounted. */
 export interface ViewControls {
@@ -20,7 +21,12 @@ export interface ViewControls {
 
 /** What the commands act on, provided by the editor interface. */
 export interface AppHost {
-  tool: ToolId;
+  /** Id of the document's mode. */
+  mode: string;
+  readonly modes: ModeRegistry;
+  /** Id of the active tool. */
+  tool: string;
+  readonly tools: ToolRegistry;
   readonly options: ToolOptions;
   readonly view: ViewControls | null;
   /** The user's palettes, once loaded. */
@@ -49,8 +55,22 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       run: () => run(host.view!),
     });
 
+  const current = () => host.tools.get(host.tool);
+  const resize = (direction: 1 | -1) => {
+    const settings = host.options.tools[host.tool];
+    if (settings) current().resize?.(settings, direction);
+  };
+
+  // A command per mode and per tool registered so far.
   const unregister = [
-    ...TOOLS.map((tool) =>
+    ...host.modes.list().map((mode) =>
+      registry.register({
+        id: `mode.${mode.id}`,
+        title: `Mode: ${mode.title}`,
+        run: () => (host.mode = mode.id),
+      }),
+    ),
+    ...host.tools.list().map((tool) =>
       registry.register({
         id: `tool.${tool.id}`,
         title: `Tool: ${tool.title}`,
@@ -67,7 +87,7 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
         // starts at the size it was designed for.
         const brush = bundledBrush(id);
         host.tool = brush.eraser ? "eraser" : "brush";
-        const settings = brush.eraser ? host.options.eraser : host.options.brush;
+        const settings = host.options.tools[host.tool];
         settings.preset = id;
         settings.size = brush.nativeSize;
       },
@@ -75,14 +95,14 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     registry.register({
       id: "brush.grow",
       title: "Increase brush size",
-      enabled: () => host.tool !== "picker",
-      run: () => void stepToolSize(host.options, host.tool, 1),
+      enabled: () => current().resize !== undefined,
+      run: () => resize(1),
     }),
     registry.register({
       id: "brush.shrink",
       title: "Decrease brush size",
-      enabled: () => host.tool !== "picker",
-      run: () => void stepToolSize(host.options, host.tool, -1),
+      enabled: () => current().resize !== undefined,
+      run: () => resize(-1),
     }),
 
     view("Fit to window", "view.fit", (v) => v.fitView()),

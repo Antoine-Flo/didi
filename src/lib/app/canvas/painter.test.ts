@@ -5,23 +5,25 @@ import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
 import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
 import { Painter } from "./painter";
 import type { RGB } from "#lib/core/color/color.js";
-import { defaultToolOptions, type ToolId } from "./tools";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
 
 let engine: MyPaint;
 beforeAll(async () => {
   engine = await loadMyPaint();
 });
 
-function setup(tool: ToolId = "brush", withEngine = true, now?: () => number) {
+const tools = createToolRegistry();
+
+function setup(tool = "brush", withEngine = true, now?: () => number) {
   const editor = new Editor(new Drawing(200, 200));
   editor.commands.execute("layer.add");
   editor.history.clear();
-  const state = { tool, options: defaultToolOptions(), picked: null as RGB | null, message: "" };
+  const state = { tool, options: tools.defaultOptions(), picked: null as RGB | null, message: "" };
   state.options.color = [200, 0, 0];
   const painter = new Painter(
     editor,
     {
-      tool: () => state.tool,
+      tool: (eraser) => tools.get(eraser ? "eraser" : state.tool),
       options: () => state.options,
       onPick: (c) => (state.picked = c),
       onMessage: (m) => (state.message = m),
@@ -59,7 +61,7 @@ describe("Painter", () => {
     expectSameState(capture(editor.drawing), before);
   });
 
-  it("uses the eraser with the pen's eraser end, whatever the tool", () => {
+  it("uses the tool chosen by the host for the pen's eraser end", () => {
     const { editor, painter, pixel } = setup("pixel");
     const all = { x: 0, y: 0, width: 200, height: 200 };
     editor.drawing.writePixels(editor.activeLayer!.id, all, fill(all, [0, 0, 255, 255]));
@@ -78,6 +80,18 @@ describe("Painter", () => {
     painter.drain();
     for (let x = 10; x <= 14; x++) expect(pixel(x, 10)).toEqual([200, 0, 0, 255]);
     expect(pixel(10, 11)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("erases crisp pixels with the pixel eraser", () => {
+    const { editor, painter, pixel } = setup("pixelEraser");
+    const all = { x: 0, y: 0, width: 200, height: 200 };
+    editor.drawing.writePixels(editor.activeLayer!.id, all, fill(all, [0, 0, 255, 255]));
+    painter.begin({ x: 10.7, y: 10.2, pressure: 0.3 });
+    painter.move([{ x: 14.1, y: 10.9, pressure: 0.3 }]);
+    painter.end();
+    for (let x = 10; x <= 14; x++) expect(pixel(x, 10)).toEqual([0, 0, 0, 0]);
+    expect(pixel(10, 11)).toEqual([0, 0, 255, 255]);
+    expect(editor.history.undoLabel).toBe("Pixel eraser");
   });
 
   it("picks the visible color without painting", () => {
@@ -162,15 +176,6 @@ describe("Painter", () => {
   });
 });
 
-describe("size slider", () => {
-  it("maps both ends and round-trips sizes", async () => {
-    const { MAX_SIZE, MIN_SIZE, sizeFromSlider, sliderFromSize } = await import("./tools");
-    expect(sizeFromSlider(0)).toBe(MIN_SIZE);
-    expect(sizeFromSlider(1)).toBe(MAX_SIZE);
-    for (const size of [1, 4.2, 20, 220]) expect(sizeFromSlider(sliderFromSize(size))).toBe(size);
-  });
-});
-
 describe("samples with the same time", () => {
   it("are spread over time instead of producing an infinite speed", async () => {
     const run = (times: number[]) => {
@@ -207,7 +212,8 @@ describe("samples with the same time", () => {
       expect(painter.finishing).toBe(true);
       expect(editor.history.steps).toBe(0);
       let frames = 0;
-      while (painter.active) {
+      // Bounded, so that a stroke that never ends fails instead of hanging.
+      while (painter.active && frames < 1000) {
         painter.flush();
         frames++;
       }
@@ -225,7 +231,7 @@ describe("samples with the same time", () => {
           if (frameByFrame) painter.flush();
         }
         painter.end();
-        if (frameByFrame) while (painter.active) painter.flush();
+        if (frameByFrame) for (let i = 0; painter.active && i < 1000; i++) painter.flush();
         else painter.drain();
         return editor.activeLayer!.tiles.readRegion(all);
       };

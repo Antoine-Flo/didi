@@ -1,6 +1,7 @@
 <script lang="ts">
-  // The bar above the canvas: import and history on the left, the active tool's options in
-  // the middle, the view (zoom, rotation) on the right. Every button runs a command.
+  // The bar above the canvas: the mode, import and history on the left, the active tool's
+  // options in the middle, the view (zoom, rotation) on the right. Every button runs a
+  // command.
 
   import {
     Compass,
@@ -17,23 +18,28 @@
   import {
     sizeFromSlider,
     sliderFromSize,
-    MAX_PIXEL_SIZE,
-    type ToolId,
-    type ToolOptions,
-  } from "#lib/app/canvas/tools.js";
+    type Tool,
+    type ToolSettings,
+  } from "#lib/app/tools/tool.js";
+  import type { Mode } from "#lib/app/modes/mode.js";
   import type { Camera } from "#lib/render/camera.js";
 
   let {
+    modes,
+    mode,
     tool,
-    options = $bindable(),
+    settings,
     camera,
     tip,
     run,
     enabled,
   }: {
-    tool: ToolId;
-    /** The tools' settings, changed in place by the sliders. */
-    options: ToolOptions;
+    modes: Mode[];
+    /** Id of the current mode. */
+    mode: string;
+    tool: Tool;
+    /** The tool's settings, changed in place by the controls. */
+    settings: ToolSettings;
     camera: Camera;
     tip: (id: string) => string;
     run: (id: string, params?: unknown) => void;
@@ -44,6 +50,22 @@
 </script>
 
 <div class="panel toolbar">
+  <div class="group modes" role="radiogroup" aria-label="Mode">
+    {#each modes as m (m.id)}
+      {@const Icon = m.icon}
+      <button
+        class:active={m.id === mode}
+        role="radio"
+        aria-checked={m.id === mode}
+        title={tip(`mode.${m.id}`)}
+        onclick={() => run(`mode.${m.id}`)}
+      >
+        <Icon size={16} />
+        {m.title}
+      </button>
+    {/each}
+  </div>
+
   <div class="group">
     <button class="icon" title={tip("file.importImage")} onclick={() => run("file.importImage")}
       ><ImagePlus size={16} /></button
@@ -68,45 +90,48 @@
   </div>
 
   <div class="group options">
-    {#if tool === "brush" || tool === "eraser"}
-      {@const settings = tool === "brush" ? options.brush : options.eraser}
-      <Slider
-        label="Size"
-        min={0}
-        max={1}
-        step={0.001}
-        value={sliderFromSize(settings.size)}
-        display="{settings.size} px"
-        oninput={(v) => (settings.size = sizeFromSlider(v))}
-      />
-      <Slider
-        label="Opacity"
-        value={settings.opacity}
-        display="{Math.round(settings.opacity * 100)}%"
-        oninput={(v) => (settings.opacity = v)}
-      />
-    {:else if tool === "pixel"}
-      <Slider
-        label="Size"
-        min={1}
-        max={MAX_PIXEL_SIZE}
-        step={1}
-        value={options.pixel.size}
-        display="{options.pixel.size} px"
-        oninput={(v) => (options.pixel.size = v)}
-      />
-      <Slider
-        label="Opacity"
-        value={options.pixel.opacity}
-        display="{Math.round(options.pixel.opacity * 100)}%"
-        oninput={(v) => (options.pixel.opacity = v)}
-      />
-      <label class="check" title="Removes L-shaped corners (1 px brush)">
-        <input type="checkbox" bind:checked={options.pixel.pixelPerfect} /> Pixel-perfect
-      </label>
+    {#each tool.fields ?? [] as field (field.key)}
+      {@const value = settings[field.key]}
+      {#if field.kind === "size" && typeof value === "number"}
+        <Slider
+          label={field.label}
+          min={0}
+          max={1}
+          step={0.001}
+          value={sliderFromSize(value)}
+          display="{value} px"
+          oninput={(v) => (settings[field.key] = sizeFromSlider(v))}
+        />
+      {:else if field.kind === "integer" && typeof value === "number"}
+        <Slider
+          label={field.label}
+          min={field.min}
+          max={field.max}
+          step={1}
+          {value}
+          display={field.unit ? `${value} ${field.unit}` : `${value}`}
+          oninput={(v) => (settings[field.key] = v)}
+        />
+      {:else if field.kind === "percent" && typeof value === "number"}
+        <Slider
+          label={field.label}
+          {value}
+          display="{Math.round(value * 100)}%"
+          oninput={(v) => (settings[field.key] = v)}
+        />
+      {:else if field.kind === "toggle" && typeof value === "boolean"}
+        <label class="check" title={field.title}>
+          <input
+            type="checkbox"
+            checked={value}
+            onchange={(e) => (settings[field.key] = e.currentTarget.checked)}
+          />
+          {field.label}
+        </label>
+      {/if}
     {:else}
-      <span class="hint">Click on the canvas to pick a color.</span>
-    {/if}
+      {#if tool.hint}<span class="hint">{tool.hint}</span>{/if}
+    {/each}
   </div>
 
   <div class="group">
@@ -157,6 +182,20 @@
     display: flex;
     align-items: center;
     flex: none;
+  }
+
+  .modes {
+    gap: 2px;
+    padding: 2px;
+    background: var(--field);
+    border-radius: var(--radius);
+  }
+
+  .modes button {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space) / 2);
+    white-space: nowrap;
   }
 
   .options {

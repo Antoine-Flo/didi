@@ -78,6 +78,16 @@ describe(".didi files", () => {
     expect(back.history.steps).toBe(0);
   });
 
+  it("saves the mode, and reads files without one", () => {
+    const editor = sample();
+    expect(readDidi(writeDidi(documentFromEditor(editor, {}, "pixel"))).mode).toBe("pixel");
+    expect(reload(editor).mode).toBeNull();
+    const json = JSON.parse(
+      strFromU8(unzipSync(writeDidi(documentFromEditor(editor)))["document.json"]),
+    );
+    expect(json).not.toHaveProperty("mode");
+  });
+
   it("round-trips any document", () => {
     const layer = fc.record({
       name: fc.string({ minLength: 1, maxLength: 8 }).filter((s) => s.trim() !== ""),

@@ -17,9 +17,6 @@
     bottom: number;
     left: number;
   }
-
-  /** Brush outline under the cursor, in canvas pixels. */
-  export type BrushCursor = { kind: "circle" | "square"; size: number } | { kind: "none" };
 </script>
 
 <script lang="ts">
@@ -27,7 +24,8 @@
   import { Application } from "pixi.js";
   import { consumeDismissal } from "#lib/app/canvas/dismissal.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
-  import type { Painter, Sample } from "#lib/app/canvas/painter.js";
+  import type { Painter } from "#lib/app/canvas/painter.js";
+  import type { BrushCursor, Sample } from "#lib/app/tools/tool.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { nativePenAvailable, subscribeNativePen, type PenEvent } from "#lib/platform/pen.js";
   import {

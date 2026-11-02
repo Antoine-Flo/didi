@@ -1,0 +1,198 @@
+// Brush and eraser: libmypaint brushes.
+//
+// Like MyPaint, libmypaint brushes do not paint as samples arrive: samples wait in a queue,
+// with their original times (so speed-based dynamics are unchanged), and each frame paints
+// as many as fit in a time budget. A huge brush then lags behind the pen instead of
+// freezing the interface. After the pen is lifted, the queue keeps draining over the next
+// frames; the stroke becomes an undo step once it is fully painted.
+
+import { Brush as BrushIcon, Eraser as EraserIcon } from "@lucide/svelte";
+import { bundledBrush } from "#lib/mypaint/brushes.js";
+import { MyPaintStroke } from "#lib/mypaint/engine.js";
+import {
+  defineTool,
+  stepSize,
+  type Sample,
+  type Tool,
+  type ToolContext,
+  type ToolStroke,
+} from "./tool";
+
+export type MyPaintSettings = {
+  /** Bundled MyPaint brush id (see $lib/mypaint/brushes). */
+  preset: string;
+  /** Diameter in canvas pixels. */
+  size: number;
+  /** Multiplies the brush's own opacity, 0 to 1. */
+  opacity: number;
+};
+
+/**
+ * Rough cost of painting a segment with libmypaint: its length times the brush size
+ * (about 1 ms per 1000 on a fast machine). Longer segments are split, so that a frame
+ * never waits long for a single sample: a huge brush moved fast would otherwise freeze.
+ */
+const MAX_SEGMENT_COST = 4000;
+
+function mypaintTool(id: string, title: string, icon: Tool["icon"], preset: string): Tool {
+  return defineTool<MyPaintSettings>({
+    id,
+    title,
+    icon,
+    defaults: { preset, size: bundledBrush(preset).nativeSize, opacity: 1 },
+    fields: [
+      { kind: "size", key: "size", label: "Size" },
+      { kind: "percent", key: "opacity", label: "Opacity" },
+    ],
+    cursor: (s) => ({ kind: "circle", size: s.size }),
+    resize: (s, direction) => (s.size = stepSize(s.size, direction)),
+    begin(context, settings, sample) {
+      if (!context.engine) return context.refuse("The brush engine is loading, try again.");
+      return new QueuedStroke(context, settings, sample, title);
+    },
+  });
+}
+
+export const brushTool = mypaintTool("brush", "Brush", BrushIcon, "deevad/basic_digital_brush");
+export const eraserTool = mypaintTool("eraser", "Eraser", EraserIcon, "deevad/large_hard_eraser");
+
+class QueuedStroke implements ToolStroke {
+  private readonly stroke: MyPaintStroke;
+  private readonly size: number;
+  private readonly now: () => number;
+  private lastTime: number | null = null;
+  /** Samples with the same time as the previous one, waiting for a later time. */
+  private sameTime: Sample[] = [];
+  /** Samples waiting to be painted. */
+  private pending: Sample[] = [];
+  /** Last sample put in the queue, to split long segments. */
+  private lastQueued: Sample | null = null;
+  private readonly first: Sample;
+  private last: Sample;
+  /** Farthest distance from the first sample, to tell taps from strokes. */
+  private moved = 0;
+
+  constructor(
+    context: ToolContext,
+    settings: MyPaintSettings,
+    sample: Sample,
+    private readonly label: string,
+  ) {
+    const brush = context.brush(settings.preset);
+    brush.size = settings.size;
+    brush.setColor(context.color);
+    this.size = settings.size;
+    this.now = context.now;
+    this.stroke = new MyPaintStroke(
+      context.engine!,
+      brush,
+      context.editor.drawing,
+      context.layer!.id,
+      settings.opacity,
+    );
+    this.stroke.view = { zoom: sample.viewZoom ?? 1, rotation: sample.viewRotation ?? 0 };
+    this.stroke.moveTo(sample.x, sample.y, sample.tiltX, sample.tiltY);
+    this.first = this.last = sample;
+  }
+
+  get busy(): boolean {
+    return this.pending.length > 0;
+  }
+
+  move(s: Sample) {
+    this.last = s;
+    this.moved = Math.max(this.moved, Math.hypot(s.x - this.first.x, s.y - this.first.y));
+    // Split a long segment from the previous sample.
+    const prev = this.lastQueued;
+    if (prev) {
+      const length = Math.hypot(s.x - prev.x, s.y - prev.y);
+      const parts = Math.ceil((length * this.size) / MAX_SEGMENT_COST);
+      for (let i = 1; i < parts; i++) this.pending.push(between(prev, s, i / parts));
+    }
+    this.pending.push(s);
+    this.lastQueued = s;
+  }
+
+  flush(budgetMs: number) {
+    const start = this.now();
+    let done = 0;
+    while (done < this.pending.length) {
+      this.queue(this.pending[done++]);
+      if (this.now() - start >= budgetMs) break;
+    }
+    this.pending.splice(0, done);
+    this.stroke.flush();
+  }
+
+  drain() {
+    for (const s of this.pending) this.queue(s);
+    this.pending = [];
+  }
+
+  finish() {
+    // Samples still waiting for a later time: give them 1 ms each.
+    if (this.lastTime !== null) {
+      for (const waiting of this.sameTime) this.send(waiting, this.lastTime + 1);
+    }
+    this.sameTime = [];
+    // A tap (no movement): mark the point, since libmypaint only paints along a movement.
+    const last = this.last;
+    if (this.moved < 1) {
+      this.stroke.tap(last.x, last.y, Math.max(last.pressure, 0.3), last.tiltX, last.tiltY);
+    }
+    return this.stroke.finish(this.label);
+  }
+
+  cancel() {
+    this.pending = [];
+    this.stroke.cancel();
+  }
+
+  /**
+   * Sends a sample to libmypaint. Like MyPaint, samples sharing the same timestamp (events
+   * often have a 1 ms resolution) wait for the next later sample, and their times are then
+   * spread evenly in between: otherwise the brush would see an infinite speed.
+   */
+  private queue(s: Sample) {
+    if (s.time === undefined || this.lastTime === null) {
+      this.send(s, s.time);
+      return;
+    }
+    if (s.time <= this.lastTime) {
+      this.sameTime.push(s);
+      return;
+    }
+    if (this.sameTime.length > 0) {
+      const interval = Math.min(s.time - this.lastTime, 100);
+      const step = interval / (this.sameTime.length + 1);
+      let time = s.time - interval;
+      for (const waiting of this.sameTime) this.send(waiting, (time += step));
+      this.sameTime = [];
+    }
+    this.send(s, s.time);
+  }
+
+  private send(s: Sample, time: number | undefined) {
+    const dtime =
+      time !== undefined && this.lastTime !== null ? (time - this.lastTime) / 1000 : 1 / 120;
+    if (time !== undefined) this.lastTime = time;
+    this.stroke.view = { zoom: s.viewZoom ?? 1, rotation: s.viewRotation ?? 0 };
+    this.stroke.strokeTo(s.x, s.y, s.pressure, s.tiltX ?? 0, s.tiltY ?? 0, dtime);
+  }
+}
+
+/** The sample at `t` (0 to 1) on the way from `a` to `b`. */
+function between(a: Sample, b: Sample, t: number): Sample {
+  const mix = (x: number | undefined, y: number | undefined) =>
+    x === undefined || y === undefined ? y : x + (y - x) * t;
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    pressure: a.pressure + (b.pressure - a.pressure) * t,
+    tiltX: mix(a.tiltX ?? 0, b.tiltX ?? 0),
+    tiltY: mix(a.tiltY ?? 0, b.tiltY ?? 0),
+    time: mix(a.time, b.time),
+    viewZoom: b.viewZoom,
+    viewRotation: b.viewRotation,
+  };
+}

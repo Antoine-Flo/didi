@@ -110,6 +110,27 @@ describe("Session", () => {
     expect(save.session.editor.drawing.width).toBe(16);
   });
 
+  it("keeps the mode with the document: saved, reopened, unsaved when changed", async () => {
+    const { session } = setup("discard");
+    await session.newDocument(16, 16, "white", "pixel");
+    expect(session.mode).toBe("pixel");
+    expect(session.dirty).toBe(false);
+    session.setMode("painting");
+    expect(session.dirty).toBe(true);
+    session.setMode("pixel");
+    expect(session.dirty).toBe(false);
+    session.setMode("painting");
+    dialogs.save = "/m.didi";
+    await session.save();
+    expect(session.dirty).toBe(false);
+    expect(readDidi(disk.get("/m.didi")!).mode).toBe("painting");
+
+    await session.newDocument(16, 16, "white", "pixel");
+    await session.open("/m.didi");
+    expect(session.mode).toBe("painting");
+    expect(session.dirty).toBe(false);
+  });
+
   it("opens files, and tells why one cannot be opened", async () => {
     const { session: writer } = setup();
     paint(writer);

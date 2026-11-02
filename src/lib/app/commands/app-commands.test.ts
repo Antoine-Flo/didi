@@ -4,7 +4,10 @@ import { Editor } from "#lib/core/editor/editor.js";
 import { PaletteLibrary } from "#lib/core/color/palette.js";
 import { registerAppCommands, type AppHost, type ViewControls } from "./app-commands";
 import { DEFAULT_KEYMAP } from "./default-keymap";
-import { defaultToolOptions } from "#lib/app/canvas/tools.js";
+import { createModeRegistry } from "#lib/app/modes/builtin.js";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
+
+const tools = createToolRegistry();
 
 function setup(withView = true) {
   const editor = new Editor(new Drawing(100, 100));
@@ -16,8 +19,11 @@ function setup(withView = true) {
     resetRotation: vi.fn(),
   };
   const host: AppHost = {
+    mode: "painting",
+    modes: createModeRegistry(),
     tool: "brush",
-    options: defaultToolOptions(),
+    tools,
+    options: tools.defaultOptions(),
     view: withView ? view : null,
     palettes: new PaletteLibrary([{ name: "A", colors: [] }]),
     importImage: vi.fn(),
@@ -34,6 +40,14 @@ function setup(withView = true) {
 }
 
 describe("app commands", () => {
+  it("switches modes", () => {
+    const { editor, host } = setup();
+    editor.commands.execute("mode.pixel");
+    expect(host.mode).toBe("pixel");
+    editor.commands.execute("mode.painting");
+    expect(host.mode).toBe("painting");
+  });
+
   it("selects tools", () => {
     const { editor, host } = setup();
     editor.commands.execute("tool.pixel");
@@ -44,16 +58,16 @@ describe("app commands", () => {
 
   it("resizes the current tool, and not the others", () => {
     const { editor, host } = setup();
-    const { brush, eraser } = defaultToolOptions();
+    const { brush, eraser } = tools.defaultOptions().tools;
     editor.commands.execute("brush.grow");
-    expect(host.options.brush.size).toBeGreaterThan(brush.size);
-    expect(host.options.eraser.size).toBe(eraser.size);
+    expect(host.options.tools.brush.size).toBeGreaterThan(brush.size as number);
+    expect(host.options.tools.eraser.size).toBe(eraser.size);
     host.tool = "pixel";
     editor.commands.execute("brush.grow");
-    expect(host.options.pixel.size).toBe(2);
+    expect(host.options.tools.pixel.size).toBe(2);
     editor.commands.execute("brush.shrink");
     editor.commands.execute("brush.shrink");
-    expect(host.options.pixel.size).toBe(1);
+    expect(host.options.tools.pixel.size).toBe(1);
     host.tool = "picker";
     expect(editor.commands.isEnabled("brush.grow")).toBe(false);
   });
@@ -63,11 +77,11 @@ describe("app commands", () => {
     host.tool = "pixel";
     editor.commands.execute("brush.select", { id: "deevad/2B_pencil" });
     expect(host.tool).toBe("brush");
-    expect(host.options.brush.preset).toBe("deevad/2B_pencil");
+    expect(host.options.tools.brush.preset).toBe("deevad/2B_pencil");
     editor.commands.execute("brush.select", { id: "deevad/kneaded_eraser" });
     expect(host.tool).toBe("eraser");
-    expect(host.options.eraser.preset).toBe("deevad/kneaded_eraser");
-    expect(host.options.brush.preset).toBe("deevad/2B_pencil");
+    expect(host.options.tools.eraser.preset).toBe("deevad/kneaded_eraser");
+    expect(host.options.tools.brush.preset).toBe("deevad/2B_pencil");
     expect(editor.commands.isEnabled("brush.select", { id: "nope/nope" })).toBe(false);
   });
 
@@ -109,9 +123,13 @@ describe("app commands", () => {
     expect(editor.commands.has("layer.add")).toBe(true);
   });
 
-  it("covers every command of the default keymap", () => {
-    const { editor } = setup();
-    for (const binding of DEFAULT_KEYMAP.bindings) {
+  it("covers every command of the default keymap and of the modes' shortcuts", () => {
+    const { editor, host } = setup();
+    const bindings = [
+      ...DEFAULT_KEYMAP.bindings,
+      ...host.modes.list().flatMap((mode) => mode.bindings),
+    ];
+    for (const binding of bindings) {
       expect(editor.commands.has(binding.command), binding.command).toBe(true);
     }
   });
