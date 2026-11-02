@@ -1,7 +1,6 @@
 // Editor modes: pixel art, painting… A mode only chooses what is shown. Every tool stays
-// usable in every mode (from the "more tools" menu or the command palette), and a tool
-// behaves the same in all modes. The layout is shared too: a mode changes what the panels
-// hold, not where they are.
+// usable in every mode (from the command palette), and a tool behaves the same in all
+// modes. The layout is shared too: a mode changes what the panels hold, not where they are.
 //
 // A mode is plain data, registered like the tools (see `builtin.ts`). Each document
 // remembers its mode (saved in the .didi file).

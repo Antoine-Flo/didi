@@ -17,6 +17,7 @@ import {
 import type { Drawing, DrawingChange } from "#lib/core/document/drawing.js";
 import type { BlendMode, ReadonlyLayer } from "#lib/core/document/layer.js";
 import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
+import { pixelStamp } from "#lib/core/brush/raster.js";
 import { visibleRect, type Camera } from "./camera";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {
@@ -106,9 +107,12 @@ class LayerView {
   }
 }
 
-/** Brush outline: circle (round brushes) or square (pixel brush), at a canvas position. */
+/**
+ * Brush outline at a canvas position: a circle (soft brushes), or the exact pixels of a
+ * pixel-art tip, square or round.
+ */
 export type BrushCursorState =
-  | { kind: "circle" | "square"; size: number; x: number; y: number }
+  | { kind: "circle" | "square" | "pixel-round"; size: number; x: number; y: number }
   | { kind: "none"; x: number; y: number };
 
 export class DrawingView {
@@ -204,6 +208,8 @@ export class DrawingView {
         alpha: 0.8,
         pixelLine: true,
       });
+    } else if (c.kind === "pixel-round") {
+      this.drawStampOutline(Math.floor(c.x), Math.floor(c.y), c.size, px);
     } else {
       const n = Math.max(1, Math.round(c.size));
       const x = Math.floor(c.x) - Math.floor(n / 2);
@@ -215,6 +221,32 @@ export class DrawingView {
         pixelLine: true,
       });
       g.rect(x, y, n, n).stroke({ width: 1, color: 0x000000, alpha: 0.8, pixelLine: true });
+    }
+  }
+
+  /** The outline of a round pixel-art tip at pixel (x, y): its pixels' outer edges. */
+  private drawStampOutline(x: number, y: number, size: number, px: number) {
+    const g = this.cursor;
+    const stamp = pixelStamp(size, "round");
+    const inside = new Set(stamp.map((p) => `${p.x},${p.y}`));
+    const edges: [number, number, number, number][] = [];
+    for (const p of stamp) {
+      const left = x + p.x;
+      const top = y + p.y;
+      if (!inside.has(`${p.x},${p.y - 1}`)) edges.push([left, top, left + 1, top]);
+      if (!inside.has(`${p.x},${p.y + 1}`)) edges.push([left, top + 1, left + 1, top + 1]);
+      if (!inside.has(`${p.x - 1},${p.y}`)) edges.push([left, top, left, top + 1]);
+      if (!inside.has(`${p.x + 1},${p.y}`)) edges.push([left + 1, top, left + 1, top + 1]);
+    }
+    // Two tones, like the other outlines: white one screen pixel off, then black.
+    for (const [color, offset] of [
+      [0xffffff, px],
+      [0x000000, 0],
+    ] as const) {
+      for (const [x0, y0, x1, y1] of edges) {
+        g.moveTo(x0 + offset, y0 + offset).lineTo(x1 + offset, y1 + offset);
+      }
+      g.stroke({ width: 1, color, alpha: 0.8, pixelLine: true });
     }
   }
 

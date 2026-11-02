@@ -25,8 +25,13 @@ export interface StrokeStyle {
 
 const TILE_PIXELS = TILE_SIZE * TILE_SIZE;
 
-/** Pixel offsets of a round pixel-art brush of the given diameter, centered on (0, 0). */
-export function pixelStamp(size: number): Pixel[] {
+/** The tip of a pixel-art brush. */
+export type StampShape = "round" | "square";
+
+/**
+ * Pixel offsets of a pixel-art brush of the given diameter (or side), centered on (0, 0).
+ */
+export function pixelStamp(size: number, shape: StampShape = "round"): Pixel[] {
   const n = Math.max(1, Math.round(size));
   const offsets: Pixel[] = [];
   const r = n / 2;
@@ -36,7 +41,8 @@ export function pixelStamp(size: number): Pixel[] {
       const dx = x + 0.5 - r;
       const dy = y + 0.5 - r;
       // A small tolerance keeps the shape full on its axes for small sizes.
-      if (n <= 2 || dx * dx + dy * dy <= r * r + 0.25) offsets.push({ x: x - shift, y: y - shift });
+      const inside = shape === "square" || n <= 2 || dx * dx + dy * dy <= r * r + 0.25;
+      if (inside) offsets.push({ x: x - shift, y: y - shift });
     }
   }
   return offsets;
@@ -62,12 +68,12 @@ export class StrokeRaster {
   }
 
   /**
-   * Covers (or uncovers, to undo a pixel-perfect corner) whole pixels, with a round
-   * pixel-art brush of the given diameter. No anti-aliasing.
+   * Covers (or uncovers, to undo a pixel-perfect corner) whole pixels, with a pixel-art
+   * brush of the given diameter and shape. No anti-aliasing.
    */
-  setPixels(pixels: readonly Pixel[], size: number, covered: boolean) {
+  setPixels(pixels: readonly Pixel[], size: number, covered: boolean, shape: StampShape = "round") {
     this.assertActive();
-    const stamp = pixelStamp(size);
+    const stamp = pixelStamp(size, shape);
     for (const p of pixels) {
       for (const o of stamp) {
         const box = { x: p.x + o.x, y: p.y + o.y, width: 1, height: 1 };
@@ -77,6 +83,20 @@ export class StrokeRaster {
         });
       }
     }
+  }
+
+  /**
+   * Covers (or uncovers) the pixels of `box` for which `inside` returns true (all of them
+   * by default): filled shapes and the paint bucket.
+   */
+  setArea(box: Rect, covered: boolean, inside: (x: number, y: number) => boolean = () => true) {
+    this.assertActive();
+    const value = covered ? 1 : 0;
+    this.forEachPixel(box, (x, y, cov, i) => {
+      if (cov[i] === value || !inside(x, y)) return false;
+      cov[i] = value;
+      return true;
+    });
   }
 
   /** Shows the changes in the drawing. Call once per frame, or after each batch of input. */

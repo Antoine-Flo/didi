@@ -13,7 +13,7 @@ import {
   Droplet,
   Eraser as EraserIcon,
   PenTool,
-  Pencil,
+  PencilLine,
   Sparkles,
   SprayCan,
 } from "@lucide/svelte";
@@ -68,7 +68,7 @@ function mypaintTool(id: string, title: string, icon: Tool["icon"]): Tool {
 }
 
 export const MYPAINT_TOOLS = [
-  mypaintTool("pencil", "Pencil", Pencil),
+  mypaintTool("pencil", "Pencil", PencilLine),
   mypaintTool("ink", "Ink", PenTool),
   mypaintTool("brush", "Brush", BrushIcon),
   mypaintTool("watercolor", "Watercolor", Droplet),

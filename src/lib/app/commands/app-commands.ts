@@ -31,7 +31,7 @@ export interface AppHost {
   readonly tools: ToolRegistry;
   readonly options: ToolOptions;
   readonly view: ViewControls | null;
-  /** The user's drawing hand: the tools are on the other side (left for right-handed users). */
+  /** The user's drawing hand: the panels are on the other side (left for right-handed users). */
   hand: Hand;
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
@@ -200,12 +200,12 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register({
       id: "view.rightHanded",
-      title: "Layout: Right-handed (tools on the left)",
+      title: "Layout: Right-handed (panels on the left)",
       run: () => (host.hand = "right"),
     }),
     registry.register({
       id: "view.leftHanded",
-      title: "Layout: Left-handed (tools on the right)",
+      title: "Layout: Left-handed (panels on the right)",
       run: () => (host.hand = "left"),
     }),
     registry.register({

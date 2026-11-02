@@ -29,7 +29,12 @@ export interface Sample {
 }
 
 /** Brush outline under the cursor, in canvas pixels. */
-export type BrushCursor = { kind: "circle" | "square"; size: number } | { kind: "none" };
+export type BrushCursor =
+  /** Soft brushes. */
+  | { kind: "circle"; size: number }
+  /** The exact pixels of a pixel-art tip. */
+  | { kind: "square" | "pixel-round"; size: number }
+  | { kind: "none" };
 
 /** Settings of one tool: plain values, so they can be saved and shown in the tool bar. */
 export type ToolSettings = Record<string, number | boolean | string>;
@@ -42,6 +47,26 @@ export type ToolField =
   /** 0 to 1, shown as a percentage. */
   | { kind: "percent"; key: string; label: string }
   | { kind: "toggle"; key: string; label: string; title?: string };
+
+/** Choices offered in a popup under the tool's button, e.g. the tip of a pixel brush. */
+export interface ToolMenu {
+  /** The setting they change. */
+  key: string;
+  items: {
+    value: string;
+    label: string;
+    icon: Component<{ size?: number; fill?: string }>;
+    /** The icon drawn filled, e.g. for a filled shape. */
+    filledIcon?: boolean;
+  }[];
+}
+
+/** Keys held while drawing, e.g. Shift to constrain a shape. */
+export interface Modifiers {
+  shift: boolean;
+  ctrl: boolean;
+  alt: boolean;
+}
 
 /** What a tool can use when the pen goes down. */
 export interface ToolContext {
@@ -56,6 +81,8 @@ export interface ToolContext {
   brush(preset: string): Brush;
   /** Clock for the frame budget, in milliseconds. */
   now(): number;
+  /** The keys held now: they may change during the stroke (see ToolStroke.flush). */
+  modifiers(): Modifiers;
   /** Makes `color` the current color. */
   pick(color: RGB): void;
   /** Tells the user why nothing happens. Returns null, for `begin`. */
@@ -93,6 +120,8 @@ export interface Tool<S extends ToolSettings = ToolSettings> {
    * button. Its settings then have a `preset`: the brush in use.
    */
   readonly brushSet?: string;
+  /** Choices in a popup under its button, like the brushes of a brush set. */
+  readonly menu?: ToolMenu;
   /** False for tools that work without an editable layer (e.g. the picker). */
   readonly needsLayer?: boolean;
   cursor(settings: S): BrushCursor;

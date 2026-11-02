@@ -161,7 +161,7 @@ input[type="range"]::-webkit-slider-thumb {
   background: none;
 }
 
-/* Menus drawn by the app (Bits UI): Menu, the menu bar. */
+/* Menus drawn by the app (Bits UI): the menu bar, the layout menu. */
 .menu-content {
   z-index: 60;
   box-sizing: border-box;

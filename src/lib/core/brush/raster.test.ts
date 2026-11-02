@@ -33,6 +33,13 @@ describe("StrokeRaster", () => {
     expect(five.some((p) => p.x === 0 && p.y === -2)).toBe(true);
   });
 
+  it("builds square pixel brushes", () => {
+    const five = pixelStamp(5, "square");
+    expect(five).toHaveLength(25);
+    expect(five.some((p) => p.x === -2 && p.y === -2)).toBe(true);
+    expect(pixelStamp(4, "square")).toHaveLength(16);
+  });
+
   it("paints exact colors, without anti-aliasing", () => {
     const { drawing, id } = setup();
     const stroke = new StrokeRaster(drawing, id, {

@@ -10,7 +10,14 @@ import type { Editor } from "#lib/core/editor/editor.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
 import type { Brush, MyPaint } from "#lib/mypaint/engine.js";
 import type { RGB } from "#lib/core/color/color.js";
-import type { Sample, Tool, ToolContext, ToolOptions, ToolStroke } from "#lib/app/tools/tool.js";
+import type {
+  Modifiers,
+  Sample,
+  Tool,
+  ToolContext,
+  ToolOptions,
+  ToolStroke,
+} from "#lib/app/tools/tool.js";
 
 export interface PainterHost {
   /** The tool to use. `eraser` is true when the pen's eraser end is down. */
@@ -20,7 +27,11 @@ export interface PainterHost {
   onPick(color: RGB): void;
   /** Called with a message for the user, when a stroke cannot start. */
   onMessage(message: string): void;
+  /** The keys held now. None by default. */
+  modifiers?(): Modifiers;
 }
+
+const NO_MODIFIERS: Modifiers = { shift: false, ctrl: false, alt: false };
 
 export class Painter {
   private engine: MyPaint | null = null;
@@ -82,6 +93,7 @@ export class Painter {
       engine: this.engine,
       brush: (preset) => this.brush(preset),
       now: this.now,
+      modifiers: () => this.host.modifiers?.() ?? NO_MODIFIERS,
       pick: (color) => this.host.onPick(color),
       refuse: (message) => {
         this.host.onMessage(message);

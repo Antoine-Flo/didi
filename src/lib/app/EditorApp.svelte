@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import { Ellipsis } from "@lucide/svelte";
   import { isTauri } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import "#lib/app/shell/ui.css";
@@ -11,11 +10,10 @@
   import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
   import StatusBar from "#lib/app/panels/StatusBar.svelte";
   import ToolBar from "#lib/app/panels/ToolBar.svelte";
-  import ToolButton from "#lib/app/panels/ToolButton.svelte";
+  import ToolColumn from "#lib/app/panels/ToolColumn.svelte";
   import Splitter from "#lib/app/widgets/Splitter.svelte";
   import { LayoutPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
   import LayoutMenu from "#lib/app/shell/LayoutMenu.svelte";
-  import Menu from "#lib/app/widgets/Menu.svelte";
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
@@ -24,6 +22,7 @@
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import { formatChord, KeymapIndex } from "#lib/app/commands/keymap.js";
   import { Painter } from "#lib/app/canvas/painter.js";
+  import { heldModifiers } from "#lib/app/canvas/modifiers.js";
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
@@ -122,8 +121,6 @@
       .filter((id) => tools.has(id))
       .map((id) => tools.get(id)),
   );
-  /** The tools of the other modes, in the "more tools" menu. */
-  const otherTools = $derived(tools.list().filter((t) => !mode.tools.includes(t.id)));
 
   // One painter for the whole session: it keeps the brushes it has loaded.
   const painter = new Painter(session.editor, {
@@ -131,6 +128,7 @@
     options: () => $state.snapshot(options),
     onPick: (color) => (options.color = color),
     onMessage: notify,
+    modifiers: heldModifiers,
   });
   $effect.pre(() => painter.setEditor(editor));
 
@@ -164,39 +162,67 @@
   let palettes = $state.raw<PaletteLibrary | null>(null);
   let paletteVersion = $state(0);
   let app: HTMLDivElement;
-  let toolColumn: HTMLElement;
   let panelColumn: HTMLElement;
+  let toolColumn = $state<HTMLElement>();
+  let toolTrackHeight = $state(0);
   let top: HTMLElement;
   let bottom: HTMLElement;
 
-  // The layout (the side of the tools, the sizes of resizable panels), kept from one session
-  // to the next.
+  // The layout (the side of the panels, the sizes of resizable panels), kept from one
+  // session to the next.
   const layout = new LayoutPrefs();
-  /** Popups of the tool column open towards the canvas. */
-  const popupSide = $derived(layout.hand === "left" ? "left" : "right");
+  let colorPanel: HTMLElement;
   let palettePanel: HTMLElement;
   let layersPanel: HTMLElement;
+  const MIN_COLOR_HEIGHT = 140;
   const MIN_PALETTE_HEIGHT = 60;
-  /** Set by the user, else undefined: the palette is as tall as its content. */
+  /** Set by the user, else undefined: the panel is as tall as its content. */
+  const colorHeight = $derived(layout.size("color"));
   const paletteHeight = $derived(layout.size("palette"));
 
-  /** The palette's height, and how far it can go: the layers keep their minimum height. */
-  function measurePalette() {
-    const size = palettePanel.getBoundingClientRect().height;
+  /**
+   * A resizable panel's height, and how far it can go: it may take the layers' height down
+   * to their minimum.
+   */
+  function measure(panel: HTMLElement, min: number) {
+    const size = panel.getBoundingClientRect().height;
     const layers = layersPanel.getBoundingClientRect().height;
     const layersMin = parseFloat(getComputedStyle(layersPanel).minHeight) || 0;
-    return { size, min: MIN_PALETTE_HEIGHT, max: size + Math.max(0, layers - layersMin) };
+    return { size, min, max: Math.max(min, size + layers - layersMin) };
+  }
+  const measureColor = () => measure(colorPanel, MIN_COLOR_HEIGHT);
+  const measurePalette = () => measure(palettePanel, MIN_PALETTE_HEIGHT);
+
+  /** The panels' column: on the left for right-handed users, out of the drawing hand's way. */
+  const panelsOnLeft = $derived(layout.hand === "right");
+  /** Popups of the tool column open towards the canvas. */
+  const popupSide = $derived(panelsOnLeft ? "right" : "left");
+  const MIN_PANEL_WIDTH = 180;
+  const MAX_PANEL_WIDTH = 480;
+  /** Set by the user, else undefined: the default width. */
+  const panelWidth = $derived(layout.size("panels"));
+  function measurePanelWidth() {
+    const size = panelColumn.getBoundingClientRect().width;
+    // At most half the window, so the canvas keeps room.
+    const max = Math.min(MAX_PANEL_WIDTH, app.getBoundingClientRect().width / 2);
+    return { size, min: MIN_PANEL_WIDTH, max: Math.max(MIN_PANEL_WIDTH, max) };
   }
 
-  const leftColumn = () => (layout.hand === "left" ? panelColumn : toolColumn);
-  const rightColumn = () => (layout.hand === "left" ? toolColumn : panelColumn);
+  /** Swatch size in the palette, in pixels, changed with Ctrl + wheel. */
+  const DEFAULT_SWATCH_SIZE = 18;
+  const MIN_SWATCH_SIZE = 12;
+  const MAX_SWATCH_SIZE = 64;
+  const swatchSize = $derived(layout.size("swatch") ?? DEFAULT_SWATCH_SIZE);
 
   /** Space taken by the floating panels over the canvas, margins included. */
   function insets(): Insets {
     const box = app.getBoundingClientRect();
+    // The tool column is beside the panels' column, on the canvas side.
+    const tools = toolColumn!.getBoundingClientRect();
+    const left = panelsOnLeft;
     return {
-      left: leftColumn().getBoundingClientRect().right - box.left,
-      right: box.right - rightColumn().getBoundingClientRect().left,
+      left: left ? tools.right - box.left : 0,
+      right: left ? 0 : box.right - tools.left,
       top: top.getBoundingClientRect().bottom - box.top,
       bottom: box.bottom - bottom.getBoundingClientRect().top,
     };
@@ -282,6 +308,8 @@
   });
 
   onMount(() => {
+    // Follows Shift and Ctrl from now on, for the shape tools.
+    heldModifiers();
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
       .catch((e) => (error = `Brush engine unavailable: ${e instanceof Error ? e.message : e}`));
@@ -385,7 +413,8 @@
 
 <div
   class="app"
-  class:left-handed={layout.hand === "left"}
+  class:panels-left={panelsOnLeft}
+  style:--panel-width={panelWidth !== undefined ? `${panelWidth}px` : undefined}
   role="application"
   bind:this={app}
   ondragover={(e) => e.preventDefault()}
@@ -409,41 +438,29 @@
     {/key}
   </div>
 
-  <aside class="panel tool-column" bind:this={toolColumn}>
-    {#each shownTools as t (t.id)}
-      <ToolButton
-        tool={t}
-        active={tool === t.id}
-        preset={t.brushSet ? String(options.tools[t.id].preset) : undefined}
-        side={popupSide}
-        {tip}
-        {run}
-      />
-    {/each}
-    {#if otherTools.length > 0}
-      <Menu
-        title="More tools"
-        side={popupSide}
-        items={otherTools.map((t) => ({
-          id: t.id,
-          label: tip(`tool.${t.id}`),
-          icon: t.icon,
-          active: t.id === tool,
-        }))}
-        onselect={(id) => run(`tool.${id}`)}
-      >
-        <Ellipsis size={16} />
-      </Menu>
-    {/if}
-  </aside>
-
-  <!-- Separate panels, with a small gap between them (like Blender). -->
+  <!-- Separate panels, with a small gap between them (like Blender): the color, the palette
+       and the layers, the first two resizable. -->
   <aside class="panel-column" bind:this={panelColumn}>
-    <div class="panel">
+    <div
+      class="panel color-panel"
+      style:height={colorHeight !== undefined ? `${colorHeight}px` : undefined}
+      bind:this={colorPanel}
+    >
       <section class="section">
-        <ColorPicker color={options.color} onchange={(c) => (options.color = c)} />
+        <ColorPicker
+          color={options.color}
+          fill={colorHeight !== undefined}
+          onchange={(c) => (options.color = c)}
+        />
       </section>
     </div>
+
+    <Splitter
+      orientation="horizontal"
+      measure={measureColor}
+      onresize={(size) => layout.setSize("color", size)}
+      onreset={() => layout.resetSize("color")}
+    />
 
     <div
       class="panel palette-panel"
@@ -455,6 +472,12 @@
         version={paletteVersion}
         color={options.color}
         fill={paletteHeight !== undefined}
+        {swatchSize}
+        onzoom={(factor) =>
+          layout.setSize(
+            "swatch",
+            Math.min(MAX_SWATCH_SIZE, Math.max(MIN_SWATCH_SIZE, swatchSize * factor)),
+          )}
         {tip}
         {run}
       />
@@ -472,8 +495,36 @@
     </div>
   </aside>
 
-  <!-- The tool's options above the canvas, centered; the status bar below, the whole
-       width, like the title bar. -->
+  <!-- The column's inner edge: drag it to change the column's width. -->
+  <div class="column-edge">
+    <Splitter
+      orientation="vertical"
+      after={!panelsOnLeft}
+      measure={measurePanelWidth}
+      onresize={(size) => layout.setSize("panels", size)}
+      onreset={() => layout.resetSize("panels")}
+    />
+  </div>
+
+  <!-- The tools, in a thin column beside the panels' column, on the canvas side, movable
+       along it. -->
+  <div class="tool-track" bind:clientHeight={toolTrackHeight}>
+    <ToolColumn
+      tools={shownTools}
+      active={tool}
+      settings={options.tools}
+      side={popupSide}
+      trackHeight={toolTrackHeight}
+      position={layout.toolsPosition}
+      bind:element={toolColumn}
+      onmove={(p) => (layout.toolsPosition = p)}
+      onreset={() => layout.resetToolsPosition()}
+      {tip}
+      {run}
+    />
+  </div>
+
+  <!-- The active tool's options, centered above the canvas. -->
   <div class="bar top" bind:this={top}>
     <ToolBar tool={activeTool} settings={options.tools[tool]} />
   </div>
@@ -550,22 +601,22 @@
 
 <style>
   /* The canvas fills the window, under the title bar too; the panels float over it, inset
-     from the edges: the tool's options centered at the top, the status bar the whole width
-     at the bottom, the tools on one side and the other panels on the other: the tools on the
-     left for right-handed users, on the right for left-handed ones (the whole layout is
-     mirrored). */
+     from the edges: a column of panels on one side, the whole height (on the left for
+     right-handed users, on the right for left-handed ones, resizable), the tools in a thin
+     column beside it, the active tool's options centered at the top, and the status bar at
+     the bottom, beside the panels. */
   .app {
     position: relative;
     height: calc(100% + var(--titlebar-height));
     margin-top: calc(-1 * var(--titlebar-height));
     overflow: hidden;
     --panel-width: 200px;
+    /* One button, with its padding and border. */
+    --tool-column-width: calc(var(--control-height) + var(--space) + 2px);
     /* Below the title bar. */
     --top-inset: calc(var(--titlebar-height) + var(--space));
     /* Like the title bar. */
     --bar-height: calc(var(--control-height) + var(--space));
-    /* Above the status bar. */
-    --bottom-inset: calc(var(--bar-height) + 2 * var(--space));
   }
 
   .canvas {
@@ -585,50 +636,75 @@
     left: 0;
     right: 0;
     width: max-content;
-    max-width: calc(100% - 2 * (var(--panel-width) + 2 * var(--space)));
+    max-width: calc(100% - 2 * (var(--panel-width) + var(--tool-column-width) + 3 * var(--space)));
     margin: 0 auto;
   }
 
+  /* From the panels' column to the window's other edge (later the animation timeline,
+     which will open upwards). */
   .bottom {
     bottom: var(--space);
     left: var(--space);
+    right: calc(var(--panel-width) + 2 * var(--space));
+  }
+
+  .panels-left .bottom {
+    left: calc(var(--panel-width) + 2 * var(--space));
     right: var(--space);
   }
 
-  /* The tools, in a thin column, centered vertically by the layout, not by a transform: a
-     translation of half a pixel blurs the text. */
-  .tool-column {
-    position: absolute;
-    top: var(--top-inset);
-    bottom: var(--bottom-inset);
-    left: var(--space);
-    height: max-content;
-    margin: auto 0;
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--space) / 2);
-    padding: calc(var(--space) / 2);
-  }
-
+  /* The whole height, beside the status bar. */
   .panel-column {
     position: absolute;
     top: var(--top-inset);
     right: var(--space);
-    bottom: var(--bottom-inset);
+    bottom: var(--space);
     display: flex;
     flex-direction: column;
     gap: calc(var(--space) / 2);
     width: var(--panel-width);
   }
 
-  .left-handed .tool-column {
-    right: var(--space);
-    left: auto;
-  }
-
-  .left-handed .panel-column {
+  .panels-left .panel-column {
     right: auto;
     left: var(--space);
+  }
+
+  /* In the gap between the column and the canvas, against the column. */
+  .column-edge {
+    position: absolute;
+    top: var(--top-inset);
+    bottom: var(--space);
+    right: calc(var(--panel-width) + var(--space));
+    display: flex;
+    width: calc(var(--space) / 2);
+  }
+
+  .panels-left .column-edge {
+    right: auto;
+    left: calc(var(--panel-width) + var(--space));
+  }
+
+  /* Where the tool column can go: beside the panels' column, past the width handle, the
+     whole height. Clicks go through it to the canvas, except on the column. */
+  .tool-track {
+    position: absolute;
+    top: var(--top-inset);
+    bottom: var(--space);
+    right: calc(var(--panel-width) + 2 * var(--space));
+    width: var(--tool-column-width);
+    pointer-events: none;
+  }
+
+  .panels-left .tool-track {
+    right: auto;
+    left: calc(var(--panel-width) + 2 * var(--space));
+  }
+
+  /* Fills the edge: no negative margins as between stacked panels. */
+  .app .column-edge :global(.splitter) {
+    flex: 1;
+    margin: 0;
   }
 
   .panel-column .panel {
@@ -643,7 +719,13 @@
     flex: 1;
   }
 
-  /* Gives way first when the window is too short for a resized palette. */
+  .color-panel .section {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Give way first when the window is too short for their set heights. */
+  .panel-column .color-panel,
   .panel-column .palette-panel {
     flex: 0 1 auto;
   }

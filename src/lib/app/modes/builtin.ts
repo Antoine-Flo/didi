@@ -24,12 +24,17 @@ export const PIXEL_MODE: Mode = {
     size: { width: 64, height: 64 },
     background: "transparent",
   },
-  tools: ["pixel", "pixelEraser", "picker"],
+  tools: ["pixel", "pixelEraser", "fill", "line", "rectangle", "ellipse", "picker"],
   eraserTool: "pixelEraser",
-  // Like Aseprite: B is the pencil, E the eraser.
+  // Like Aseprite: B is the pencil, E the eraser, G the paint bucket, L the line, U the
+  // rectangle and Shift+U the ellipse.
   bindings: [
     { keys: "b", command: "tool.pixel" },
     { keys: "e", command: "tool.pixelEraser" },
+    { keys: "g", command: "tool.fill" },
+    { keys: "l", command: "tool.line" },
+    { keys: "u", command: "tool.rectangle" },
+    { keys: "shift+u", command: "tool.ellipse" },
   ],
 };
 

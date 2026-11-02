@@ -1,6 +1,6 @@
 // The user's layout preferences, saved in the app data folder so they are kept from one
-// session to the next: the hand (the tools on the left for right-handed users, on the right
-// for left-handed ones) and the sizes of resizable panels, in pixels, by panel id (e.g.
+// session to the next: the hand (the panels on the left for right-handed users, on the
+// right for left-handed ones), where the tool column sits along it, and the sizes of resizable panels, in pixels, by panel id (e.g.
 // "palette"; a panel without a size has its default one, see the Splitter widget). The
 // same in every mode: switching modes moves nothing.
 
@@ -14,8 +14,12 @@ export type Hand = "right" | "left";
 
 export interface LayoutPrefsData {
   hand: Hand;
+  /** The tool column's place along the panels: 0 at the top, 1 at the bottom. */
+  toolsPosition: number;
   sizes: Record<string, number>;
 }
+
+const DEFAULT_TOOLS_POSITION = 0.5;
 
 /** The preferences in a saved file. Anything unexpected is ignored: they are not precious. */
 export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
@@ -23,6 +27,10 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   const data: unknown = JSON.parse(text);
   if (typeof data !== "object" || data === null) return prefs;
   if ("hand" in data && (data.hand === "right" || data.hand === "left")) prefs.hand = data.hand;
+  if ("toolsPosition" in data) {
+    const p = data.toolsPosition;
+    if (typeof p === "number" && p >= 0 && p <= 1) prefs.toolsPosition = p;
+  }
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};
     for (const [id, size] of Object.entries(data.sizes)) {
@@ -34,9 +42,13 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
 }
 
 export class LayoutPrefs {
-  private data = $state<LayoutPrefsData>({ hand: "right", sizes: {} });
+  private data = $state<LayoutPrefsData>({
+    hand: "right",
+    toolsPosition: DEFAULT_TOOLS_POSITION,
+    sizes: {},
+  });
   /** Changed before loading: kept over the saved values. */
-  private changed: { hand?: true; sizes: string[] } = { sizes: [] };
+  private changed: { hand?: true; toolsPosition?: true; sizes: string[] } = { sizes: [] };
   private loaded = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private onError: (message: string) => void = () => {};
@@ -50,6 +62,23 @@ export class LayoutPrefs {
     this.data.hand = hand;
     if (!this.loaded) this.changed.hand = true;
     this.scheduleSave();
+  }
+
+  get toolsPosition(): number {
+    return this.data.toolsPosition;
+  }
+
+  set toolsPosition(position: number) {
+    const p = Math.min(1, Math.max(0, position));
+    if (p === this.data.toolsPosition) return;
+    this.data.toolsPosition = p;
+    if (!this.loaded) this.changed.toolsPosition = true;
+    this.scheduleSave();
+  }
+
+  /** The tool column back in the middle. */
+  resetToolsPosition() {
+    this.toolsPosition = DEFAULT_TOOLS_POSITION;
   }
 
   /** The size of a panel, or undefined for its default size. */
@@ -79,6 +108,9 @@ export class LayoutPrefs {
       if (text !== null) {
         const saved = parseLayoutPrefs(text);
         if (saved.hand && !this.changed.hand) this.data.hand = saved.hand;
+        if (saved.toolsPosition !== undefined && !this.changed.toolsPosition) {
+          this.data.toolsPosition = saved.toolsPosition;
+        }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {
           if (!this.changed.sizes.includes(id)) this.data.sizes[id] = size;
         }

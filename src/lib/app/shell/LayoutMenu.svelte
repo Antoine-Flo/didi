@@ -50,15 +50,14 @@
           title={tip(layout.command)}
           onSelect={() => run(layout.command)}
         >
-          <!-- The window: the tools' thin column on one side, the panels on the other. -->
+          <!-- The window: the tool bar at the top, the panels' column on one side. -->
           <svg class="sketch" viewBox="0 0 24 16" aria-hidden="true">
             <rect x="0.5" y="0.5" width="23" height="15" rx="2" />
+            <rect class="fill" x="7" y="2" width="10" height="2" />
             {#if layout.hand === "right"}
-              <rect class="fill" x="2" y="4" width="2" height="8" />
-              <rect class="fill" x="17" y="2" width="5" height="12" />
+              <rect class="fill" x="2" y="5" width="5" height="9" />
             {:else}
-              <rect class="fill" x="2" y="2" width="5" height="12" />
-              <rect class="fill" x="20" y="4" width="2" height="8" />
+              <rect class="fill" x="17" y="5" width="5" height="9" />
             {/if}
           </svg>
           {layout.label}

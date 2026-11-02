@@ -9,6 +9,8 @@
     version,
     color,
     fill = false,
+    swatchSize = 18,
+    onzoom,
     tip,
     run,
   }: {
@@ -22,6 +24,10 @@
      * Otherwise as tall as its content, the colors scrolling past a fixed height.
      */
     fill?: boolean;
+    /** Smallest width of a swatch, in pixels: they grow to fill each row. */
+    swatchSize?: number;
+    /** Ctrl + wheel over the swatches: their size times `factor`. */
+    onzoom?: (factor: number) => void;
     tip: (command: string) => string;
     run: (command: string, params?: unknown) => void;
   } = $props();
@@ -69,7 +75,15 @@
       />
     {/if}
 
-    <div class="swatches">
+    <div
+      class="swatches"
+      style:--swatch-size="{swatchSize}px"
+      onwheel={(e) => {
+        if (!e.ctrlKey || !onzoom) return;
+        e.preventDefault();
+        onzoom(e.deltaY < 0 ? 1.15 : 1 / 1.15);
+      }}
+    >
       {#each info.colors as c, i (i)}
         <button
           class="swatch"
@@ -131,7 +145,7 @@
 
   .swatches {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--swatch-size), 1fr));
     align-content: start;
     gap: 3px;
     max-height: 160px;

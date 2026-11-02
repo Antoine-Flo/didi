@@ -11,7 +11,19 @@
     type RGB,
   } from "#lib/core/color/color.js";
 
-  let { color, onchange }: { color: RGB; onchange: (color: RGB) => void } = $props();
+  let {
+    color,
+    fill = false,
+    onchange,
+  }: {
+    color: RGB;
+    /**
+     * Fills the height given by the parent (a resized panel): the saturation and value area
+     * takes the height left. Otherwise that area is square.
+     */
+    fill?: boolean;
+    onchange: (color: RGB) => void;
+  } = $props();
 
   // Kept here rather than derived from `color`: gray and black have no hue or saturation,
   // which must not jump back to red while dragging through them.
@@ -51,7 +63,7 @@
   const hex = $derived(toHex(color));
 </script>
 
-<div class="picker">
+<div class="picker" class:fill>
   <div
     class="square"
     style:--hue="hsl({hsv.h} 100% 50%)"
@@ -116,10 +128,27 @@
   }
 
   .square {
+    flex: none;
     aspect-ratio: 1;
     background:
       linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent),
       var(--hue);
+  }
+
+  .fill {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .fill .square {
+    flex: 1;
+    min-height: 40px;
+    aspect-ratio: auto;
+  }
+
+  .hue,
+  .row {
+    flex: none;
   }
 
   .hue {

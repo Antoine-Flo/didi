@@ -56,11 +56,19 @@ describe("ToolRegistry", () => {
       "eraser",
       "pixel",
       "pixelEraser",
+      "fill",
+      "line",
+      "rectangle",
+      "ellipse",
       "picker",
     ]);
     for (const tool of registry.list()) {
       for (const field of tool.fields ?? []) expect(tool.defaults).toHaveProperty(field.key);
       if (!tool.fields?.length) expect(tool.hint).toBeTruthy();
+      if (tool.menu) {
+        const values = tool.menu.items.map((i) => i.value);
+        expect(values, tool.id).toContain(tool.defaults[tool.menu.key]);
+      }
     }
   });
 });

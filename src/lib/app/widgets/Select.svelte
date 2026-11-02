@@ -6,6 +6,7 @@
   import { Select } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
+  import { popupPadding } from "#lib/app/widgets/popup-padding.js";
 
   let {
     items,
@@ -44,7 +45,7 @@
     <ChevronDown size={14} />
   </Select.Trigger>
   <Select.Portal>
-    <Select.Content class="select-content" sideOffset={4} collisionPadding={8}>
+    <Select.Content class="select-content" sideOffset={4} collisionPadding={popupPadding()}>
       <Select.Viewport class="select-viewport">
         {#each items as item (item.value)}
           <Select.Item class="select-item" value={item.value} label={item.label}>
