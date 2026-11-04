@@ -45,8 +45,12 @@ export type MyPaintSettings = {
  */
 const MAX_SEGMENT_COST = 4000;
 
-/** A tool for the brush set with the same id, starting with the set's first brush. */
-function mypaintTool(id: string, title: string, icon: Tool["icon"]): Tool {
+/**
+ * A tool for the brush set with the same id, starting with the set's first brush.
+ * `pigment: false` paints with normal color mixing instead of libmypaint's pigment mode
+ * (spectral mixing, which is much slower where the layer already has color).
+ */
+function mypaintTool(id: string, title: string, icon: Tool["icon"], pigment = true): Tool {
   const preset = brushSet(id).picks[0];
   return defineTool<MyPaintSettings>({
     id,
@@ -62,7 +66,7 @@ function mypaintTool(id: string, title: string, icon: Tool["icon"]): Tool {
     resize: (s, direction) => (s.size = stepSize(s.size, direction)),
     begin(context, settings, sample) {
       if (!context.engine) return context.refuse("The brush engine is loading, try again.");
-      return new QueuedStroke(context, settings, sample, title);
+      return new QueuedStroke(context, settings, sample, title, pigment);
     },
   });
 }
@@ -72,7 +76,9 @@ export const MYPAINT_TOOLS = [
   mypaintTool("ink", "Ink", PenTool),
   mypaintTool("brush", "Brush", BrushIcon),
   mypaintTool("watercolor", "Watercolor", Droplet),
-  mypaintTool("airbrush", "Airbrush", SprayCan),
+  // Normal mixing: an airbrush lays many light, large dabs over existing color, where
+  // pigment mode costs the most, and the difference in look is slight.
+  mypaintTool("airbrush", "Airbrush", SprayCan, false),
   mypaintTool("blend", "Blend", Blend),
   mypaintTool("texture", "Texture", Sparkles),
   mypaintTool("eraser", "Eraser", EraserIcon),
@@ -99,8 +105,13 @@ class QueuedStroke implements ToolStroke {
     settings: MyPaintSettings,
     sample: Sample,
     private readonly label: string,
+    pigment: boolean,
   ) {
     const brush = context.brush(settings.preset);
+    // Brushes are shared between tools: set the mixing mode for each stroke. libmypaint's
+    // default is full pigment mode.
+    const own = bundledBrush(settings.preset).myb.settings.paint_mode?.base_value ?? 1;
+    brush.set("paint_mode", pigment ? own : 0);
     // libmypaint's size is the base diameter, which pressure then changes.
     brush.size = settings.size / bundledBrush(settings.preset).pressureSizeFactor;
     brush.setColor(context.color);

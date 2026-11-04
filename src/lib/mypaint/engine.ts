@@ -3,20 +3,20 @@
 // A stroke draws into libmypaint's own surface (64x64 tiles, 15-bit precision, so smudging
 // keeps its quality during the stroke). Each tile is loaded from the layer the first time
 // the brush needs it, and the tiles it writes are copied back into the layer's 8-bit tiles
-// on `flush`. `finish` returns the whole stroke as one undo step.
+// on `flush` (the conversions run in WebAssembly, see native/mypaint/didi-surface.c).
+// `finish` returns the whole stroke as one undo step.
 
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
-import { TILE_SIZE, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
+import { TILE_SIZE, isTransparent, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
+import { union, type Rect } from "#lib/core/geometry.js";
 import createLibMyPaint, { type LibMyPaint } from "./libmypaint.mjs";
 import type { MybBrush } from "./myb";
 
 /** Size of libmypaint's tiles, in pixels. */
 const MP_TILE = 64;
-/** 1.0 in libmypaint's 15-bit fixed point. */
-const ONE = 1 << 15;
-/** 8-bit channel → libmypaint's 15-bit fixed point. */
-const TO_15_BITS = Uint16Array.from({ length: 256 }, (_, v) => Math.round((v * ONE) / 255));
+/** Bytes in a libmypaint tile at 8 bits per channel. */
+const MP_TILE_BYTES = MP_TILE * MP_TILE * 4;
 const MAX_DIRTY = 4096;
 /** Number of smudge buckets per brush, as in MyPaint. */
 const SMUDGE_BUCKETS = 256;
@@ -54,6 +54,8 @@ export function loadMyPaint(): Promise<MyPaint> {
 export class MyPaint {
   readonly surface: number;
   private readonly dirtyBuffer: number;
+  /** Receives a tile converted back to 8 bits. */
+  private readonly copyBuffer: number;
   private readonly settingIds = new Map<string, number>();
   private readonly inputIds = new Map<string, number>();
   /** The stroke currently using the (single) surface. */
@@ -62,6 +64,7 @@ export class MyPaint {
   constructor(readonly mod: LibMyPaint) {
     this.surface = mod._didi_surface_new();
     this.dirtyBuffer = mod._malloc(MAX_DIRTY * 2 * 4);
+    this.copyBuffer = mod._malloc(MP_TILE_BYTES);
     mod.loadTile = (tx, ty, buffer) => this.current?.loadTile(tx, ty, buffer);
   }
 
@@ -93,6 +96,25 @@ export class MyPaint {
       }
       if (n < MAX_DIRTY) return tiles;
     }
+  }
+
+  /**
+   * A written tile's top-left `width` x `height` pixels, back in 8 bits and mixed with the
+   * pixels before the stroke by `opacity`. Rows are 64 pixels long. Valid until the next
+   * call into the engine. Null if the brush never used this tile.
+   */
+  copyBack(tx: number, ty: number, width: number, height: number, opacity: number) {
+    const { mod } = this;
+    const ok = mod._didi_surface_copy_back(
+      this.surface,
+      tx,
+      ty,
+      width,
+      height,
+      opacity,
+      this.copyBuffer,
+    );
+    return ok ? mod.HEAPU8.subarray(this.copyBuffer, this.copyBuffer + MP_TILE_BYTES) : null;
   }
 
   private lookup(cache: Map<string, number>, name: string, find: (ptr: number) => number) {
@@ -271,15 +293,22 @@ export class MyPaintStroke {
     }
   }
 
-  /** Copies the tiles written since the last flush into the layer. Call once per frame. */
+  /**
+   * Copies the tiles written since the last flush into the layer. Call once per frame.
+   * Only the changed part of each layer tile is notified, so the view uploads just that.
+   */
   flush() {
     if (this.finished) return;
-    const changed: TileSnapshot = new Map();
+    const changed = new Map<number, Uint8ClampedArray>();
+    const areas = new Map<number, Rect>();
     for (const [tx, ty] of this.mp.takeDirty()) {
-      const key = this.copyBack(tx, ty);
-      if (key !== null) changed.set(key, this.working.get(key));
+      const area = this.copyBack(tx, ty);
+      if (!area) continue;
+      changed.set(area.key, this.working.get(area.key)!);
+      const previous = areas.get(area.key);
+      areas.set(area.key, previous ? union(previous, area.rect) : area.rect);
     }
-    if (changed.size > 0) this.drawing.restorePixels(this.layerId, changed);
+    if (changed.size > 0) this.drawing.showStrokeTiles(this.layerId, changed, areas);
   }
 
   /** Ends the stroke. Returns it as one undo step, or null if it changed nothing. */
@@ -288,6 +317,10 @@ export class MyPaintStroke {
     this.flush();
     this.release();
     if (this.original.size === 0) return null;
+    // Tiles left fully transparent (erased) are not kept: the layer stays sparse.
+    const empty: TileSnapshot = new Map();
+    for (const [key, tile] of this.working) if (isTransparent(tile)) empty.set(key, undefined);
+    if (empty.size > 0) this.drawing.restorePixels(this.layerId, empty);
     const after = this.drawing.getLayer(this.layerId).tiles.snapshot(this.original.keys());
     return replaceTiles(this.layerId, this.original, after, label);
   }
@@ -299,9 +332,9 @@ export class MyPaintStroke {
     this.drawing.restorePixels(this.layerId, this.original);
   }
 
-  /** Fills a libmypaint tile from the layer, as it was before the stroke. */
-  loadTile(tx: number, ty: number, buffer: number) {
-    const out = this.mp.mod.HEAPU16.subarray(buffer >> 1, (buffer >> 1) + MP_TILE * MP_TILE * 4);
+  /** Fills a libmypaint tile (8 bits) from the layer, as it was before the stroke. */
+  loadTile(tx: number, ty: number, pixels: number) {
+    const out = this.mp.mod.HEAPU8.subarray(pixels, pixels + MP_TILE_BYTES);
     const { width, height } = this.drawing;
     const x0 = tx * MP_TILE;
     const y0 = ty * MP_TILE;
@@ -315,7 +348,7 @@ export class MyPaintStroke {
     for (let y = 0; y < h; y++) {
       const i = (((y0 % TILE_SIZE) + y) * TILE_SIZE + (x0 % TILE_SIZE)) * 4;
       const o = y * MP_TILE * 4;
-      for (let n = 0; n < w * 4; n++) out[o + n] = TO_15_BITS[src[i + n]];
+      out.set(src.subarray(i, i + w * 4), o);
     }
   }
 
@@ -326,15 +359,19 @@ export class MyPaintStroke {
     return this.drawing.getLayer(this.layerId).tiles.snapshot([key]).get(key);
   }
 
-  /** Copies a libmypaint tile into the layer's working tile. Returns the layer tile key. */
-  private copyBack(tx: number, ty: number): number | null {
+  /**
+   * Copies a libmypaint tile into the layer's working tile. Returns the layer tile key and
+   * the area written in it (in tile pixels).
+   */
+  private copyBack(tx: number, ty: number): { key: number; rect: Rect } | null {
     const x0 = tx * MP_TILE;
     const y0 = ty * MP_TILE;
     const { width, height } = this.drawing;
     if (x0 < 0 || y0 < 0 || x0 >= width || y0 >= height) return null;
-    const ptr = this.mp.mod._didi_surface_tile(this.mp.surface, tx, ty);
-    if (!ptr) return null;
-    const src = this.mp.mod.HEAPU16.subarray(ptr >> 1, (ptr >> 1) + MP_TILE * MP_TILE * 4);
+    const w = Math.min(MP_TILE, width - x0);
+    const h = Math.min(MP_TILE, height - y0);
+    const src = this.mp.copyBack(tx, ty, w, h, this.opacity);
+    if (!src) return null;
 
     const ltx = Math.floor(x0 / TILE_SIZE);
     const lty = Math.floor(y0 / TILE_SIZE);
@@ -346,26 +383,12 @@ export class MyPaintStroke {
       out = before ? before.slice() : new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
       this.working.set(key, out);
     }
-    const before = this.original.get(key);
-    const k = this.opacity;
-    const w = Math.min(MP_TILE, width - x0);
-    const h = Math.min(MP_TILE, height - y0);
     for (let y = 0; y < h; y++) {
-      let s = y * MP_TILE * 4;
-      let o = ((y0 - lty * TILE_SIZE + y) * TILE_SIZE + (x0 - ltx * TILE_SIZE)) * 4;
-      for (let x = 0; x < w; x++, s += 4, o += 4) {
-        // Mix between the pixel before the stroke and the brush result (premultiplied).
-        const oldA = before ? before[o + 3] : 0;
-        const a = Math.min(255, Math.round(oldA + ((src[s + 3] * 255) / ONE - oldA) * k));
-        out[o + 3] = a;
-        // Keep the premultiplied invariant despite rounding: no channel above alpha.
-        for (let c = 0; c < 3; c++) {
-          const old = before ? before[o + c] : 0;
-          out[o + c] = Math.min(a, Math.round(old + ((src[s + c] * 255) / ONE - old) * k));
-        }
-      }
+      const s = y * MP_TILE * 4;
+      const o = ((y0 - lty * TILE_SIZE + y) * TILE_SIZE + (x0 - ltx * TILE_SIZE)) * 4;
+      out.set(src.subarray(s, s + w * 4), o);
     }
-    return key;
+    return { key, rect: { x: x0 - ltx * TILE_SIZE, y: y0 - lty * TILE_SIZE, width: w, height: h } };
   }
 
   private assertActive() {

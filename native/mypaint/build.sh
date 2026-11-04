@@ -37,7 +37,7 @@ SOURCES=(
 EXPORTS=(
   _malloc _free
   _didi_surface_new _didi_surface_destroy _didi_surface_clear _didi_surface_take_dirty
-  _didi_surface_tile _didi_stroke_to _didi_seed
+  _didi_surface_copy_back _didi_stroke_to _didi_seed
   _mypaint_brush_new_with_buckets _mypaint_brush_unref _mypaint_brush_from_defaults _mypaint_brush_reset
   _mypaint_brush_new_stroke _mypaint_brush_set_base_value _mypaint_brush_get_base_value
   _mypaint_brush_set_mapping_n _mypaint_brush_set_mapping_point
@@ -45,14 +45,15 @@ EXPORTS=(
 )
 
 mkdir -p "$(dirname "$OUT")"
-# shim/ provides json.h (stand-in for json-c).
-emcc -O3 \
+# shim/ provides json.h (stand-in for json-c). -msimd128: lets the compiler vectorize the
+# dab loops (WebAssembly SIMD, supported by every current browser and WebView).
+emcc -O3 -msimd128 \
   -I "$HERE/shim" -I "$SRC" \
   "${SOURCES[@]/#/$SRC/}" "$HERE/didi-surface.c" \
   -o "$OUT" \
   -sMODULARIZE -sEXPORT_ES6 -sEXPORT_NAME=createLibMyPaint \
   -sENVIRONMENT=web,node -sSINGLE_FILE -sALLOW_MEMORY_GROWTH \
   -sEXPORTED_FUNCTIONS="$(IFS=,; echo "${EXPORTS[*]}")" \
-  -sEXPORTED_RUNTIME_METHODS=stringToNewUTF8,HEAPU16,HEAP32,HEAPF32
+  -sEXPORTED_RUNTIME_METHODS=stringToNewUTF8,HEAPU8,HEAP32,HEAPF32
 
 echo "Built $OUT ($(du -h "$OUT" | cut -f1))"

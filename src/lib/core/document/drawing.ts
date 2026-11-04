@@ -14,7 +14,14 @@ import {
   type LayerProps,
   type ReadonlyLayer,
 } from "./layer";
-import { TileStore, assertCanvasSize, tileKey, type TileSnapshot } from "./tiles";
+import {
+  TILE_SIZE,
+  TileStore,
+  assertCanvasSize,
+  tileKey,
+  type TileData,
+  type TileSnapshot,
+} from "./tiles";
 
 export interface RemovedLayer {
   layer: Layer;
@@ -26,8 +33,12 @@ export type DrawingChange =
   | { type: "layer-removed"; id: string; index: number }
   | { type: "layer-moved"; id: string; from: number; to: number }
   | { type: "layer-updated"; id: string; keys: (keyof LayerProps)[] }
-  /** Keys of the tiles whose pixels changed. */
-  | { type: "pixels-changed"; id: string; tiles: number[] };
+  /**
+   * Keys of the tiles whose pixels changed. `areas`, when given, holds the changed part of
+   * each tile (in the same order, in pixels from the tile's top-left corner); otherwise the
+   * whole tiles changed.
+   */
+  | { type: "pixels-changed"; id: string; tiles: number[]; areas?: Rect[] };
 
 export class Drawing {
   /** Layers from bottom to top. */
@@ -147,6 +158,21 @@ export class Drawing {
     const keys = tiles.restore(snapshot);
     if (keys.length > 0) this.changes.emit({ type: "pixels-changed", id, tiles: keys });
     return before;
+  }
+
+  /**
+   * Shows a stroke in progress, every frame: stores its working tiles as they are (even
+   * fully transparent ones, and on a locked layer) and notifies only `areas` (changed part
+   * of each tile, in tile pixels) as changed. When the stroke ends, it must remove its
+   * transparent tiles with `restorePixels`.
+   */
+  showStrokeTiles(id: string, tiles: Map<number, TileData>, areas: Map<number, Rect>) {
+    const keys = this.stack[this.indexOf(id)].tiles.putUnchecked(tiles);
+    if (keys.length === 0) return;
+    const changed = keys.map(
+      (key) => areas.get(key) ?? { x: 0, y: 0, width: TILE_SIZE, height: TILE_SIZE },
+    );
+    this.changes.emit({ type: "pixels-changed", id, tiles: keys, areas: changed });
   }
 }
 

@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { Drawing } from "#lib/core/document/drawing.js";
+import { Drawing, type DrawingChange } from "#lib/core/document/drawing.js";
+import { TILE_SIZE, tileKey } from "#lib/core/document/tiles.js";
 import { History } from "#lib/core/history/history.js";
 import { capture, expectSameState, fill, firstDifference } from "#lib/core/test-utils.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
@@ -183,6 +184,63 @@ describe("libmypaint engine", () => {
     stroke.finish("Eraser");
     expect(pixel(drawing, id, 150, 150)[3]).toBeLessThan(30);
     expect(pixel(drawing, id, 150, 20)).toEqual([0, 0, 200, 255]);
+  });
+
+  it("drops the tiles it erases completely when the stroke ends, and undoes that", () => {
+    const { drawing, id, history } = setup();
+    const corner = { x: 0, y: 0, width: 40, height: 40 };
+    drawing.writePixels(id, corner, fill(corner, [0, 0, 200, 255]));
+    const before = capture(drawing);
+    const stroke = new MyPaintStroke(mp, brush("deevad/large_hard_eraser", 40), drawing, id);
+    stroke.moveTo(-20, 0);
+    for (let y = 0; y <= 40; y += 10) draw(stroke, -20, 60, y);
+    stroke.flush();
+    // While painting, the emptied tile stays (checking costs a scan of the tile each frame).
+    expect(drawing.getLayer(id).tiles.tileCount).toBe(1);
+    history.push(stroke.finish("Eraser")!);
+    expect(drawing.getLayer(id).tiles.tileCount).toBe(0);
+    history.undo();
+    expectSameState(capture(drawing), before);
+    history.redo();
+    expect(drawing.getLayer(id).tiles.tileCount).toBe(0);
+  });
+
+  it("notifies only the part of each tile that changed, while painting", () => {
+    const { drawing, id } = setup(600, 600);
+    const all = { x: 0, y: 0, width: 600, height: 600 };
+    const stroke = new MyPaintStroke(mp, brush("deevad/airbrush", 60), drawing, id);
+    stroke.moveTo(100, 300);
+    let previous = drawing.getLayer(id).tiles.readRegion(all);
+    const changes: DrawingChange[] = [];
+    drawing.subscribe((c) => changes.push(c));
+    for (let x = 100; x <= 500; x += 50) {
+      changes.length = 0;
+      draw(stroke, x, x + 48, 300);
+      stroke.flush();
+      expect(changes).toHaveLength(1);
+      const change = changes[0];
+      if (change.type !== "pixels-changed") throw new Error("expected pixels-changed");
+      expect(change.areas).toHaveLength(change.tiles.length);
+      // Every changed pixel lies in the area given for its tile.
+      const now = drawing.getLayer(id).tiles.readRegion(all);
+      for (let i = 0; i < now.length; i += 4) {
+        if (now.subarray(i, i + 4).every((v, c) => v === previous[i + c])) continue;
+        const px = (i / 4) % 600;
+        const py = Math.floor(i / 4 / 600);
+        const t = change.tiles.indexOf(
+          tileKey(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE)),
+        );
+        expect(t).toBeGreaterThanOrEqual(0);
+        const a = change.areas![t];
+        const lx = px % TILE_SIZE;
+        const ly = py % TILE_SIZE;
+        expect(lx >= a.x && lx < a.x + a.width && ly >= a.y && ly < a.y + a.height).toBe(true);
+      }
+      // A 60 px brush across a 256 px tile does not change all of it.
+      expect(change.areas!.every((a) => a.height < TILE_SIZE)).toBe(true);
+      previous = now;
+    }
+    stroke.finish("Airbrush");
   });
 
   it("smudges: a blending brush mixes the colors across a border", () => {

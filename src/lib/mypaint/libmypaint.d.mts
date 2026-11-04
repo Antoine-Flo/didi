@@ -2,10 +2,13 @@
 // Pointers are byte offsets into the module's memory.
 
 export interface LibMyPaint {
-  HEAPU16: Uint16Array;
+  HEAPU8: Uint8Array;
   HEAP32: Int32Array;
-  /** Called by the surface the first time it needs a tile (64x64 RGBA, 15-bit). */
-  loadTile?: (tx: number, ty: number, buffer: number) => void;
+  /**
+   * Called by the surface the first time it needs a tile: fill `pixels` (64x64 RGBA, 8-bit
+   * premultiplied) with the layer's pixels before the stroke.
+   */
+  loadTile?: (tx: number, ty: number, pixels: number) => void;
   stringToNewUTF8(text: string): number;
   _malloc(bytes: number): number;
   _free(pointer: number): void;
@@ -15,7 +18,16 @@ export interface LibMyPaint {
   _didi_surface_destroy(surface: number): void;
   _didi_surface_clear(surface: number): void;
   _didi_surface_take_dirty(surface: number, out: number, max: number): number;
-  _didi_surface_tile(surface: number, tx: number, ty: number): number;
+  /** Writes a dirty tile's pixels, 8-bit, into `out`; 0 if it was never requested. */
+  _didi_surface_copy_back(
+    surface: number,
+    tx: number,
+    ty: number,
+    width: number,
+    height: number,
+    opacity: number,
+    out: number,
+  ): number;
   _didi_stroke_to(
     brush: number,
     surface: number,

@@ -2,7 +2,8 @@
 //
 // Each non-empty tile of each layer is a sprite with its own texture. The view listens to
 // the drawing's change notifications, collects what changed, and applies it once per frame
-// in `flush`: only the tiles that changed are uploaded to the GPU again.
+// in `flush`: only the tiles that changed are uploaded to the GPU again, and only their
+// changed rows when the change says which part changed (strokes in progress).
 
 import {
   BufferImageSource,
@@ -18,6 +19,7 @@ import type { Drawing, DrawingChange } from "#lib/core/document/drawing.js";
 import type { BlendMode, ReadonlyLayer } from "#lib/core/document/layer.js";
 import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
 import { pixelStamp } from "#lib/core/brush/raster.js";
+import { union, type Rect } from "#lib/core/geometry.js";
 import { visibleRect, type Camera } from "./camera";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {
@@ -46,7 +48,8 @@ class LayerView {
     this.container.blendMode = PIXI_BLEND[this.layer.blendMode];
   }
 
-  syncTile(key: number) {
+  /** Updates a tile's sprite. `area`: the part that changed (tile pixels), or the whole tile. */
+  syncTile(key: number, area: Rect | null = null) {
     const { tx, ty } = tileCoord(key);
     const data = this.layer.tiles.getTile(tx, ty);
     const sprite = this.sprites.get(key);
@@ -61,7 +64,9 @@ class LayerView {
     if (sprite) {
       const source = sprite.texture.source as BufferImageSource;
       source.resource = bytes;
-      source.update();
+      // Rows only: Pixi uploads a range of texels.
+      if (area) source.update(area.y * TILE_SIZE, (area.y + area.height) * TILE_SIZE);
+      else source.update();
       return;
     }
     const source = new BufferImageSource({
@@ -129,7 +134,8 @@ export class DrawingView {
   private cursorState: BrushCursorState | null = null;
   private zoom = 1;
   private views = new Map<string, LayerView>();
-  private dirtyTiles = new Map<string, Set<number>>();
+  /** Changed tiles by layer, with their changed area (null: the whole tile). */
+  private dirtyTiles = new Map<string, Map<number, Rect | null>>();
   private dirtyProps = new Set<string>();
   private orderDirty = false;
   private scaleMode: SCALE_MODE = "linear";
@@ -275,7 +281,7 @@ export class DrawingView {
     this.dirtyProps.clear();
     for (const [id, keys] of this.dirtyTiles) {
       const view = this.views.get(id);
-      if (view) for (const key of keys) view.syncTile(key);
+      if (view) for (const [key, area] of keys) view.syncTile(key, area);
     }
     this.dirtyTiles.clear();
   }
@@ -308,8 +314,13 @@ export class DrawingView {
         break;
       case "pixels-changed": {
         let keys = this.dirtyTiles.get(change.id);
-        if (!keys) this.dirtyTiles.set(change.id, (keys = new Set()));
-        for (const key of change.tiles) keys.add(key);
+        if (!keys) this.dirtyTiles.set(change.id, (keys = new Map()));
+        change.tiles.forEach((key, i) => {
+          const area = change.areas?.[i] ?? null;
+          const previous = keys.get(key);
+          if (previous === undefined) keys.set(key, area);
+          else if (previous !== null) keys.set(key, area && union(previous, area));
+        });
         break;
       }
     }
