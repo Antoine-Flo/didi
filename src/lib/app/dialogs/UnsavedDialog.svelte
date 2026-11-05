@@ -1,9 +1,11 @@
 <script lang="ts">
-  // Asks what to do with unsaved changes, before they would be lost.
+  // Asks what to do with unsaved changes, before they would be lost. Without files (in a
+  // browser), they cannot be saved: only whether to lose them.
 
   import { AlertDialog } from "bits-ui";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import type { UnsavedChoice } from "#lib/app/files/session.svelte.js";
+  import { capabilities } from "#lib/platform/capabilities.js";
 
   let {
     request,
@@ -34,18 +36,34 @@
   <AlertDialog.Portal>
     <AlertDialog.Overlay class="dialog-overlay" />
     <AlertDialog.Content class="dialog panel">
-      <AlertDialog.Title class="dialog-title">
-        Save changes to “{request?.name}”?
-      </AlertDialog.Title>
-      <AlertDialog.Description class="dialog-text">
-        Your changes will be lost if you don't save them.
-      </AlertDialog.Description>
-      <div class="dialog-actions">
-        <button onclick={() => answer("discard")}>Don't save</button>
-        <span class="spacer"></span>
-        <AlertDialog.Cancel onclick={() => answer("cancel")}>Cancel</AlertDialog.Cancel>
-        <AlertDialog.Action class="primary" onclick={() => answer("save")}>Save</AlertDialog.Action>
-      </div>
+      {#if capabilities.userFiles}
+        <AlertDialog.Title class="dialog-title">
+          Save changes to “{request?.name}”?
+        </AlertDialog.Title>
+        <AlertDialog.Description class="dialog-text">
+          Your changes will be lost if you don't save them.
+        </AlertDialog.Description>
+        <div class="dialog-actions">
+          <button onclick={() => answer("discard")}>Don't save</button>
+          <span class="spacer"></span>
+          <AlertDialog.Cancel onclick={() => answer("cancel")}>Cancel</AlertDialog.Cancel>
+          <AlertDialog.Action class="primary" onclick={() => answer("save")}>
+            Save
+          </AlertDialog.Action>
+        </div>
+      {:else}
+        <AlertDialog.Title class="dialog-title">Discard “{request?.name}”?</AlertDialog.Title>
+        <AlertDialog.Description class="dialog-text">
+          It will be lost. To keep the image, cancel and export it as a PNG first.
+        </AlertDialog.Description>
+        <div class="dialog-actions">
+          <span class="spacer"></span>
+          <AlertDialog.Cancel onclick={() => answer("cancel")}>Cancel</AlertDialog.Cancel>
+          <AlertDialog.Action class="primary" onclick={() => answer("discard")}>
+            Discard
+          </AlertDialog.Action>
+        </div>
+      {/if}
     </AlertDialog.Content>
   </AlertDialog.Portal>
 </AlertDialog.Root>

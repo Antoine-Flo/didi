@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_KEYMAP } from "./default-keymap";
+import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "./default-keymap";
 import { chordOf, formatChord, KeymapIndex, normalizeChord, type KeyInput } from "./keymap";
 
 const press = (key: string, mods: Partial<KeyInput> = {}): KeyInput => ({
@@ -111,5 +111,15 @@ describe("formatChord", () => {
     expect(formatChord("plus")).toBe("+");
     expect(formatChord("f2")).toBe("F2");
     expect(formatChord("[")).toBe("[");
+  });
+});
+
+describe("browser shortcuts", () => {
+  it("make Ctrl+S export", () => {
+    const keymap = new KeymapIndex({
+      version: 1,
+      bindings: [...DEFAULT_KEYMAP.bindings, ...BROWSER_BINDINGS],
+    });
+    expect(keymap.match(press("s", { ctrlKey: true }))?.command).toBe("file.exportPng");
   });
 });

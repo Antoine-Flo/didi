@@ -46,7 +46,9 @@ export interface AppHost {
   /** Asks for a .hex file and adds it as a new palette. */
   importPalette(): void;
   openCommandPalette(): void;
-  /** Closes the app (offering to save first). Null where it cannot (in a browser). */
+  /** Whether documents can be opened and saved as files. Without it, no such commands. */
+  readonly canUseFiles: boolean;
+  /** Closes the app (offering to save first). Null where it cannot: no such command. */
   readonly quit: (() => void) | null;
 }
 
@@ -191,13 +193,6 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
 
     registry.register({ id: "file.new", title: "New document…", run: () => host.newDocument() }),
-    registry.register<{ path?: string } | undefined>({
-      id: "file.open",
-      title: "Open…",
-      run: (_, params) => host.openDocument(params?.path),
-    }),
-    registry.register({ id: "file.save", title: "Save", run: () => host.saveDocument() }),
-    registry.register({ id: "file.saveAs", title: "Save as…", run: () => host.saveDocumentAs() }),
     registry.register({ id: "file.exportPng", title: "Export PNG…", run: () => host.exportPng() }),
     registry.register({
       id: "file.importImage",
@@ -219,12 +214,19 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       title: "Layout: Left-handed (panels on the right)",
       run: () => (host.hand = "left"),
     }),
-    registry.register({
-      id: "app.quit",
-      title: "Quit",
-      enabled: () => host.quit !== null,
-      run: () => host.quit!(),
-    }),
   ];
+  if (host.canUseFiles) {
+    unregister.push(
+      registry.register<{ path?: string } | undefined>({
+        id: "file.open",
+        title: "Open…",
+        run: (_, params) => host.openDocument(params?.path),
+      }),
+      registry.register({ id: "file.save", title: "Save", run: () => host.saveDocument() }),
+      registry.register({ id: "file.saveAs", title: "Save as…", run: () => host.saveDocumentAs() }),
+    );
+  }
+  const { quit } = host;
+  if (quit) unregister.push(registry.register({ id: "app.quit", title: "Quit", run: quit }));
   return () => unregister.forEach((fn) => fn());
 }

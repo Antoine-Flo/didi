@@ -3,7 +3,7 @@ import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { newEditor } from "#lib/app/files/new-drawing.js";
 import { registerAppCommands, type AppHost } from "./app-commands";
-import { defaultMenus, type MenuEntry } from "./default-menus";
+import { availableMenus, defaultMenus, type MenuEntry } from "./default-menus";
 
 const commandsOf = (items: MenuEntry[]): string[] =>
   items.flatMap((e) => (e === "separator" ? [] : "items" in e ? commandsOf(e.items) : [e.command]));
@@ -16,6 +16,8 @@ describe("default menus", () => {
       modes: createModeRegistry(),
       tools,
       options: tools.defaultOptions(),
+      canUseFiles: true,
+      quit: () => {},
     } as unknown as AppHost);
     const menus = defaultMenus({
       recent: [{ path: "/a.didi", name: "a" }],
@@ -25,6 +27,26 @@ describe("default menus", () => {
     for (const id of menus.flatMap((m) => commandsOf(m.items))) {
       expect(editor.commands.has(id), id).toBe(true);
     }
+  });
+
+  it("leave out what does not exist in a browser, with its separators", () => {
+    const editor = newEditor(8, 8, "transparent");
+    const tools = createToolRegistry();
+    registerAppCommands(editor.commands, {
+      modes: createModeRegistry(),
+      tools,
+      options: tools.defaultOptions(),
+      canUseFiles: false,
+      quit: null,
+    } as unknown as AppHost);
+    const menus = defaultMenus({ recent: [], undoLabel: null, redoLabel: null });
+    const [file] = availableMenus(menus, (id) => editor.commands.has(id));
+    expect(file.items).toEqual([
+      { command: "file.new" },
+      "separator",
+      { command: "file.importImage" },
+      { command: "file.exportPng" },
+    ]);
   });
 
   it("name the undo and redo steps, and list recent files", () => {

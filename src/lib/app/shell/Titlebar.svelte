@@ -1,11 +1,11 @@
 <script lang="ts">
   // The window's title bar, drawn by the app (like Zed or Discord): the system one is
   // turned off (`decorations: false`). Drag it to move the window, double-click it to
-  // maximize. Outside of Tauri (dev server), the buttons do nothing. The page can put its
-  // menus on the left, and more before the window buttons (see window-title.svelte.ts).
+  // maximize. In a browser, which has its own window, it has no window buttons. The page can
+  // put its menus on the left, and more before the window buttons (see window-title.svelte.ts).
 
   import { onMount, type Snippet } from "svelte";
-  import { isTauri } from "@tauri-apps/api/core";
+  import { capabilities } from "#lib/platform/capabilities.js";
   import { getCurrentWindow } from "@tauri-apps/api/window";
 
   let {
@@ -25,7 +25,7 @@
   } = $props();
 
   let maximized = $state(false);
-  const appWindow = isTauri() ? getCurrentWindow() : null;
+  const appWindow = capabilities.ownWindow ? getCurrentWindow() : null;
 
   onMount(() => {
     if (!appWindow) return;
@@ -55,26 +55,28 @@
 
     <div class="end">{@render end?.()}</div>
 
-    <div class="controls">
-      <button title="Minimize" aria-label="Minimize" onclick={() => appWindow?.minimize()}>
-        <svg viewBox="0 0 10 10"><path d="M0 5.5h10" /></svg>
-      </button>
-      <button
-        title={maximized ? "Restore" : "Maximize"}
-        aria-label={maximized ? "Restore" : "Maximize"}
-        onclick={() => appWindow?.toggleMaximize()}
-      >
-        {#if maximized}
-          <svg viewBox="0 0 10 10"><path d="M2.5 2.5V.5h7v7h-2M.5 2.5h7v7h-7z" /></svg>
-        {:else}
-          <svg viewBox="0 0 10 10"><path d="M.5 .5h9v9h-9z" /></svg>
-        {/if}
-      </button>
-      <!-- Goes through the close request, which offers to save unsaved changes. -->
-      <button class="close" title="Close" aria-label="Close" onclick={() => appWindow?.close()}>
-        <svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" /></svg>
-      </button>
-    </div>
+    {#if appWindow}
+      <div class="controls">
+        <button title="Minimize" aria-label="Minimize" onclick={() => appWindow.minimize()}>
+          <svg viewBox="0 0 10 10"><path d="M0 5.5h10" /></svg>
+        </button>
+        <button
+          title={maximized ? "Restore" : "Maximize"}
+          aria-label={maximized ? "Restore" : "Maximize"}
+          onclick={() => appWindow.toggleMaximize()}
+        >
+          {#if maximized}
+            <svg viewBox="0 0 10 10"><path d="M2.5 2.5V.5h7v7h-2M.5 2.5h7v7h-7z" /></svg>
+          {:else}
+            <svg viewBox="0 0 10 10"><path d="M.5 .5h9v9h-9z" /></svg>
+          {/if}
+        </button>
+        <!-- Goes through the close request, which offers to save unsaved changes. -->
+        <button class="close" title="Close" aria-label="Close" onclick={() => appWindow.close()}>
+          <svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" /></svg>
+        </button>
+      </div>
+    {/if}
   </div>
 </header>
 
@@ -156,6 +158,11 @@
     display: flex;
     align-items: center;
     margin-left: auto;
+  }
+
+  /* No window buttons after it: the same space as they leave at the end of the bar. */
+  .end:last-child {
+    padding-right: calc(var(--space) / 2);
   }
 
   .controls {

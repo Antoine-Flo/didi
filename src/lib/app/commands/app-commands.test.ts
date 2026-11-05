@@ -35,6 +35,7 @@ function setup(withView = true) {
     exportPng: vi.fn(),
     importPalette: vi.fn(),
     openCommandPalette: vi.fn(),
+    canUseFiles: true,
     quit: vi.fn(),
   };
   const unregister = registerAppCommands(editor.commands, host);

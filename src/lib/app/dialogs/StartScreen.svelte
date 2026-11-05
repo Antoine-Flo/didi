@@ -9,6 +9,7 @@
   import { Dialog } from "bits-ui";
   import { untrack } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
+  import { capabilities } from "#lib/platform/capabilities.js";
   import type { Background } from "#lib/app/files/new-drawing.js";
   import type { Mode } from "#lib/app/modes/mode.js";
   import type { RecentFile } from "#lib/app/files/recent.js";
@@ -93,7 +94,7 @@
          dialog, not to the card, when the window takes it at start. -->
     <Dialog.Content
       bind:ref={content}
-      class="start-screen panel"
+      class={["start-screen panel", !capabilities.userFiles && "no-files"]}
       tabindex={-1}
       interactOutsideBehavior="ignore"
       onOpenAutoFocus={(e) => {
@@ -161,58 +162,60 @@
         </div>
       </section>
 
-      <section class="recent">
-        <span class="section-title">Recent</span>
+      {#if capabilities.userFiles}
+        <section class="recent">
+          <span class="section-title">Recent</span>
 
-        {#if recovery}
-          <div class="recovery">
-            <span>
-              Unsaved work from {when(recovery.time)}: <strong>{recovery.name}</strong>
-            </span>
-            <div class="actions">
-              <button
-                class="primary"
-                onclick={() => {
-                  open = false;
-                  onrecover();
-                }}>Recover</button
-              >
-              <button onclick={ondiscardrecovery}>Discard</button>
-            </div>
-          </div>
-        {/if}
-
-        {#if recent.length > 0}
-          <ul>
-            {#each recent as file (file.path)}
-              {@const fileMode = modeOf(file.mode)}
-              <li>
+          {#if recovery}
+            <div class="recovery">
+              <span>
+                Unsaved work from {when(recovery.time)}: <strong>{recovery.name}</strong>
+              </span>
+              <div class="actions">
                 <button
-                  title={file.path}
+                  class="primary"
                   onclick={() => {
                     open = false;
-                    onopen(file.path);
-                  }}
+                    onrecover();
+                  }}>Recover</button
                 >
-                  <img src={file.thumbnail} alt="" draggable="false" />
-                  <span class="name">
-                    {#if fileMode}
-                      {@const Icon = fileMode.icon}
-                      <span class="file-mode" title={fileMode.title}
-                        ><Icon class="icon-small" /></span
-                      >
-                    {/if}
-                    {file.name}
-                  </span>
-                  <span class="path">{folder(file.path)}</span>
-                </button>
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <span class="hint">No recent files.</span>
-        {/if}
-      </section>
+                <button onclick={ondiscardrecovery}>Discard</button>
+              </div>
+            </div>
+          {/if}
+
+          {#if recent.length > 0}
+            <ul>
+              {#each recent as file (file.path)}
+                {@const fileMode = modeOf(file.mode)}
+                <li>
+                  <button
+                    title={file.path}
+                    onclick={() => {
+                      open = false;
+                      onopen(file.path);
+                    }}
+                  >
+                    <img src={file.thumbnail} alt="" draggable="false" />
+                    <span class="name">
+                      {#if fileMode}
+                        {@const Icon = fileMode.icon}
+                        <span class="file-mode" title={fileMode.title}
+                          ><Icon class="icon-small" /></span
+                        >
+                      {/if}
+                      {file.name}
+                    </span>
+                    <span class="path">{folder(file.path)}</span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {:else}
+            <span class="hint">No recent files.</span>
+          {/if}
+        </section>
+      {/if}
 
       <div class="footer">
         <button
@@ -220,12 +223,14 @@
           disabled={!validSize(width) || !validSize(height)}
           onclick={() => create(width, height)}>New document</button
         >
-        <button
-          onclick={() => {
-            open = false;
-            onopen();
-          }}>Open image</button
-        >
+        {#if capabilities.userFiles}
+          <button
+            onclick={() => {
+              open = false;
+              onopen();
+            }}>Open image</button
+          >
+        {/if}
       </div>
     </Dialog.Content>
   </Dialog.Portal>
@@ -246,6 +251,12 @@
     margin: auto;
     overflow: hidden;
     background: var(--popup);
+  }
+
+  /* Without the recent files. */
+  :global(.start-screen.no-files) {
+    grid-template-columns: 1fr;
+    width: min(380px * var(--ui-scale), 92vw);
   }
 
   :global(.start-screen:focus-visible) {

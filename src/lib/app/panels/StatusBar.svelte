@@ -4,7 +4,6 @@
   // buttons run commands.
 
   import { Compass, Maximize, RotateCcw, RotateCw, ZoomIn, ZoomOut } from "@lucide/svelte";
-  import { resolve } from "$app/paths";
   import ModeSwitch from "#lib/app/panels/ModeSwitch.svelte";
   import type { Mode } from "#lib/app/modes/mode.js";
   import type { Editor } from "#lib/core/editor/editor.js";
@@ -82,7 +81,6 @@
   <div class="status-end">
     <span class="cursor">{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
     <span>{editor.drawing.width} × {editor.drawing.height} px</span>
-    <a href={resolve("lab")}>Lab</a>
   </div>
 </footer>
 
@@ -120,10 +118,6 @@
 
   .view {
     color: var(--text);
-  }
-
-  a {
-    color: var(--text-muted);
   }
 
   .zoom {

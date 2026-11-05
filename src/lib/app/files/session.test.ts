@@ -6,9 +6,12 @@ import type { UnsavedChoice } from "./session.svelte";
 const disk = new Map<string, Uint8Array>();
 const data = new Map<string, Uint8Array | string>();
 const dialogs = { open: null as string | null, save: null as string | null };
+const browser = { active: false, cancel: false, written: [] as string[] };
 
 vi.mock("#lib/platform/storage.js", () => ({
-  canUseFiles: () => true,
+  canUseFiles: () => !browser.active,
+  chooseBrowserFile: async (name: string) =>
+    browser.cancel ? null : async () => void browser.written.push(name),
   readFile: async (path: string) => {
     const bytes = disk.get(path);
     if (!bytes) throw new Error("No such file");
@@ -29,6 +32,7 @@ vi.mock("./files", async (original) => {
   const png = new Uint8Array([1, 2, 3]);
   return {
     ...actual,
+    renderPng: async () => png,
     encodeDocument: async (doc: Parameters<typeof writeDidi>[0]) => ({
       file: writeDidi(doc, png),
       thumbnail: png,
@@ -60,9 +64,27 @@ beforeEach(() => {
   disk.clear();
   data.clear();
   dialogs.open = dialogs.save = null;
+  browser.active = browser.cancel = false;
+  browser.written = [];
 });
 
 describe("Session", () => {
+  it("exports a PNG where the browser's dialog says", async () => {
+    browser.active = true;
+    const { session, host } = setup();
+    await session.exportPng();
+    expect(browser.written).toEqual(["Untitled.png"]);
+    expect(host.notify).not.toHaveBeenCalled();
+  });
+
+  it("exports nothing if the browser's dialog is cancelled", async () => {
+    browser.active = browser.cancel = true;
+    const { session, host } = setup();
+    await session.exportPng();
+    expect(browser.written).toEqual([]);
+    expect(host.notify).not.toHaveBeenCalled();
+  });
+
   it("tracks unsaved changes, and saves to the chosen file", async () => {
     const { session } = setup();
     expect(session.dirty).toBe(false);

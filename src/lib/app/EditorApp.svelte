@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import { isTauri } from "@tauri-apps/api/core";
+  import { capabilities } from "#lib/platform/capabilities.js";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import "#lib/app/shell/ui.css";
   import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
@@ -17,7 +17,7 @@
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
-  import { DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
+  import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
   import { decodeImage, importImage } from "#lib/app/files/import-image.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import { formatChord, KeymapIndex } from "#lib/app/commands/keymap.js";
@@ -27,7 +27,7 @@
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
   import MenuBar from "#lib/app/shell/MenuBar.svelte";
-  import { defaultMenus } from "#lib/app/commands/default-menus.js";
+  import { availableMenus, defaultMenus } from "#lib/app/commands/default-menus.js";
   import { createModeRegistry } from "#lib/app/modes/builtin.js";
   import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
   import { newEditor } from "#lib/app/files/new-drawing.js";
@@ -152,7 +152,14 @@
 
   // The common shortcuts, and the mode's own, which win.
   const keymap = $derived(
-    new KeymapIndex({ version: 1, bindings: [...DEFAULT_KEYMAP.bindings, ...mode.bindings] }),
+    new KeymapIndex({
+      version: 1,
+      bindings: [
+        ...DEFAULT_KEYMAP.bindings,
+        ...(capabilities.userFiles ? [] : BROWSER_BINDINGS),
+        ...mode.bindings,
+      ],
+    }),
   );
   let paletteOpen = $state(false);
 
@@ -293,7 +300,8 @@
       exportPng: () => session.exportPng(),
       importPalette: () => paletteInput.click(),
       openCommandPalette: () => (paletteOpen = true),
-      quit: isTauri() ? () => void getCurrentWindow().close() : null,
+      canUseFiles: capabilities.userFiles,
+      quit: capabilities.ownWindow ? () => void getCurrentWindow().close() : null,
     }),
   );
 
@@ -329,11 +337,12 @@
   // The title bar's menus. Undo and redo name their step, e.g. "Undo Brush".
   const menus = $derived.by(() => {
     void version;
-    return defaultMenus({
+    const all = defaultMenus({
       recent: session.recent,
       undoLabel: editor.history.undoLabel,
       redoLabel: editor.history.redoLabel,
     });
+    return availableMenus(all, (id) => editor.commands.has(id));
   });
 
   onMount(() => {
@@ -349,7 +358,7 @@
       library.subscribe(() => paletteVersion++);
     });
     session.start();
-    if (!isTauri()) return;
+    if (!capabilities.ownWindow) return;
     // Closing the window: offer to save unsaved changes first.
     const window = getCurrentWindow();
     const unlisten = window.onCloseRequested(async (event) => {
@@ -380,7 +389,7 @@
     windowTitle.name = session.name;
     windowTitle.dirty = session.dirty;
     const title = `${session.dirty ? "● " : ""}${session.name} — Didi`;
-    if (isTauri()) getCurrentWindow().setTitle(title);
+    if (capabilities.ownWindow) getCurrentWindow().setTitle(title);
     else document.title = title;
   });
   $effect(() => {
@@ -423,6 +432,11 @@
     }
   }
 
+  /** In a browser, closing the tab would lose the document: the browser asks first. */
+  function onBeforeUnload(e: BeforeUnloadEvent) {
+    if (!capabilities.ownWindow && session.dirty) e.preventDefault();
+  }
+
   function onKeyDown(e: KeyboardEvent) {
     if (isTyping(e) || paletteOpen || startOpen || unsavedRequest) return;
     // Esc is for the stroke in progress (see CanvasView), whichever hears it first.
@@ -435,7 +449,9 @@
       shiftKey: e.shiftKey,
       altGraph: e.getModifierState("AltGraph"),
     });
-    if (!binding || !editor.commands.has(binding.command)) return;
+    if (!binding) return;
+    // Its shortcut still means nothing else here: Ctrl+S must not open the browser's dialog.
+    if (!editor.commands.has(binding.command)) return e.preventDefault();
     // Not disabled commands: Enter still has to press a focused button.
     if (!editor.commands.isEnabled(binding.command, binding.params)) return;
     e.preventDefault();
@@ -443,7 +459,7 @@
   }
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
+<svelte:window onkeydown={onKeyDown} onbeforeunload={onBeforeUnload} />
 
 <div
   class="app"

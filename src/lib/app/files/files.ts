@@ -36,8 +36,13 @@ export async function openDocument(path: string) {
   return decodeDocument(await readFile(path));
 }
 
+/** The document flattened, as a PNG. */
+export function renderPng(doc: DocumentData) {
+  return files().exportPng(doc);
+}
+
 export async function exportPng(path: string, doc: DocumentData): Promise<void> {
-  await writeFile(path, await files().exportPng(doc));
+  await writeFile(path, await renderPng(doc));
 }
 
 /** PNG bytes as a data URL, for an <img>. */

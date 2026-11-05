@@ -6,6 +6,7 @@
 
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { capabilities } from "./capabilities";
 
 const PREFIX = "didi:";
 
@@ -43,7 +44,54 @@ export async function removeDataFile(name: string): Promise<void> {
 }
 
 /** Whether user files can be opened and saved (desktop app only). */
-export const canUseFiles = () => isTauri();
+export const canUseFiles = () => capabilities.userFiles;
+
+/** Where a file goes in a browser: writes it there. */
+export type BrowserFile = (bytes: Uint8Array) => Promise<void>;
+
+/** Not in every browser (Chromium only so far), so not in TypeScript's types. */
+type SaveFilePicker = (options: {
+  suggestedName: string;
+  types: { accept: Record<string, string[]> }[];
+}) => Promise<FileSystemFileHandle>;
+
+/**
+ * In a browser, asks where to save a file. Null if cancelled. Call it right after the user's
+ * action, before any long work: browsers only open the dialog then. Where they cannot (other
+ * browsers, a page embedded in another site), the file goes to the downloads, without asking.
+ */
+export async function chooseBrowserFile(
+  name: string,
+  type: string,
+  extension: string,
+): Promise<BrowserFile | null> {
+  const picker = (window as unknown as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
+  if (!picker) return async (bytes) => download(name, bytes, type);
+  try {
+    const handle = await picker({
+      suggestedName: name,
+      types: [{ accept: { [type]: [extension] } }],
+    });
+    return async (bytes) => {
+      const file = await handle.createWritable();
+      await file.write(bytes as Uint8Array<ArrayBuffer>);
+      await file.close();
+    };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return null;
+    return async (bytes) => download(name, bytes, type);
+  }
+}
+
+function download(name: string, bytes: Uint8Array, type: string) {
+  const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  // Later: the browser may still be reading it.
+  setTimeout(() => URL.revokeObjectURL(url));
+}
 
 export async function readFile(path: string): Promise<Uint8Array> {
   return new Uint8Array(await invoke<ArrayBuffer>("file_read", { path }));

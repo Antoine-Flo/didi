@@ -10,6 +10,7 @@ import { documentFromEditor, editorFromDocument } from "#lib/core/file/didi-file
 import type { Editor } from "#lib/core/editor/editor.js";
 import {
   canUseFiles,
+  chooseBrowserFile,
   chooseFileToOpen,
   chooseFileToSave,
   readDataBytes,
@@ -23,6 +24,7 @@ import {
   documentName,
   encodeDocument,
   exportPng,
+  renderPng,
   fileName,
   openDocument,
   pngDataUrl,
@@ -188,13 +190,24 @@ export class Session {
   }
 
   async exportPng() {
-    if (!this.checkFiles()) return;
+    if (!canUseFiles()) return this.downloadPng();
     let path = await chooseFileToSave(`${this.name}.png`, PNG_FILTER);
     if (!path) return;
     if (!/\.png$/i.test(path)) path += ".png";
     const doc = documentFromEditor(this.editor);
     await this.run(`Exporting ${fileName(path)}…`, `Cannot export ${fileName(path)}`, () =>
       exportPng(path, doc),
+    );
+  }
+
+  /** In a browser, which has no paths: it writes where the user chose. */
+  private async downloadPng() {
+    const name = `${this.name}.png`;
+    const write = await chooseBrowserFile(name, "image/png", ".png");
+    if (!write) return;
+    const doc = documentFromEditor(this.editor);
+    await this.run(`Exporting ${name}…`, `Cannot export ${name}`, async () =>
+      write(await renderPng(doc)),
     );
   }
 

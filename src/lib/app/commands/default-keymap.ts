@@ -1,6 +1,9 @@
 // Built-in shortcuts. Plain data, so a user keymap file can replace it later.
 
-import type { Keymap } from "./keymap";
+import type { Binding, Keymap } from "./keymap";
+
+/** Added in a browser, over the others: nothing is saved there, Ctrl+S exports. */
+export const BROWSER_BINDINGS: Binding[] = [{ keys: "ctrl+s", command: "file.exportPng" }];
 
 export const DEFAULT_KEYMAP: Keymap = {
   version: 1,
