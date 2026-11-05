@@ -58,6 +58,9 @@ const PREVIOUS = { file: "recovery-previous.didi", info: "recovery-previous.json
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+const hiddenLayers = (editor: Editor): ReadonlySet<string> =>
+  new Set(editor.drawing.layers.filter((l) => !l.visible).map((l) => l.id));
+
 export class Session {
   editor: Editor = $state.raw(newEditor());
   /** The document's file, null until it is saved. */
@@ -75,7 +78,9 @@ export class Session {
   private savedMarker = $state.raw<unknown>(null);
   /** The mode at the last save. */
   private savedMode = $state(DEFAULT_MODE);
-  /** Bumped on every history change, to recompute `dirty`. */
+  /** The layers hidden at the last save. Visibility is saved, but is not in the history. */
+  private savedHidden = $state.raw<ReadonlySet<string>>(new Set());
+  /** Bumped on every history or visibility change, to recompute `dirty`. */
   private revision = $state(0);
   private extensions: Record<string, unknown> = {};
   private unsubscribe: () => void = () => {};
@@ -89,6 +94,7 @@ export class Session {
   ) {
     this.setEditor(editor);
     this.savedMarker = editor.history.marker;
+    this.savedHidden = hiddenLayers(editor);
     this.mode = this.savedMode = mode;
   }
 
@@ -104,7 +110,11 @@ export class Session {
   /** Whether the document has changes that are not saved. */
   get dirty(): boolean {
     void this.revision;
-    return this.editor.history.marker !== this.savedMarker || this.mode !== this.savedMode;
+    return (
+      this.editor.history.marker !== this.savedMarker ||
+      this.mode !== this.savedMode ||
+      this.editor.drawing.layers.some((l) => l.visible === this.savedHidden.has(l.id))
+    );
   }
 
   /** Loads the recent files, and sets aside a copy left by a crash. Call once at start. */
@@ -219,12 +229,14 @@ export class Session {
     // The state being saved: later changes, during the save, stay unsaved.
     const doc = documentFromEditor(this.editor, this.extensions, this.mode);
     const marker = this.editor.history.marker;
+    const hidden = hiddenLayers(this.editor);
     const mode = this.mode;
     return this.run(`Saving ${fileName(path)}…`, `Cannot save ${fileName(path)}`, async () => {
       const thumbnail = await saveDocument(path, doc);
       this.path = path;
       this.name = documentName(path);
       this.savedMarker = marker;
+      this.savedHidden = hidden;
       this.savedMode = mode;
       await this.removeRecovery();
       await this.addRecent(path, thumbnail);
@@ -258,16 +270,24 @@ export class Session {
     this.mode = this.savedMode = mode;
     this.extensions = {};
     this.savedMarker = editor.history.marker;
+    this.savedHidden = hiddenLayers(editor);
     void this.removeRecovery();
   }
 
   private setEditor(editor: Editor) {
     this.unsubscribe();
     this.editor = editor;
-    this.unsubscribe = editor.history.subscribe(() => {
+    const changed = () => {
       this.revision++;
       this.scheduleRecovery();
-    });
+    };
+    const unsubscribe = [
+      editor.history.subscribe(changed),
+      editor.drawing.subscribe((change) => {
+        if (change.type === "layer-updated" && change.keys.includes("visible")) changed();
+      }),
+    ];
+    this.unsubscribe = () => unsubscribe.forEach((fn) => fn());
   }
 
   private async addRecent(path: string, thumbnail: Uint8Array) {

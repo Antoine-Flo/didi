@@ -28,6 +28,10 @@ export const DEFAULT_KEYMAP: Keymap = {
 
     { keys: "ctrl+shift+n", command: "layer.add" },
 
+    { keys: "enter", command: "selection.apply" },
+    { keys: "escape", command: "selection.cancel" },
+    { keys: "ctrl+d", command: "selection.deselect" },
+
     { keys: "0", command: "view.fit" },
     { keys: "1", command: "view.actualSize" },
     { keys: "+", command: "view.zoomIn" },

@@ -23,6 +23,7 @@
   import { onMount, untrack } from "svelte";
   import { Application } from "pixi.js";
   import { consumeDismissal } from "#lib/app/canvas/dismissal.js";
+  import { held } from "#lib/app/canvas/modifiers.svelte.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import type { Painter } from "#lib/app/canvas/painter.js";
   import type { BrushCursor, Sample } from "#lib/app/tools/tool.js";
@@ -38,12 +39,15 @@
     type Camera,
     type Point,
   } from "#lib/render/camera.js";
+  import { placementOf, selectionOutline } from "#lib/core/selection/selection.js";
   import { DrawingView } from "#lib/render/drawing-view.js";
 
   let {
     editor,
     painter,
     brushCursor,
+    hoverCursor,
+    selectionHandles = false,
     insets,
     oncamera,
     oncursor,
@@ -56,6 +60,10 @@
      * when what it reads changes (tool, size…), the outline is redrawn at once.
      */
     brushCursor?: (eraser: boolean) => BrushCursor;
+    /** The CSS pointer at a canvas position and zoom, if the tool has its own there. */
+    hoverCursor?: (point: Point, zoom: number) => string | null;
+    /** The current tool works on the selection: its handles are shown. */
+    selectionHandles?: boolean;
     /** Panels over the view: fitting and zooming use the area between them. */
     insets?: () => Insets;
     oncamera?: (camera: Camera) => void;
@@ -71,6 +79,11 @@
   let camera: Camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
 
   let spaceDown = $state(false);
+  /** Where the pen hovers, for the tool's pointer. It stays put during a stroke. */
+  let hoverPoint = $state<Point | null>(null);
+  const pointerCursor = $derived(
+    hoverPoint && hoverCursor ? hoverCursor(hoverPoint, camera.zoom) : null,
+  );
   let panning: { id: number; x: number; y: number } | null = $state(null);
   /** Native pen events draw (Linux): DOM pointer events then only pan the view. */
   let nativeInput = false;
@@ -199,6 +212,7 @@
     }
     const p = toCanvas(camera, local(e));
     oncursor?.({ x: Math.floor(p.x), y: Math.floor(p.y) });
+    if (!stroking) hoverPoint = p;
     updateCursor(panning ? null : p);
   }
 
@@ -267,7 +281,10 @@
 
   /** The outline's shape. Recomputed only when the tool or its settings change. */
   const cursorShape: BrushCursor = $derived(
-    brushCursor?.(stroking ? strokeEraser : hoverEraser) ?? { kind: "none" },
+    // Alt held: the pen will pick a color (see Painter.begin). A stroke keeps its outline.
+    held.alt && !stroking
+      ? { kind: "picker" }
+      : (brushCursor?.(stroking ? strokeEraser : hoverEraser) ?? { kind: "none" }),
   );
   // A new shape (other tool, size changed by a shortcut…) shows at once, without waiting
   // for the pen to move.
@@ -283,6 +300,8 @@
   }
 
   function onKeyDown(e: KeyboardEvent) {
+    // Alt alone must not open a menu of the system or the browser.
+    if (e.key === "Alt") e.preventDefault();
     if (e.code === "Space" && !isTyping(e)) {
       spaceDown = true;
       e.preventDefault();
@@ -293,10 +312,28 @@
       pendingEnd = null;
       painter?.cancel();
       stroking = false;
+      // Esc was for the stroke, not for the shortcut (see EditorApp).
+      e.preventDefault();
     }
   }
 
+  function syncSelection() {
+    const { state, draft } = editor.selection;
+    view?.setSelectionDraft(draft);
+    view?.setSelection(
+      placementOf(state),
+      state.pivot ?? null,
+      selectionOutline(state),
+      selectionHandles,
+    );
+  }
+  $effect(() => {
+    void selectionHandles;
+    untrack(syncSelection);
+  });
+
   function onKeyUp(e: KeyboardEvent) {
+    if (e.key === "Alt") e.preventDefault();
     if (e.code === "Space") spaceDown = false;
   }
 
@@ -318,6 +355,7 @@
         view = new DrawingView(editor.drawing);
         pixi.stage.addChild(view.root);
         fitView();
+        syncSelection();
         let elapsed = 0;
         pixi.ticker.add((ticker) => {
           painter?.flush();
@@ -337,6 +375,8 @@
     });
 
     // When the window loses focus, end any stroke: the release may happen elsewhere.
+    const unsubscribeSelection = editor.selection.subscribe(syncSelection);
+
     const onBlur = () => endStroke();
     window.addEventListener("blur", onBlur);
 
@@ -346,6 +386,7 @@
 
     return () => {
       destroyed = true;
+      unsubscribeSelection();
       window.removeEventListener("blur", onBlur);
       endStroke();
       resize.disconnect();
@@ -359,8 +400,10 @@
 
 <div
   class="host"
+  class:pick={cursorShape.kind === "picker"}
   class:grab={spaceDown}
   class:grabbing={panning}
+  style:cursor={held.alt || spaceDown || panning ? undefined : (pointerCursor ?? undefined)}
   bind:this={host}
   onwheel={onWheel}
   onpointerdown={onPointerDown}
@@ -369,6 +412,7 @@
   onpointercancel={onPointerUp}
   onpointerleave={() => {
     oncursor?.(null);
+    hoverPoint = null;
     updateCursor(null);
   }}
   oncontextmenu={(e) => e.preventDefault()}
@@ -385,6 +429,14 @@
     overflow: hidden;
     touch-action: none;
     cursor: crosshair;
+  }
+
+  /* A pipette with its tip on the pixel picked, with a white halo to show on dark colors. */
+  .pick {
+    cursor:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='white' stroke-width='4' d='m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12M18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414'/%3E%3Cpath stroke='black' stroke-width='2' d='m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12M18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414'/%3E%3C/svg%3E")
+        2 22,
+      crosshair;
   }
 
   .grab {

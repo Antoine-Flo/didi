@@ -66,6 +66,39 @@ describe("Editor", () => {
     expect(names(editor)).toEqual(["B", "A"]);
   });
 
+  it("does not undo showing or hiding a layer", () => {
+    const editor = setup(["A"]);
+    const { history } = editor;
+    const layer = editor.drawing.layers[0];
+    editor.commands.execute("layer.update", { changes: { opacity: 0.5 } });
+    history.undo();
+    const { steps, marker } = history;
+
+    editor.commands.execute("layer.update", { changes: { visible: false } });
+    expect(layer.visible).toBe(false);
+    expect(history.steps).toBe(steps);
+    expect(history.marker).toBe(marker);
+    // The undone step can still be redone.
+    expect(history.canRedo).toBe(true);
+
+    history.redo();
+    expect(layer.opacity).toBe(0.5);
+    history.undo();
+    expect(layer.opacity).toBe(1);
+    expect(layer.visible).toBe(false);
+  });
+
+  it("only undoes the other settings when changed along with the visibility", () => {
+    const editor = setup(["A"]);
+    const layer = editor.drawing.layers[0];
+    editor.commands.execute("layer.update", { changes: { visible: false, opacity: 0.5 } });
+    expect(layer.visible).toBe(false);
+    expect(layer.opacity).toBe(0.5);
+    editor.history.undo();
+    expect(layer.visible).toBe(false);
+    expect(layer.opacity).toBe(1);
+  });
+
   it("selects the layer below after removing the active one", () => {
     const editor = setup(["A", "B", "C"]);
     editor.setActiveLayer(editor.drawing.layers[1].id);

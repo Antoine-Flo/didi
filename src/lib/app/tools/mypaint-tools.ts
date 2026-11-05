@@ -81,7 +81,7 @@ export const MYPAINT_TOOLS = [
   mypaintTool("airbrush", "Airbrush", SprayCan, false),
   mypaintTool("blend", "Blend", Blend),
   mypaintTool("texture", "Texture", Sparkles),
-  mypaintTool("eraser", "Eraser", EraserIcon),
+  { ...mypaintTool("eraser", "Eraser", EraserIcon), needsColor: false },
 ];
 
 class QueuedStroke implements ToolStroke {

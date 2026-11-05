@@ -9,9 +9,10 @@
 import type { Editor } from "#lib/core/editor/editor.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
 import type { Brush, MyPaint } from "#lib/mypaint/engine.js";
-import type { RGB } from "#lib/core/color/color.js";
+import { pickerTool } from "#lib/app/tools/picker-tool.js";
 import type {
   Modifiers,
+  Picked,
   Sample,
   Tool,
   ToolContext,
@@ -23,8 +24,8 @@ export interface PainterHost {
   /** The tool to use. `eraser` is true when the pen's eraser end is down. */
   tool(eraser: boolean): Tool;
   options(): ToolOptions;
-  /** Called with the picked color, when using the picker. */
-  onPick(color: RGB): void;
+  /** Called with what was taken from the canvas, when using the picker. */
+  onPick(picked: Picked): void;
   /** Called with a message for the user, when a stroke cannot start. */
   onMessage(message: string): void;
   /** The keys held now. None by default. */
@@ -78,7 +79,9 @@ export class Painter {
       this.end();
       this.drain();
     }
-    const tool = this.host.tool(eraser);
+    const modifiers = () => this.host.modifiers?.() ?? NO_MODIFIERS;
+    // Alt picks a color with any tool.
+    const tool = modifiers().alt ? pickerTool : this.host.tool(eraser);
     const layer = this.editor.activeLayer;
     if (tool.needsLayer !== false) {
       if (!layer) return this.refuse("No layer: add one to draw.");
@@ -86,15 +89,20 @@ export class Painter {
       if (!layer.visible) return this.refuse(`Layer "${layer.name}" is hidden.`);
     }
     const options = this.host.options();
+    if (!options.color && tool.needsColor !== false) {
+      return this.refuse("No color selected: choose one to draw.");
+    }
+    // Drawing or changing a layer lays floating content down first.
+    if (tool.needsLayer !== false) this.editor.applySelection();
     const context: ToolContext = {
       editor: this.editor,
       layer: layer ?? null,
-      color: options.color,
+      color: options.color ?? [0, 0, 0],
       engine: this.engine,
       brush: (preset) => this.brush(preset),
       now: this.now,
-      modifiers: () => this.host.modifiers?.() ?? NO_MODIFIERS,
-      pick: (color) => this.host.onPick(color),
+      modifiers,
+      pick: (picked) => this.host.onPick(picked),
       refuse: (message) => {
         this.host.onMessage(message);
         return null;

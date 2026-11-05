@@ -3,6 +3,7 @@
 import { MYPAINT_TOOLS } from "./mypaint-tools";
 import { fillTool } from "./fill-tool";
 import { pickerTool } from "./picker-tool";
+import { selectTool } from "./select-tool";
 import { ellipseTool, lineTool, rectangleTool } from "./shape-tools";
 import { pixelBrushTool, pixelEraserTool } from "./pixel-tools";
 import { ToolRegistry } from "./tool";
@@ -15,6 +16,7 @@ export const BUILTIN_TOOLS = [
   lineTool,
   rectangleTool,
   ellipseTool,
+  selectTool,
   pickerTool,
 ];
 

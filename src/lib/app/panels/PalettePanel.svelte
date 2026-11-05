@@ -17,8 +17,8 @@
     library: PaletteLibrary | null;
     /** Changes whenever the library changes, to refresh the panel. */
     version: number;
-    /** The current color, highlighted in the palette. */
-    color: RGB;
+    /** The current color, highlighted in the palette. Null: none. */
+    color: RGB | null;
     /**
      * Fills the height given by the parent (a resized panel), the colors scrolling inside.
      * Otherwise as tall as its content, the colors scrolling past a fixed height.
@@ -87,7 +87,7 @@
       {#each info.colors as c, i (i)}
         <button
           class="swatch"
-          class:current={sameColor(c, color)}
+          class:current={color && sameColor(c, color)}
           style:background={toHex(c)}
           title="{toHex(c)} · Right-click to remove"
           aria-label={toHex(c)}
@@ -102,6 +102,7 @@
         class="swatch add"
         title={tip("palette.addColor")}
         aria-label="Add the current color"
+        disabled={!color}
         onclick={() => run("palette.addColor")}
       >
         <Plus size={12} />

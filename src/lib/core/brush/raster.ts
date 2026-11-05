@@ -21,6 +21,10 @@ export interface StrokeStyle {
   /** Maximum opacity of the stroke, 0 to 1. */
   opacity: number;
   mode: "paint" | "erase";
+  /** Pixels outside this rectangle stay as they are. */
+  clip?: Rect | null;
+  /** Which pixels of `clip` can change, 1 for yes, row by row. By default, all of them. */
+  clipMask?: Uint8Array | null;
 }
 
 const TILE_PIXELS = TILE_SIZE * TILE_SIZE;
@@ -64,7 +68,9 @@ export class StrokeRaster {
     if (drawing.getLayer(layerId).locked) throw new Error(`Layer ${layerId} is locked`);
     if (!(style.opacity >= 0 && style.opacity <= 1)) throw new RangeError("Invalid opacity");
     if (style.color.some((c) => !(c >= 0 && c <= 255))) throw new RangeError("Invalid color");
-    this.bounds = { x: 0, y: 0, width: drawing.width, height: drawing.height };
+    const canvas = { x: 0, y: 0, width: drawing.width, height: drawing.height };
+    // Nothing is painted when the clip is entirely off the canvas.
+    this.bounds = style.clip ? (intersect(canvas, style.clip) ?? { ...canvas, width: 0 }) : canvas;
   }
 
   /**
@@ -157,6 +163,7 @@ export class StrokeRaster {
         let changed = false;
         for (let y = part.y; y < part.y + part.height; y++) {
           for (let x = part.x; x < part.x + part.width; x++) {
+            if (this.outsideMask(x, y)) continue;
             const i = (y - ty * TILE_SIZE) * TILE_SIZE + (x - tx * TILE_SIZE);
             if (update(x, y, cov, i)) {
               this.recompose(src, out, cov[i], i * 4);
@@ -167,6 +174,11 @@ export class StrokeRaster {
         if (changed) this.dirty.add(key);
       }
     }
+  }
+
+  private outsideMask(x: number, y: number): boolean {
+    const { clip, clipMask } = this.style;
+    return !!clip && !!clipMask && !clipMask[(y - clip.y) * clip.width + (x - clip.x)];
   }
 
   private tile(key: number) {

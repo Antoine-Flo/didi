@@ -22,7 +22,7 @@
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import { formatChord, KeymapIndex } from "#lib/app/commands/keymap.js";
   import { Painter } from "#lib/app/canvas/painter.js";
-  import { heldModifiers } from "#lib/app/canvas/modifiers.js";
+  import { held, heldModifiers } from "#lib/app/canvas/modifiers.svelte.js";
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
@@ -32,6 +32,8 @@
   import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
   import { newEditor } from "#lib/app/files/new-drawing.js";
   import { createToolRegistry } from "#lib/app/tools/builtin.js";
+  import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
+  import { selectTool } from "#lib/app/tools/select-tool.js";
   import type { BrushCursor, Tool } from "#lib/app/tools/tool.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
@@ -95,6 +97,14 @@
   let tool = $state(mode.tools[0]);
   let options = $state(tools.defaultOptions());
   const activeTool = $derived(tools.get(tool));
+  /** The tool the panels show: Alt turns any tool into the picker while it is held. */
+  const shownTool = $derived(held.alt ? pickerTool : activeTool);
+  /** The tool picking serves: the active one, or the one in use before the picker. */
+  // svelte-ignore state_referenced_locally
+  let drawingTool = $state(tool);
+  $effect.pre(() => {
+    if (tool !== pickerTool.id) drawingTool = tool;
+  });
 
   /** The tool used now. The pen's eraser end uses the mode's eraser. */
   function toolFor(eraser: boolean): Tool {
@@ -126,7 +136,7 @@
   const painter = new Painter(session.editor, {
     tool: toolFor,
     options: () => $state.snapshot(options),
-    onPick: (color) => (options.color = color),
+    onPick: (picked) => applyPicked(options, drawingTool, picked),
     onMessage: notify,
     modifiers: heldModifiers,
   });
@@ -155,6 +165,15 @@
   let version = $state(0);
   let camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
   let cursor = $state<Point | null>(null);
+  /** The tool bar's swatch: what the tool would make of the color drawn with, at the cursor. */
+  const toolPreview = $derived.by(() => {
+    if (!shownTool.preview) return null;
+    void version;
+    const opacity = options.tools[drawingTool]?.opacity;
+    const current = { color: options.color, opacity: typeof opacity === "number" ? opacity : 1 };
+    if (!cursor) return current;
+    return shownTool.preview(editor, options.tools[shownTool.id], cursor, current);
+  });
   let error = $state<string | null>(null);
   let canvasView = $state<CanvasView | null>(null);
   let fileInput: HTMLInputElement;
@@ -278,6 +297,10 @@
       // undo, for instance, applies to it.
       painter.drain();
     }
+    // Floating content belongs to a layer: lay it down before anything changes the layers.
+    // Brushes of the painting mode don't follow the selection yet: it goes with the mode.
+    if (id.startsWith("layer.")) editor.applySelection();
+    if (id.startsWith("mode.")) editor.deselect();
     editor.commands.execute(id, params);
   }
 
@@ -395,6 +418,8 @@
 
   function onKeyDown(e: KeyboardEvent) {
     if (isTyping(e) || paletteOpen || startOpen || unsavedRequest) return;
+    // Esc is for the stroke in progress (see CanvasView), whichever hears it first.
+    if (e.defaultPrevented || (e.key === "Escape" && painter.active)) return;
     const binding = keymap.match({
       key: e.key,
       ctrlKey: e.ctrlKey,
@@ -404,6 +429,8 @@
       altGraph: e.getModifierState("AltGraph"),
     });
     if (!binding || !editor.commands.has(binding.command)) return;
+    // Not disabled commands: Enter still has to press a focused button.
+    if (!editor.commands.isEnabled(binding.command, binding.params)) return;
     e.preventDefault();
     run(binding.command, binding.params);
   }
@@ -431,6 +458,8 @@
         {editor}
         {painter}
         {brushCursor}
+        hoverCursor={(p, zoom) => activeTool.hover?.(editor, p, zoom) ?? null}
+        selectionHandles={activeTool.id === selectTool.id}
         {insets}
         oncamera={(c) => (camera = c)}
         oncursor={(p) => (cursor = p)}
@@ -511,7 +540,7 @@
   <div class="tool-track" bind:clientHeight={toolTrackHeight}>
     <ToolColumn
       tools={shownTools}
-      active={tool}
+      active={shownTool.id}
       settings={options.tools}
       side={popupSide}
       trackHeight={toolTrackHeight}
@@ -526,7 +555,7 @@
 
   <!-- The active tool's options, centered above the canvas. -->
   <div class="bar top" bind:this={top}>
-    <ToolBar tool={activeTool} settings={options.tools[tool]} />
+    <ToolBar tool={shownTool} settings={options.tools[shownTool.id]} preview={toolPreview} />
   </div>
 
   <div class="bar bottom" bind:this={bottom}>

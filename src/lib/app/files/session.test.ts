@@ -81,6 +81,27 @@ describe("Session", () => {
     expect(session.recent.map((f) => f.path)).toEqual(["/art/hero.didi"]);
   });
 
+  it("counts a layer's visibility as an unsaved change, though it is not an undo step", async () => {
+    const { session } = setup();
+    const { editor } = session;
+    const { id } = editor.drawing.layers[0];
+    const setVisible = (visible: boolean) =>
+      editor.commands.execute("layer.update", { id, changes: { visible } });
+
+    setVisible(false);
+    expect(session.dirty).toBe(true);
+    expect(editor.history.canUndo).toBe(false);
+    setVisible(true);
+    expect(session.dirty).toBe(false);
+
+    setVisible(false);
+    dialogs.save = "/art/hero";
+    expect(await session.save()).toBe(true);
+    expect(session.dirty).toBe(false);
+    setVisible(true);
+    expect(session.dirty).toBe(true);
+  });
+
   it("does not save when the dialog is cancelled", async () => {
     const { session } = setup();
     paint(session);

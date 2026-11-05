@@ -1,6 +1,7 @@
 // The paint bucket, like Aseprite's: fills the area of the clicked pixel's color on the
 // active layer, exactly to the pixel (no anti-aliasing), as one undo step.
 
+import { selectionClip } from "#lib/core/selection/selection.js";
 import { PaintBucket } from "@lucide/svelte";
 import { fillArea } from "#lib/core/brush/flood-fill.js";
 import { StrokeRaster } from "#lib/core/brush/raster.js";
@@ -43,6 +44,7 @@ export const fillTool = defineTool<FillSettings>({
       color: context.color,
       opacity,
       mode: "paint",
+      ...selectionClip(context.editor.selection.state),
     });
     raster.setArea(area.bounds, true, (px, py) => area.mask[py * width + px] === 1);
     return paintedStroke(raster, "Paint bucket");

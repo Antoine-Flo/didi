@@ -55,6 +55,9 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
       items: [
         { command: "history.undo", label: undoLabel ? `Undo ${undoLabel}` : "Undo" },
         { command: "history.redo", label: redoLabel ? `Redo ${redoLabel}` : "Redo" },
+        "separator",
+        { command: "selection.apply" },
+        { command: "selection.deselect" },
       ],
     },
   ];

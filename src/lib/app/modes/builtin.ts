@@ -24,10 +24,10 @@ export const PIXEL_MODE: Mode = {
     size: { width: 64, height: 64 },
     background: "transparent",
   },
-  tools: ["pixel", "pixelEraser", "fill", "line", "rectangle", "ellipse", "picker"],
+  tools: ["pixel", "pixelEraser", "fill", "line", "rectangle", "ellipse", "select", "picker"],
   eraserTool: "pixelEraser",
   // Like Aseprite: B is the pencil, E the eraser, G the paint bucket, L the line, U the
-  // rectangle and Shift+U the ellipse.
+  // rectangle, Shift+U the ellipse, M the rectangle selection and Q the lasso.
   bindings: [
     { keys: "b", command: "tool.pixel" },
     { keys: "e", command: "tool.pixelEraser" },
@@ -35,6 +35,8 @@ export const PIXEL_MODE: Mode = {
     { keys: "l", command: "tool.line" },
     { keys: "u", command: "tool.rectangle" },
     { keys: "shift+u", command: "tool.ellipse" },
+    { keys: "m", command: "selection.rectangle" },
+    { keys: "q", command: "selection.lasso" },
   ],
 };
 

@@ -34,6 +34,8 @@ export type BrushCursor =
   | { kind: "circle"; size: number }
   /** The exact pixels of a pixel-art tip. */
   | { kind: "square" | "pixel-round"; size: number }
+  /** No outline: the system pointer becomes a pipette. */
+  | { kind: "picker" }
   | { kind: "none" };
 
 /** Settings of one tool: plain values, so they can be saved and shown in the tool bar. */
@@ -46,12 +48,37 @@ export type ToolField =
   | { kind: "integer"; key: string; label: string; min: number; max: number; unit?: string }
   /** 0 to 1, shown as a percentage. */
   | { kind: "percent"; key: string; label: string }
-  | { kind: "toggle"; key: string; label: string; title?: string };
+  | { kind: "toggle"; key: string; label: string; title?: string }
+  /** One of a few values, all in view. `label` names the group, for screen readers. */
+  | {
+      kind: "choice";
+      key: string;
+      label: string;
+      choices: readonly { value: string; label: string; title?: string }[];
+    };
+
+/** A color shown in the tool bar. */
+export interface ColorPreview {
+  /** Straight RGB, 0-255. Null: no color. */
+  color: RGB | null;
+  /** 0 to 1. */
+  opacity: number;
+}
+
+/** What a tool took from the canvas: only what is set is changed. */
+export interface Picked {
+  /** Becomes the current color. Null: no color is selected any more. */
+  color?: RGB | null;
+  /** 0 to 1. Becomes the opacity of the tool drawn with. */
+  opacity?: number;
+}
 
 /** Choices offered in a popup under the tool's button, e.g. the tip of a pixel brush. */
 export interface ToolMenu {
   /** The setting they change. */
   key: string;
+  /** The tool's button shows the icon of the current choice. */
+  iconFollowsChoice?: boolean;
   items: {
     value: string;
     label: string;
@@ -73,7 +100,7 @@ export interface ToolContext {
   readonly editor: Editor;
   /** The active layer, unlocked and visible. Null only for tools that need no layer. */
   readonly layer: ReadonlyLayer | null;
-  /** Straight RGB, 0-255. */
+  /** Straight RGB, 0-255. Black for tools that need no color. */
   readonly color: RGB;
   /** The brush engine, once loaded. */
   readonly engine: MyPaint | null;
@@ -83,8 +110,8 @@ export interface ToolContext {
   now(): number;
   /** The keys held now: they may change during the stroke (see ToolStroke.flush). */
   modifiers(): Modifiers;
-  /** Makes `color` the current color. */
-  pick(color: RGB): void;
+  /** Applies what was taken from the canvas. */
+  pick(picked: Picked): void;
   /** Tells the user why nothing happens. Returns null, for `begin`. */
   refuse(message: string): null;
 }
@@ -124,7 +151,21 @@ export interface Tool<S extends ToolSettings = ToolSettings> {
   readonly menu?: ToolMenu;
   /** False for tools that work without an editable layer (e.g. the picker). */
   readonly needsLayer?: boolean;
+  /** False for tools that work without a current color (e.g. the erasers). */
+  readonly needsColor?: boolean;
   cursor(settings: S): BrushCursor;
+  /**
+   * The color to show in the tool bar with the pen at a point, in canvas pixels, given the
+   * `current` color and opacity. Tools with this method have a swatch in the tool bar.
+   */
+  preview?(
+    editor: Editor,
+    settings: S,
+    point: { x: number; y: number },
+    current: ColorPreview,
+  ): ColorPreview;
+  /** The CSS pointer with the pen at a point, in canvas pixels, at a zoom. Null: the default. */
+  hover?(editor: Editor, point: { x: number; y: number }, zoom: number): string | null;
   /** Grows (`direction` 1) or shrinks (-1) the tool, if it has a size. */
   resize?(settings: S, direction: 1 | -1): void;
   /** The pen goes down: starts a stroke, or does its job at once and returns null. */
@@ -138,8 +179,8 @@ export function defineTool<S extends ToolSettings>(tool: Tool<S>): Tool {
 
 /** Current color and the settings of every tool, by tool id. */
 export interface ToolOptions {
-  /** Straight RGB, 0-255. */
-  color: RGB;
+  /** Straight RGB, 0-255. Null: no color is selected, and painting tools refuse to draw. */
+  color: RGB | null;
   tools: Record<string, ToolSettings>;
 }
 

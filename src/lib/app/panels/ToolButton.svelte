@@ -31,6 +31,12 @@
 
   let open = $state(false);
 
+  const Icon = $derived(
+    (tool.menu?.iconFollowsChoice &&
+      tool.menu.items.find((item) => item.value === settings[tool.menu!.key])?.icon) ||
+      tool.icon,
+  );
+
   // While open, a click on the canvas only closes it.
   let shown = false;
   $effect(() => {
@@ -52,7 +58,7 @@
       title={tip(`tool.${tool.id}`)}
       onclick={() => run(`tool.${tool.id}`)}
     >
-      <tool.icon size={16} />
+      <Icon size={16} />
     </Popover.Trigger>
     <Popover.Portal>
       <Popover.Content

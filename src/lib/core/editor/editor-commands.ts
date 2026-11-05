@@ -1,4 +1,4 @@
-// Editor commands: layers and history. Without an explicit `id`, layer commands target the
+// Editor commands: layers, selection and history. Without an explicit `id`, layer commands target the
 // active layer, so they can be bound to shortcuts or the quick wheel without params.
 
 import type { CommandRegistry } from "./commands";
@@ -15,6 +15,25 @@ const target = (editor: Editor, id?: string) => id ?? editor.activeLayer?.id;
 /** Registers the editor commands. Returns a function that unregisters them. */
 export function registerEditorCommands(registry: CommandRegistry<Editor>): () => void {
   const unregister = [
+    registry.register({
+      id: "selection.apply",
+      title: "Apply selection",
+      enabled: (editor) => editor.selection.floating !== null,
+      run: (editor) => editor.applySelection(),
+    }),
+    registry.register({
+      id: "selection.cancel",
+      title: "Cancel selection",
+      enabled: (editor) => editor.selection.rect !== null,
+      run: (editor) => editor.cancelSelection(),
+    }),
+    registry.register({
+      id: "selection.deselect",
+      title: "Deselect",
+      enabled: (editor) => editor.selection.rect !== null,
+      run: (editor) => editor.deselect(),
+    }),
+
     registry.register<{ index?: number; props?: Partial<LayerProps> } | undefined>({
       id: "layer.add",
       title: "New layer",
@@ -96,8 +115,15 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
       title: "Edit layer",
       needsParams: true,
       enabled: (editor, { id }) => exists(editor.drawing, target(editor, id)),
-      run: (editor, { id, changes }) =>
-        editor.history.push(updateLayer(target(editor, id)!, changes)),
+      run(editor, { id, changes }) {
+        const layerId = target(editor, id)!;
+        // Showing or hiding a layer is not an undo step.
+        const { visible, ...undoable } = changes;
+        if (Object.keys(undoable).length > 0) {
+          editor.history.push(updateLayer(layerId, undoable));
+        }
+        if (visible !== undefined) editor.drawing.updateLayer(layerId, { visible });
+      },
     }),
 
     registry.register<{ id: string }>({

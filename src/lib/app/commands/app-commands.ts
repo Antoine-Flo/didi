@@ -84,6 +84,16 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
         run: () => (host.tool = tool.id),
       }),
     ),
+    ...(["rectangle", "lasso"] as const).map((shape) =>
+      registry.register({
+        id: `selection.${shape}`,
+        title: `Tool: ${shape === "lasso" ? "Lasso" : "Rectangle"} selection`,
+        run() {
+          host.tool = "select";
+          host.options.tools.select.shape = shape;
+        },
+      }),
+    ),
     registry.register<{ id: string }>({
       id: "brush.select",
       title: "Select brush",
@@ -131,8 +141,8 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     registry.register({
       id: "palette.addColor",
       title: "Add color to palette",
-      enabled: () => host.palettes?.active != null,
-      run: () => void host.palettes!.addColor(host.options.color),
+      enabled: () => host.palettes?.active != null && host.options.color !== null,
+      run: () => void host.palettes!.addColor(host.options.color!),
     }),
     registry.register<{ index: number }>({
       id: "palette.removeColor",

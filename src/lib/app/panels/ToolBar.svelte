@@ -1,10 +1,12 @@
 <script lang="ts">
   // The bar above the canvas: the active tool's options.
 
+  import Segmented from "#lib/app/widgets/Segmented.svelte";
   import Slider from "#lib/app/widgets/Slider.svelte";
   import {
     sizeFromSlider,
     sliderFromSize,
+    type ColorPreview,
     type Tool,
     type ToolSettings,
   } from "#lib/app/tools/tool.js";
@@ -12,15 +14,26 @@
   let {
     tool,
     settings,
+    preview,
   }: {
     tool: Tool;
     /** The tool's settings, changed in place by the controls. */
     settings: ToolSettings;
+    /** The color of the swatch, for tools that have one (see Tool.preview). */
+    preview?: ColorPreview | null;
   } = $props();
 </script>
 
 <div class="panel toolbar">
   <div class="options">
+    {#if preview}
+      <span class="swatch" aria-hidden="true">
+        {#if preview.color}
+          {@const [r, g, b] = preview.color}
+          <span style:background="rgb({r} {g} {b} / {preview.opacity})"></span>
+        {/if}
+      </span>
+    {/if}
     {#each tool.fields ?? [] as field (field.key)}
       {@const value = settings[field.key]}
       {#if field.kind === "size" && typeof value === "number"}
@@ -59,6 +72,13 @@
           />
           {field.label}
         </label>
+      {:else if field.kind === "choice" && typeof value === "string"}
+        <Segmented
+          label={field.label}
+          {value}
+          choices={field.choices}
+          onselect={(v) => (settings[field.key] = v)}
+        />
       {/if}
     {:else}
       {#if tool.hint}<span class="hint">{tool.hint}</span>{/if}
@@ -85,6 +105,23 @@
   /* A fixed width: the bar does not change size while a value changes. */
   .options :global(.slider) {
     width: 220px;
+  }
+
+  /* On a checkerboard, to show the opacity, or that there is no color. */
+  .swatch {
+    flex: none;
+    width: calc(var(--control-height) - 4px);
+    height: calc(var(--control-height) - 4px);
+    overflow: hidden;
+    background: repeating-conic-gradient(var(--field-border) 0 25%, var(--field) 0 50%) 0 0 / 8px
+      8px;
+    border-radius: var(--radius);
+  }
+
+  .swatch span {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .check {

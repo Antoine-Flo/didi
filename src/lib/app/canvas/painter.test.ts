@@ -4,8 +4,8 @@ import { Editor } from "#lib/core/editor/editor.js";
 import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
 import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
 import { Painter } from "./painter";
-import type { RGB } from "#lib/core/color/color.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
+import type { Picked } from "#lib/app/tools/tool.js";
 
 let engine: MyPaint;
 beforeAll(async () => {
@@ -18,7 +18,13 @@ function setup(tool = "brush", withEngine = true, now?: () => number) {
   const editor = new Editor(new Drawing(200, 200));
   editor.commands.execute("layer.add");
   editor.history.clear();
-  const state = { tool, options: tools.defaultOptions(), picked: null as RGB | null, message: "" };
+  const state = {
+    tool,
+    options: tools.defaultOptions(),
+    picked: null as Picked | null,
+    message: "",
+    alt: false,
+  };
   state.options.color = [200, 0, 0];
   const painter = new Painter(
     editor,
@@ -27,6 +33,7 @@ function setup(tool = "brush", withEngine = true, now?: () => number) {
       options: () => state.options,
       onPick: (c) => (state.picked = c),
       onMessage: (m) => (state.message = m),
+      modifiers: () => ({ shift: false, ctrl: false, alt: state.alt }),
     },
     now,
   );
@@ -116,13 +123,53 @@ describe("Painter", () => {
     const rect = { x: 0, y: 0, width: 10, height: 10 };
     editor.drawing.writePixels(editor.activeLayer!.id, rect, fill(rect, [10, 20, 30, 255]));
     expect(painter.begin({ x: 5, y: 5, pressure: 1 })).toBe(false);
-    expect(state.picked).toEqual([10, 20, 30]);
+    expect(state.picked?.color).toEqual([10, 20, 30]);
     expect(editor.history.steps).toBe(0);
-    // Transparent pixels and points outside the canvas are ignored.
-    state.picked = null;
+    // A transparent pixel has no color; outside the canvas, nothing is taken.
     painter.begin({ x: 50, y: 50, pressure: 1 });
+    expect(state.picked).toEqual({ color: null });
+    state.picked = null;
     painter.begin({ x: -5, y: 5, pressure: 1 });
     expect(state.picked).toBeNull();
+  });
+
+  it("refuses to paint without a color, but still erases", () => {
+    const { editor, painter, state, pixel } = setup("pixel");
+    const all = { x: 0, y: 0, width: 200, height: 200 };
+    editor.drawing.writePixels(editor.activeLayer!.id, all, fill(all, [0, 0, 255, 255]));
+    state.options.color = null;
+    expect(painter.begin({ x: 10, y: 10, pressure: 1 })).toBe(false);
+    expect(state.message).toContain("No color");
+    expect(pixel(10, 10)).toEqual([0, 0, 255, 255]);
+    for (const tool of ["line", "rectangle", "ellipse", "fill", "brush"]) {
+      state.tool = tool;
+      expect(painter.begin({ x: 10, y: 10, pressure: 1 })).toBe(false);
+    }
+    state.tool = "pixelEraser";
+    expect(painter.begin({ x: 10, y: 10, pressure: 1 })).toBe(true);
+    painter.end();
+    expect(pixel(10, 10)).toEqual([0, 0, 0, 0]);
+    state.tool = "eraser";
+    expect(painter.begin({ x: 50, y: 50, pressure: 1 })).toBe(true);
+    painter.cancel();
+  });
+
+  it("picks with Alt held, whatever the tool, and paints again once released", () => {
+    const { editor, painter, state, pixel } = setup("pixel");
+    const rect = { x: 0, y: 0, width: 10, height: 10 };
+    editor.drawing.writePixels(editor.activeLayer!.id, rect, fill(rect, [10, 20, 30, 255]));
+    state.alt = true;
+    // Works on a locked layer too: picking does not change it.
+    editor.drawing.updateLayer(editor.activeLayer!.id, { locked: true });
+    expect(painter.begin({ x: 5, y: 5, pressure: 1 })).toBe(false);
+    expect(state.picked?.color).toEqual([10, 20, 30]);
+    expect(state.message).toBe("");
+    expect(editor.history.steps).toBe(0);
+    editor.drawing.updateLayer(editor.activeLayer!.id, { locked: false });
+    state.alt = false;
+    expect(painter.begin({ x: 50, y: 50, pressure: 1 })).toBe(true);
+    painter.end();
+    expect(pixel(50, 50)).toEqual([200, 0, 0, 255]);
   });
 
   it("refuses to paint without a layer, on a locked or a hidden layer", () => {

@@ -20,6 +20,9 @@ import type { BlendMode, ReadonlyLayer } from "#lib/core/document/layer.js";
 import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
 import { pixelStamp } from "#lib/core/brush/raster.js";
 import { union, type Rect } from "#lib/core/geometry.js";
+import { selectionHandles } from "#lib/core/selection/handles.js";
+import { corners, toCanvas, type Placement, type Point } from "#lib/core/selection/placement.js";
+import type { OutlineRun } from "#lib/core/selection/shape.js";
 import { visibleRect, type Camera } from "./camera";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {
@@ -118,6 +121,7 @@ class LayerView {
  */
 export type BrushCursorState =
   | { kind: "circle" | "square" | "pixel-round"; size: number; x: number; y: number }
+  | { kind: "picker"; x: number; y: number }
   | { kind: "none"; x: number; y: number };
 
 export class DrawingView {
@@ -130,6 +134,15 @@ export class DrawingView {
   private checker: TilingSprite;
   private checkerMask = new Graphics();
   private grid = new Graphics();
+  private selection = new Graphics();
+  private selectionPlace: Placement | null = null;
+  private selectionPivot: Point | null = null;
+  private selectionDraft: readonly Point[] | null = null;
+  /** A lasso's outline, in pixels of its box. Null: the box itself. */
+  private selectionOutline: OutlineRun[] | null = null;
+  private selectionHasHandles = false;
+  /** Which dashes of the moving outline are drawn: changes a few times per second. */
+  private dashPhase = 0;
   private cursor = new Graphics();
   private cursorState: BrushCursorState | null = null;
   private zoom = 1;
@@ -145,7 +158,13 @@ export class DrawingView {
     this.checker = new TilingSprite({ texture: checkerTexture(), width: 1, height: 1 });
     this.checkerMask.rect(0, 0, drawing.width, drawing.height).fill(0xffffff);
     this.checker.mask = this.checkerMask;
-    this.canvasRoot.addChild(this.checkerMask, this.layersRoot, this.grid, this.cursor);
+    this.canvasRoot.addChild(
+      this.checkerMask,
+      this.layersRoot,
+      this.grid,
+      this.selection,
+      this.cursor,
+    );
     this.root.addChild(this.checker, this.canvasRoot);
     for (const layer of drawing.layers) this.addView(layer.id);
     this.orderDirty = true;
@@ -173,6 +192,7 @@ export class DrawingView {
       for (const layerView of this.views.values()) layerView.setScaleMode(mode);
     }
     this.drawGrid(camera, view);
+    this.drawSelection();
     this.drawCursor();
   }
 
@@ -182,11 +202,108 @@ export class DrawingView {
     this.drawCursor();
   }
 
+  /** Shows the selection's outline, with its handles or not. Null: no selection. */
+  setSelection(
+    place: Placement | null,
+    pivot: Point | null,
+    outline: OutlineRun[] | null,
+    handles: boolean,
+  ) {
+    this.selectionPlace = place;
+    this.selectionOutline = outline;
+    this.selectionPivot = pivot;
+    this.selectionHasHandles = handles;
+    this.drawSelection();
+  }
+
+  /** Shows a lasso being drawn, in place of the selection. Null: none. */
+  setSelectionDraft(path: readonly Point[] | null) {
+    this.selectionDraft = path;
+    this.drawSelection();
+  }
+
+  private drawSelection() {
+    const g = this.selection;
+    g.clear();
+    // A lasso being drawn: only its line, not closed yet.
+    if (this.selectionDraft) {
+      const path = this.selectionDraft;
+      this.drawDashes(path.slice(1).map((point, i) => [path[i], point]));
+      return;
+    }
+    const place = this.selectionPlace;
+    if (!place) return;
+    const line = { width: 1, pixelLine: true };
+    const frame = corners(place);
+    const pieces: [Point, Point][] = this.selectionOutline
+      ? this.selectionOutline.map(({ x0, y0, x1, y1 }) => [
+          toCanvas(place, place.x + x0, place.y + y0),
+          toCanvas(place, place.x + x1, place.y + y1),
+        ])
+      : frame.map((from, i) => [from, frame[(i + 1) % frame.length]]);
+    this.drawDashes(pieces);
+    if (!this.selectionHasHandles) return;
+    // Around a lasso, the frame its handles belong to.
+    if (this.selectionOutline) {
+      g.poly(
+        frame.flatMap(({ x, y }) => [x, y]),
+        true,
+      ).stroke({ ...line, color: 0xffffff, alpha: 0.5 });
+    }
+    for (const { group, shape } of selectionHandles(place, this.zoom, this.selectionPivot)) {
+      const { x, y, width, height } = shape;
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      switch (group) {
+        case "bounds":
+          // Bars, not squares: they only slide an edge, they do not scale anything.
+          g.roundRect(x, y, width, height, Math.min(width, height) / 2);
+          break;
+        case "content":
+          g.rect(x, y, width, height);
+          break;
+        case "pivot":
+          g.circle(cx, cy, width / 2);
+          g.fill(0xffffff).stroke({ ...line, color: 0x000000 });
+          g.moveTo(x, cy)
+            .lineTo(x + width, cy)
+            .moveTo(cx, y)
+            .lineTo(cx, y + height);
+          g.stroke({ ...line, color: 0x000000 });
+          continue;
+      }
+      g.fill(0xffffff).stroke({ ...line, color: 0x000000 });
+    }
+  }
+
+  /** A line that stays visible on any background: white, with moving black dashes. */
+  private drawDashes(pieces: [Point, Point][]) {
+    const g = this.selection;
+    const line = { width: 1, pixelLine: true };
+    const lengths = pieces.map(([a, b]) => Math.hypot(b.x - a.x, b.y - a.y));
+    // Black dashes over white, moving, to stay visible on any background. Longer on a very
+    // large outline, to keep the number of segments reasonable.
+    const total = lengths.reduce((sum, length) => sum + length, 0);
+    const dash = Math.max(4 / this.zoom, total / 2000);
+    for (const [a, b] of pieces) g.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    g.stroke({ ...line, color: 0xffffff });
+    pieces.forEach(([a, b], i) => {
+      const length = lengths[i];
+      const dx = (b.x - a.x) / length;
+      const dy = (b.y - a.y) / length;
+      for (let s = this.dashPhase * dash; s < length; s += dash * 2) {
+        const end = Math.min(length, s + dash);
+        g.moveTo(a.x + dx * s, a.y + dy * s).lineTo(a.x + dx * end, a.y + dy * end);
+      }
+    });
+    g.stroke({ ...line, color: 0x000000 });
+  }
+
   private drawCursor() {
     const g = this.cursor;
     g.clear();
     const c = this.cursorState;
-    if (!c || c.kind === "none") return;
+    if (!c || c.kind === "none" || c.kind === "picker") return;
     // Two tones, one screen pixel apart, to stay visible on any background.
     const px = 1 / this.zoom;
     if (c.size * this.zoom < 6) {
@@ -270,6 +387,13 @@ export class DrawingView {
 
   /** Applies the pending changes. Call once per frame, before rendering. */
   flush() {
+    if (this.selectionPlace || this.selectionDraft) {
+      const phase = Math.floor(performance.now() / 150) % 2;
+      if (phase !== this.dashPhase) {
+        this.dashPhase = phase;
+        this.drawSelection();
+      }
+    }
     if (this.orderDirty) {
       this.layersRoot.removeChildren();
       for (const layer of this.drawing.layers) {

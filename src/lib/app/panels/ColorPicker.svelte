@@ -16,7 +16,8 @@
     fill = false,
     onchange,
   }: {
-    color: RGB;
+    /** Null: no color is selected. The hue and the area stay, without their markers. */
+    color: RGB | null;
     /**
      * Fills the height given by the parent (a resized panel): the saturation and value area
      * takes the height left. Otherwise that area is square.
@@ -29,13 +30,13 @@
   // which must not jump back to red while dragging through them.
   let hsv = $state<HSV>({ h: 0, s: 0, v: 0 });
   $effect.pre(() => {
-    if (!sameColor(hsvToRgb(hsv), color)) hsv = rgbToHsv(color);
+    if (color && !sameColor(hsvToRgb(hsv), color)) hsv = rgbToHsv(color);
   });
 
   function set(next: HSV) {
     hsv = next;
     const rgb = hsvToRgb(next);
-    if (!sameColor(rgb, color)) onchange(rgb);
+    if (!color || !sameColor(rgb, color)) onchange(rgb);
   }
 
   const clamp = (x: number) => Math.min(1, Math.max(0, x));
@@ -60,7 +61,7 @@
 
   const square = drag((x, y) => set({ h: hsv.h, s: x, v: 1 - y }));
   const hue = drag((x) => set({ ...hsv, h: Math.min(x * 360, 359.99) }));
-  const hex = $derived(toHex(color));
+  const hex = $derived(color ? toHex(color) : "");
 </script>
 
 <div class="picker" class:fill>
@@ -73,12 +74,14 @@
     tabindex="-1"
     {...square}
   >
-    <span
-      class="marker"
-      style:left="{hsv.s * 100}%"
-      style:top="{(1 - hsv.v) * 100}%"
-      style:background={hex}
-    ></span>
+    {#if color}
+      <span
+        class="marker"
+        style:left="{hsv.s * 100}%"
+        style:top="{(1 - hsv.v) * 100}%"
+        style:background={hex}
+      ></span>
+    {/if}
   </div>
 
   <div
@@ -89,15 +92,17 @@
     tabindex="-1"
     {...hue}
   >
-    <span
-      class="marker"
-      style:left="{(hsv.h / 360) * 100}%"
-      style:background="hsl({hsv.h} 100% 50%)"
-    ></span>
+    {#if color}
+      <span
+        class="marker"
+        style:left="{(hsv.h / 360) * 100}%"
+        style:background="hsl({hsv.h} 100% 50%)"
+      ></span>
+    {/if}
   </div>
 
   <div class="row">
-    <span class="swatch" style:background={hex}></span>
+    <span class="swatch" class:none={!color} style:background-color={hex}></span>
     <input
       type="text"
       value={hex}
@@ -192,6 +197,11 @@
     height: var(--control-height);
     border-radius: var(--radius-small);
     box-shadow: inset 0 0 0 1px #ffffff1a;
+  }
+
+  .swatch.none {
+    background: repeating-conic-gradient(var(--field-border) 0 25%, var(--field) 0 50%) 0 0 / 8px
+      8px;
   }
 
   .row input {

@@ -1,5 +1,6 @@
 // Pixel art tools: whole pixels, no anti-aliasing.
 
+import { selectionClip } from "#lib/core/selection/selection.js";
 import { Circle, Eraser, Pencil, Square } from "@lucide/svelte";
 import { PixelPathBuilder } from "#lib/core/brush/pixel-path.js";
 import { StrokeRaster, type StampShape } from "#lib/core/brush/raster.js";
@@ -32,6 +33,7 @@ function pixelTool(id: string, title: string, icon: Tool["icon"], mode: "paint" 
     title,
     icon,
     menu: TIP_MENU,
+    needsColor: mode === "paint",
     defaults: { size: 1, opacity: 1, pixelPerfect: true, shape: "round" },
     fields: [
       { kind: "integer", key: "size", label: "Size", min: 1, max: MAX_PIXEL_SIZE, unit: "px" },
@@ -51,6 +53,7 @@ function pixelTool(id: string, title: string, icon: Tool["icon"], mode: "paint" 
         color: context.color,
         opacity,
         mode,
+        ...selectionClip(context.editor.selection.state),
       });
       const path = new PixelPathBuilder(pixelPerfect && rounded === 1);
       return new PixelStroke(raster, path, rounded, shape, title);

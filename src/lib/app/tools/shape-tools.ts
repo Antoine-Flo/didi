@@ -4,6 +4,7 @@
 // pixel-art line angles, squares and circles; Ctrl draws from the center. The outline is
 // as thick as the size, with a square tip, like the cursor.
 
+import { selectionClip } from "#lib/core/selection/selection.js";
 import { Circle, Slash, Square } from "@lucide/svelte";
 import { StrokeRaster } from "#lib/core/brush/raster.js";
 import type { Pixel } from "#lib/core/brush/pixel-path.js";
@@ -73,6 +74,7 @@ function shapeTool(id: string, title: string, icon: Tool["icon"], kind: ShapeKin
         color: context.color,
         opacity: settings.opacity,
         mode: "paint",
+        ...selectionClip(context.editor.selection.state),
       });
       return new ShapeStroke(context, raster, kind, settings, pixelOf(sample), title);
     },

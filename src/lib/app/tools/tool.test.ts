@@ -60,6 +60,7 @@ describe("ToolRegistry", () => {
       "line",
       "rectangle",
       "ellipse",
+      "select",
       "picker",
     ]);
     for (const tool of registry.list()) {
