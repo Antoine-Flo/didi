@@ -40,6 +40,7 @@
     type Point,
   } from "#lib/render/camera.js";
   import { placementOf, selectionOutline } from "#lib/core/selection/selection.js";
+  import { shapeMask } from "#lib/core/selection/shape.js";
   import { DrawingView } from "#lib/render/drawing-view.js";
 
   let {
@@ -319,7 +320,9 @@
 
   function syncSelection() {
     const { state, draft } = editor.selection;
-    view?.setSelectionDraft(draft);
+    view?.setSelectionDraft(
+      draft && { rect: draft.rect, mask: draft.shape ? shapeMask(draft.rect, draft.shape) : null },
+    );
     view?.setSelection(
       placementOf(state),
       state.pivot ?? null,
@@ -345,6 +348,8 @@
         resizeTo: host,
         preference: "webgl",
         antialias: false,
+        // For the shader blend mode of the selection's preview.
+        useBackBuffer: true,
         background: getComputedStyle(host).getPropertyValue("--canvas-bg").trim() || "#2b2b2b",
         resolution: devicePixelRatio,
         autoDensity: true,

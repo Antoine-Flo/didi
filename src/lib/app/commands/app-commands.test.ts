@@ -50,6 +50,17 @@ describe("app commands", () => {
     expect(host.mode).toBe("painting");
   });
 
+  it("chooses the shape of a selection with the tool of the mode", () => {
+    const { editor, host } = setup();
+    editor.commands.execute("selection.lasso");
+    expect(host.tool).toBe("smoothSelect");
+    expect(host.options.tools.smoothSelect.shape).toBe("lasso");
+    host.mode = "pixel";
+    editor.commands.execute("selection.rectangle");
+    expect(host.tool).toBe("select");
+    expect(host.options.tools.select.shape).toBe("rectangle");
+  });
+
   it("selects tools", () => {
     const { editor, host } = setup();
     editor.commands.execute("tool.pixel");

@@ -19,6 +19,7 @@ import {
 } from "@lucide/svelte";
 import { brushSet } from "#lib/mypaint/brush-sets.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
+import { selectionClip } from "#lib/core/selection/selection.js";
 import { MyPaintStroke } from "#lib/mypaint/engine.js";
 import {
   defineTool,
@@ -123,6 +124,7 @@ class QueuedStroke implements ToolStroke {
       context.editor.drawing,
       context.layer!.id,
       settings.opacity,
+      selectionClip(context.editor.selection.state),
     );
     this.stroke.view = { zoom: sample.viewZoom ?? 1, rotation: sample.viewRotation ?? 0 };
     this.stroke.moveTo(sample.x, sample.y, sample.tiltX, sample.tiltY);

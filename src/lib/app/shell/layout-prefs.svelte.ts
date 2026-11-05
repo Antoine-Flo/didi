@@ -1,6 +1,7 @@
 // The user's layout preferences, saved in the app data folder so they are kept from one
 // session to the next: the hand (the panels on the left for right-handed users, on the
-// right for left-handed ones), where the tool column sits along it, and the sizes of resizable panels, in pixels, by panel id (e.g.
+// right for left-handed ones), where the tool column sits along it, the interface size, and
+// the sizes of resizable panels, in pixels at 100% interface size, by panel id (e.g.
 // "palette"; a panel without a size has its default one, see the Splitter widget). The
 // same in every mode: switching modes moves nothing.
 
@@ -12,10 +13,17 @@ const SAVE_DELAY_MS = 300;
 
 export type Hand = "right" | "left";
 
+/** The interface size, in percent. Barely below 100: the interface is already compact. */
+export const UI_SCALE_MIN = 90;
+export const UI_SCALE_MAX = 150;
+export const UI_SCALE_STEP = 5;
+
 export interface LayoutPrefsData {
   hand: Hand;
   /** The tool column's place along the panels: 0 at the top, 1 at the bottom. */
   toolsPosition: number;
+  /** The interface size, in percent. */
+  uiScale: number;
   sizes: Record<string, number>;
 }
 
@@ -31,6 +39,17 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
     const p = data.toolsPosition;
     if (typeof p === "number" && p >= 0 && p <= 1) prefs.toolsPosition = p;
   }
+  if ("uiScale" in data) {
+    const s = data.uiScale;
+    if (
+      typeof s === "number" &&
+      s >= UI_SCALE_MIN &&
+      s <= UI_SCALE_MAX &&
+      s % UI_SCALE_STEP === 0
+    ) {
+      prefs.uiScale = s;
+    }
+  }
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};
     for (const [id, size] of Object.entries(data.sizes)) {
@@ -45,10 +64,13 @@ export class LayoutPrefs {
   private data = $state<LayoutPrefsData>({
     hand: "right",
     toolsPosition: DEFAULT_TOOLS_POSITION,
+    uiScale: 100,
     sizes: {},
   });
   /** Changed before loading: kept over the saved values. */
-  private changed: { hand?: true; toolsPosition?: true; sizes: string[] } = { sizes: [] };
+  private changed: { hand?: true; toolsPosition?: true; uiScale?: true; sizes: string[] } = {
+    sizes: [],
+  };
   private loaded = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private onError: (message: string) => void = () => {};
@@ -81,6 +103,17 @@ export class LayoutPrefs {
     this.toolsPosition = DEFAULT_TOOLS_POSITION;
   }
 
+  get uiScale(): number {
+    return this.data.uiScale;
+  }
+
+  set uiScale(scale: number) {
+    if (scale === this.data.uiScale) return;
+    this.data.uiScale = scale;
+    if (!this.loaded) this.changed.uiScale = true;
+    this.scheduleSave();
+  }
+
   /** The size of a panel, or undefined for its default size. */
   size(id: string): number | undefined {
     return this.data.sizes[id];
@@ -110,6 +143,9 @@ export class LayoutPrefs {
         if (saved.hand && !this.changed.hand) this.data.hand = saved.hand;
         if (saved.toolsPosition !== undefined && !this.changed.toolsPosition) {
           this.data.toolsPosition = saved.toolsPosition;
+        }
+        if (saved.uiScale !== undefined && !this.changed.uiScale) {
+          this.data.uiScale = saved.uiScale;
         }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {
           if (!this.changed.sizes.includes(id)) this.data.sizes[id] = size;

@@ -82,7 +82,7 @@ export interface ToolMenu {
   items: {
     value: string;
     label: string;
-    icon: Component<{ size?: number; fill?: string }>;
+    icon: Component<{ fill?: string }>;
     /** The icon drawn filled, e.g. for a filled shape. */
     filledIcon?: boolean;
   }[];
@@ -131,17 +131,22 @@ export interface ToolStroke {
   cancel(): void;
 }
 
+/** "draw": it changes pixels. "pick": it chooses what to work on (an area, a color). */
+export type ToolSection = "draw" | "pick";
+
 export interface Tool<S extends ToolSettings = ToolSettings> {
   /** Unique, e.g. "pixel". Its command is `tool.<id>`. */
   readonly id: string;
   /** In English, e.g. "Pixel brush". Also the label of its undo steps. */
   readonly title: string;
-  readonly icon: Component<{ size?: number }>;
+  readonly icon: Component;
   readonly defaults: S;
   /** Controls of the tool bar, in order. */
   readonly fields?: readonly ToolField[];
   /** Shown in the tool bar when there are no fields. */
   readonly hint?: string;
+  /** Which part of the tool column it goes in. By default, "draw". */
+  readonly section?: ToolSection;
   /**
    * Id of the brush set it offers (see $lib/mypaint/brush-sets), in a popup next to its
    * button. Its settings then have a `preset`: the brush in use.

@@ -78,7 +78,7 @@
     right: 0;
     left: 0;
     z-index: 51;
-    width: min(520px, 90vw);
+    width: min(520px * var(--ui-scale), 90vw);
     margin: 0 auto;
     overflow: hidden;
     background: var(--popup);

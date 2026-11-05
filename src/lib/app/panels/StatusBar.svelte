@@ -47,7 +47,7 @@
 
   <div class="view">
     <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}
-      ><ZoomOut size={16} /></button
+      ><ZoomOut /></button
     >
 
     <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}
@@ -55,19 +55,19 @@
     >
 
     <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}
-      ><ZoomIn size={16} /></button
+      ><ZoomIn /></button
     >
 
     <button class="icon" title={tip("view.fit")} onclick={() => run("view.fit")}
-      ><Maximize size={16} /></button
+      ><Maximize /></button
     >
 
     <button class="icon" title={tip("view.rotateLeft")} onclick={() => run("view.rotateLeft")}
-      ><RotateCcw size={16} /></button
+      ><RotateCcw /></button
     >
 
     <button class="icon" title={tip("view.rotateRight")} onclick={() => run("view.rotateRight")}
-      ><RotateCw size={16} /></button
+      ><RotateCw /></button
     >
 
     <button
@@ -75,7 +75,7 @@
       title="{tip('view.resetRotation')} · {degrees(camera.rotation)}°"
       onclick={() => run("view.resetRotation")}
     >
-      <Compass size={16} />
+      <Compass />
     </button>
   </div>
 
@@ -127,7 +127,7 @@
   }
 
   .zoom {
-    width: 4.5em;
+    width: var(--percent-width);
     padding: 0;
   }
 

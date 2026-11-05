@@ -24,7 +24,7 @@ export interface Mode {
   readonly id: string;
   /** In English, e.g. "Pixel art". */
   readonly title: string;
-  readonly icon: Component<{ size?: number }>;
+  readonly icon: Component<{ class?: string }>;
   /** One line for the start screen, e.g. "Sprites, tiles, animation". */
   readonly description: string;
   readonly newDocument: NewDocumentOptions;
@@ -32,6 +32,8 @@ export interface Mode {
   readonly tools: readonly string[];
   /** The tool of the pen's eraser end. */
   readonly eraserTool: string;
+  /** The selection tool of this mode, for the shortcuts choosing a selection's shape. */
+  readonly selectTool: string;
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }

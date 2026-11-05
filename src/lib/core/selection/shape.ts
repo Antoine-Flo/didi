@@ -32,6 +32,27 @@ export function shapeFrom(points: readonly Point[], rect: Rect): SelectionShape 
   };
 }
 
+/**
+ * What a path on the canvas would select once closed by a straight line. Its points are pixel
+ * centers. Null: it takes two pixels to make a selection.
+ */
+export function pathSelection(
+  path: readonly Point[],
+): { rect: Rect; shape: SelectionShape } | null {
+  if (path.length < 2) return null;
+  const xs = path.map((p) => p.x);
+  const ys = path.map((p) => p.y);
+  const x = Math.floor(Math.min(...xs));
+  const y = Math.floor(Math.min(...ys));
+  const rect = {
+    x,
+    y,
+    width: Math.ceil(Math.max(...xs)) - x,
+    height: Math.ceil(Math.max(...ys)) - y,
+  };
+  return { rect, shape: shapeFrom(path, rect) };
+}
+
 /** Marks the pixels of a line, without gaps. */
 function markLine(
   mask: Uint8Array,
@@ -51,16 +72,21 @@ function markLine(
 function buildMask({ points }: SelectionShape, width: number, height: number): Uint8Array {
   const mask = new Uint8Array(width * height);
   const local = points.map((p) => ({ x: p.x * width, y: p.y * height }));
-  // What it surrounds: the pixels whose center is inside, row by row.
+  // What it surrounds: the pixels whose center is inside, row by row. Each piece of the path is
+  // only looked at for the rows it reaches: a long path has a lot of short pieces.
+  const rows: number[][] = Array.from({ length: height }, () => []);
+  local.forEach((a, i) => {
+    const b = local[(i + 1) % local.length];
+    const first = Math.max(0, Math.ceil(Math.min(a.y, b.y) - 0.5));
+    const last = Math.min(height - 1, Math.floor(Math.max(a.y, b.y) - 0.5));
+    for (let y = first; y <= last; y++) {
+      const center = y + 0.5;
+      if (a.y <= center === b.y <= center) continue;
+      rows[y].push(a.x + ((center - a.y) * (b.x - a.x)) / (b.y - a.y));
+    }
+  });
   for (let y = 0; y < height; y++) {
-    const center = y + 0.5;
-    const crossings: number[] = [];
-    local.forEach((a, i) => {
-      const b = local[(i + 1) % local.length];
-      if (a.y <= center === b.y <= center) return;
-      crossings.push(a.x + ((center - a.y) * (b.x - a.x)) / (b.y - a.y));
-    });
-    crossings.sort((u, v) => u - v);
+    const crossings = rows[y].sort((u, v) => u - v);
     for (let i = 0; i + 1 < crossings.length; i += 2) {
       const from = Math.max(0, Math.ceil(crossings[i] - 0.5));
       const to = Math.min(width - 1, Math.floor(crossings[i + 1] - 0.5));

@@ -115,7 +115,7 @@
               aria-checked={m.id === chosen.id}
               onclick={() => choose(m)}
             >
-              <span class="mode-title"><Icon size={20} /> {m.title}</span>
+              <span class="mode-title"><Icon class="icon-large" /> {m.title}</span>
               <span class="mode-description">{m.description}</span>
             </button>
           {/each}
@@ -198,7 +198,9 @@
                   <span class="name">
                     {#if fileMode}
                       {@const Icon = fileMode.icon}
-                      <span class="file-mode" title={fileMode.title}><Icon size={14} /></span>
+                      <span class="file-mode" title={fileMode.title}
+                        ><Icon class="icon-small" /></span
+                      >
                     {/if}
                     {file.name}
                   </span>
@@ -238,7 +240,7 @@
     z-index: 51;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    width: min(760px, 92vw);
+    width: min(760px * var(--ui-scale), 92vw);
     height: fit-content;
     max-height: 90vh;
     margin: auto;
@@ -322,7 +324,7 @@
 
   .sizes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(calc(88px * var(--ui-scale)), 1fr));
     gap: calc(var(--space) / 2);
   }
 
@@ -353,7 +355,7 @@
 
   .custom input {
     box-sizing: border-box;
-    width: 72px;
+    width: calc(72px * var(--ui-scale));
     height: var(--control-height);
     padding: 0 var(--space);
     color: inherit;
@@ -394,7 +396,7 @@
 
   li button {
     display: grid;
-    grid-template-columns: 48px 1fr;
+    grid-template-columns: calc(48px * var(--ui-scale)) 1fr;
     grid-template-rows: auto auto;
     column-gap: var(--space);
     align-items: center;
@@ -406,8 +408,8 @@
 
   img {
     grid-row: span 2;
-    width: 48px;
-    height: 48px;
+    width: calc(48px * var(--ui-scale));
+    height: calc(48px * var(--ui-scale));
     object-fit: contain;
     border-radius: var(--radius-small);
     /* Checkerboard behind transparent drawings. */

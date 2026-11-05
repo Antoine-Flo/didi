@@ -49,7 +49,7 @@
       <Menubar.Sub>
         <Menubar.SubTrigger class="menu-item" disabled={entry.items.length === 0}>
           {entry.label}
-          <span class="menu-item-end"><ChevronRight size={14} /></span>
+          <span class="menu-item-end"><ChevronRight class="icon-small" /></span>
         </Menubar.SubTrigger>
         <Menubar.SubContent class="menu-content menubar-content" sideOffset={4}>
           {@render entries(entry.items)}
@@ -111,6 +111,6 @@
   }
 
   :global(.menubar-content) {
-    min-width: 220px;
+    min-width: calc(220px * var(--ui-scale));
   }
 </style>

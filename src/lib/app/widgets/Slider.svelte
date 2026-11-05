@@ -62,7 +62,7 @@
 
   input {
     flex: 1;
-    min-width: 60px;
+    min-width: calc(60px * var(--ui-scale));
   }
 
   .value {

@@ -90,6 +90,7 @@ export const pickerTool = defineTool<PickerSettings>({
   id: "picker",
   title: "Color picker",
   icon: Pipette,
+  section: "pick",
   defaults: { source: "canvas", channels: "both" },
   fields: [
     { kind: "choice", key: "source", label: "Pick from", choices: choices(SOURCES) },

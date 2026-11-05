@@ -147,7 +147,7 @@
 
   .fill .square {
     flex: 1;
-    min-height: 40px;
+    min-height: calc(40px * var(--ui-scale));
     aspect-ratio: auto;
   }
 
@@ -157,7 +157,7 @@
   }
 
   .hue {
-    height: 10px;
+    height: calc(10px * var(--ui-scale));
     background: linear-gradient(
       to right,
       #f00 0%,
@@ -173,8 +173,8 @@
   .marker {
     position: absolute;
     box-sizing: border-box;
-    width: 12px;
-    height: 12px;
+    width: calc(12px * var(--ui-scale));
+    height: calc(12px * var(--ui-scale));
     border: 2px solid #fff;
     border-radius: 50%;
     box-shadow: 0 0 0 1px #0006;

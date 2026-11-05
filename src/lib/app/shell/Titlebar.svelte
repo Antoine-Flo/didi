@@ -171,7 +171,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
+    width: calc(36px * var(--ui-scale));
     height: var(--control-height);
     padding: 0;
     color: var(--text-muted);
@@ -191,8 +191,8 @@
   }
 
   svg {
-    width: 10px;
-    height: 10px;
+    width: calc(10px * var(--ui-scale));
+    height: calc(10px * var(--ui-scale));
     fill: none;
     stroke: currentColor;
     stroke-width: 1;

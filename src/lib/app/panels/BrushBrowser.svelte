@@ -45,7 +45,9 @@
 
   {#if brushes.more.length > 0}
     <button class="more" onclick={() => (showMore = !showMore)}>
-      {#if showMore}<ChevronDown size={14} />{:else}<ChevronRight size={14} />{/if}
+      {#if showMore}<ChevronDown class="icon-small" />{:else}<ChevronRight
+          class="icon-small"
+        />{/if}
       More brushes
     </button>
 
@@ -78,8 +80,8 @@
 
   img {
     flex: none;
-    width: 32px;
-    height: 32px;
+    width: calc(32px * var(--ui-scale));
+    height: calc(32px * var(--ui-scale));
     border-radius: var(--radius-small);
   }
 

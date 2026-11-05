@@ -1,6 +1,12 @@
 /* Base styles of the interface. Colors and sizes come from the theme (theme.ts).
    Element styles are wrapped in :where() so that any component class overrides them. */
 
+/* The interface size chosen by the user, as a factor (see LayoutPrefs). Lines and small gaps
+   stay as they are; everything else is multiplied by it. */
+:root {
+  --ui-scale: 1;
+}
+
 html,
 body {
   margin: 0;
@@ -13,6 +19,22 @@ body {
   line-height: 1.4;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The size comes from here rather than from each icon, to follow the interface size. */
+svg.lucide-icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+svg.lucide-icon.icon-small {
+  width: var(--icon-size-small);
+  height: var(--icon-size-small);
+}
+
+svg.lucide-icon.icon-large {
+  width: var(--icon-size-large);
+  height: var(--icon-size-large);
 }
 
 /* A floating panel over the canvas. */
@@ -109,6 +131,8 @@ body {
 }
 
 :where(input[type="checkbox"]) {
+  width: calc(13px * var(--ui-scale));
+  height: calc(13px * var(--ui-scale));
   margin: 0;
   accent-color: var(--accent);
 }
@@ -130,9 +154,10 @@ input[type="range"]::-webkit-slider-runnable-track {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 11px;
-  height: 11px;
-  margin-top: -4px;
+  width: calc(11px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+  /* Centered on the track. */
+  margin-top: calc(1.5px - 5.5px * var(--ui-scale));
   border-radius: 50%;
   background: var(--text);
 }

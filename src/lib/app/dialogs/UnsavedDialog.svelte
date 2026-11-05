@@ -68,7 +68,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space);
-    width: min(400px, 90vw);
+    width: min(400px * var(--ui-scale), 90vw);
     height: fit-content;
     margin: auto;
     padding: calc(var(--space) * 2);

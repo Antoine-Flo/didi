@@ -4,6 +4,9 @@
 // an edge. On the cross: moves the center of rotation. Inside: moves the content. On the outer
 // handles: scales, rotates or skews it. Content stays floating until it is applied, and every
 // gesture is one undo step.
+//
+// There are two tools, as for the pencils and erasers: one keeps pixels exact, for pixel art, and
+// the other one smooths transformed content, for painting.
 
 import { Lasso, SquareDashed } from "@lucide/svelte";
 import { moveEdge, scaled, zoneAt, zoneCursor, type Side } from "#lib/core/selection/handles.js";
@@ -27,12 +30,12 @@ import {
   showFloating,
   type SelectionState,
 } from "#lib/core/selection/selection.js";
-import { shapeFrom, shapeMask } from "#lib/core/selection/shape.js";
+import { pathSelection, shapeMask } from "#lib/core/selection/shape.js";
 import type { TileSnapshot } from "#lib/core/document/tiles.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { intersect, type Rect } from "#lib/core/geometry.js";
 import type { Edit } from "#lib/core/history/edits.js";
-import { defineTool, type Sample, type ToolContext, type ToolStroke } from "./tool";
+import { defineTool, type Sample, type Tool, type ToolContext, type ToolStroke } from "./tool";
 
 const SNAP_ANGLE = Math.PI / 12;
 
@@ -107,20 +110,54 @@ abstract class Gesture implements ToolStroke {
   }
 }
 
-/** Drags out a new selection. A click just removes the current one. */
-class NewSelection extends Gesture {
+/**
+ * Makes a new selection. While the pen is down, only what it would select shows: the selection
+ * comes when it is lifted. A click just removes the current one.
+ */
+abstract class NewArea extends Gesture {
+  private lifted = false;
+
+  constructor(context: ToolContext, sample: Sample) {
+    super(context, sample, "Select");
+    context.editor.selection.set({ rect: null, floating: null });
+  }
+
+  /** Updates the draft. */
+  protected abstract track(pen: Sample): void;
+
+  protected update(pen: Sample) {
+    if (!this.lifted) this.track(pen);
+  }
+
+  finish(): Edit | null {
+    this.flush();
+    this.lifted = true;
+    const { selection } = this.editor;
+    const { draft } = selection;
+    selection.setDraft(null);
+    if (draft) selection.set({ ...draft, floating: null });
+    return super.finish();
+  }
+
+  cancel() {
+    this.editor.selection.setDraft(null);
+    super.cancel();
+  }
+}
+
+/** Drags out a rectangle. */
+class NewRectangle extends NewArea {
   private readonly startX: number;
   private readonly startY: number;
   private moved = false;
 
   constructor(context: ToolContext, sample: Sample) {
-    super(context, sample, "Select");
+    super(context, sample);
     this.startX = Math.floor(sample.x);
     this.startY = Math.floor(sample.y);
-    context.editor.selection.set({ rect: null, floating: null });
   }
 
-  protected update(pen: Sample) {
+  protected track(pen: Sample) {
     const x = Math.floor(pen.x);
     const y = Math.floor(pen.y);
     if (!this.moved && x === this.startX && y === this.startY) return;
@@ -135,20 +172,16 @@ class NewSelection extends Gesture {
     };
     const rect = intersect(box, canvasOf(this.editor));
     const { selection } = this.editor;
-    if (!samePlacement(rect, selection.rect)) selection.set({ rect, floating: null });
+    if (samePlacement(rect, selection.draft?.rect ?? null)) return;
+    selection.setDraft(rect && { rect });
   }
 }
 
-/** Draws a new selection freehand, closed by a straight line. A click removes the current one. */
-class NewLasso extends Gesture {
+/** Draws a shape freehand, closed by a straight line. */
+class NewLasso extends NewArea {
   /** The pixels the pen went through: their centers. */
   private readonly path: Point[] = [];
   private shown = 0;
-
-  constructor(context: ToolContext, sample: Sample) {
-    super(context, sample, "Select");
-    context.editor.selection.set({ rect: null, floating: null });
-  }
 
   move(sample: Sample) {
     super.move(sample);
@@ -159,36 +192,10 @@ class NewLasso extends Gesture {
     if (!last || last.x !== x || last.y !== y) this.path.push({ x, y });
   }
 
-  /** While the pen is down, only the line shows: the selection comes when it is lifted. */
-  protected update() {
+  protected track() {
     if (this.path.length === this.shown) return;
     this.shown = this.path.length;
-    this.editor.selection.setDraft([...this.path]);
-  }
-
-  finish(): Edit | null {
-    const { selection } = this.editor;
-    this.shown = this.path.length;
-    selection.setDraft(null);
-    if (this.path.length >= 2) {
-      const xs = this.path.map((p) => p.x);
-      const ys = this.path.map((p) => p.y);
-      const left = Math.floor(Math.min(...xs));
-      const top = Math.floor(Math.min(...ys));
-      const rect = {
-        x: left,
-        y: top,
-        width: Math.ceil(Math.max(...xs)) - left,
-        height: Math.ceil(Math.max(...ys)) - top,
-      };
-      selection.set({ rect, shape: shapeFrom(this.path, rect), floating: null });
-    }
-    return super.finish();
-  }
-
-  cancel() {
-    this.editor.selection.setDraft(null);
-    super.cancel();
+    this.editor.selection.setDraft(pathSelection(this.path));
   }
 }
 
@@ -257,6 +264,8 @@ class TransformContent extends Gesture {
     label: string,
     private readonly layerId: string,
     private readonly place: Place,
+    /** Mixes original pixels, rather than keeping them exact (see showFloating). */
+    private readonly smooth: boolean,
     /** The center of rotation follows the content. */
     private readonly carriesPivot = false,
   ) {
@@ -275,7 +284,7 @@ class TransformContent extends Gesture {
     const floating =
       selection.floating ??
       lift(drawing, this.layerId, shownAt, shape ? shapeMask(shownAt, shape) : null);
-    showFloating(drawing, floating, shownAt, next);
+    showFloating(drawing, floating, shownAt, next, this.smooth);
     const { transform, x, y, width, height } = next;
     let pivot = this.startPivot;
     if (pivot && this.carriesPivot) {
@@ -303,77 +312,86 @@ type SelectSettings = {
   shape: "rectangle" | "lasso";
 };
 
-export const selectTool = defineTool<SelectSettings>({
-  id: "select",
-  title: "Selection",
-  icon: SquareDashed,
-  defaults: { shape: "rectangle" },
-  menu: {
-    key: "shape",
-    iconFollowsChoice: true,
-    items: [
-      { value: "rectangle", label: "Rectangle", icon: SquareDashed },
-      { value: "lasso", label: "Lasso", icon: Lasso },
-    ],
-  },
-  hint: "Drag to select. Enter applies, Esc cancels.",
-  needsLayer: false,
-  needsColor: false,
-  cursor: () => ({ kind: "none" }),
-  hover(editor, { x, y }, zoom) {
-    const { state } = editor.selection;
-    const placement = placementOf(state);
-    if (!placement) return null;
-    return zoneCursor(zoneAt(placement, x, y, zoom, state.pivot ?? null), placement);
-  },
-  begin(context, settings, sample) {
-    const { state } = context.editor.selection;
-    const placement = placementOf(state);
-    const zone = placement
-      ? zoneAt(placement, sample.x, sample.y, sample.viewZoom ?? 1, state.pivot ?? null)
-      : ({ kind: "outside" } as const);
-    if (zone.kind === "outside") {
-      return settings.shape === "lasso"
-        ? new NewLasso(context, sample)
-        : new NewSelection(context, sample);
-    }
-    if (zone.kind === "bounds") return new MoveEdge(context, sample, zone.side);
-    if (zone.kind === "pivot") return new MovePivot(context, sample);
-
-    const layerId = contentLayer(context);
-    if (!layerId) return null;
-    const transform = (label: string, place: Place, carriesPivot = false) =>
-      new TransformContent(context, sample, label, layerId, place, carriesPivot);
-
-    switch (zone.kind) {
-      case "inside":
-        return transform(
-          "Move",
-          (start, pen, grab) =>
-            moved(start, Math.round(pen.x - grab.x), Math.round(pen.y - grab.y)),
-          true,
-        );
-      case "content":
-        return transform("Scale", (start, pen, grab) => {
-          const delta = boxDelta(start, pen.x - grab.x, pen.y - grab.y);
-          const shift = context.modifiers().shift;
-          return scaled(start, zone.id, delta.x, delta.y, shift);
-        });
-      case "rotate": {
-        const center = state.pivot ?? centerOf(placement!);
-        return transform("Rotate", (start, pen, grab) => {
-          const from = Math.atan2(grab.y - center.y, grab.x - center.x);
-          let angle = Math.atan2(pen.y - center.y, pen.x - center.x) - from;
-          if (context.modifiers().shift) angle = Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
-          return angle === 0 ? start : rotated(start, center, angle);
-        });
+function selectionTool(id: string, title: string, smooth: boolean): Tool {
+  return defineTool<SelectSettings>({
+    id,
+    title,
+    icon: SquareDashed,
+    section: "pick",
+    defaults: { shape: "rectangle" },
+    menu: {
+      key: "shape",
+      iconFollowsChoice: true,
+      items: [
+        { value: "rectangle", label: "Rectangle", icon: SquareDashed },
+        { value: "lasso", label: "Lasso", icon: Lasso },
+      ],
+    },
+    hint: "Drag to select. Enter applies, Esc cancels.",
+    needsLayer: false,
+    needsColor: false,
+    cursor: () => ({ kind: "none" }),
+    hover(editor, { x, y }, zoom) {
+      const { state } = editor.selection;
+      const placement = placementOf(state);
+      if (!placement) return null;
+      return zoneCursor(zoneAt(placement, x, y, zoom, state.pivot ?? null), placement);
+    },
+    begin(context, settings, sample) {
+      const { state } = context.editor.selection;
+      const placement = placementOf(state);
+      const zone = placement
+        ? zoneAt(placement, sample.x, sample.y, sample.viewZoom ?? 1, state.pivot ?? null)
+        : ({ kind: "outside" } as const);
+      if (zone.kind === "outside") {
+        return settings.shape === "lasso"
+          ? new NewLasso(context, sample)
+          : new NewRectangle(context, sample);
       }
-      case "skew":
-        return transform("Skew", (start, pen, grab) => {
-          const dx = pen.x - grab.x;
-          const dy = pen.y - grab.y;
-          return dx === 0 && dy === 0 ? start : skewed(start, zone.side, dx, dy);
-        });
-    }
-  },
-});
+      if (zone.kind === "bounds") return new MoveEdge(context, sample, zone.side);
+      if (zone.kind === "pivot") return new MovePivot(context, sample);
+
+      const layerId = contentLayer(context);
+      if (!layerId) return null;
+      const transform = (label: string, place: Place, carriesPivot = false) =>
+        new TransformContent(context, sample, label, layerId, place, smooth, carriesPivot);
+
+      switch (zone.kind) {
+        case "inside":
+          return transform(
+            "Move",
+            (start, pen, grab) =>
+              moved(start, Math.round(pen.x - grab.x), Math.round(pen.y - grab.y)),
+            true,
+          );
+        case "content":
+          return transform("Scale", (start, pen, grab) => {
+            const delta = boxDelta(start, pen.x - grab.x, pen.y - grab.y);
+            const shift = context.modifiers().shift;
+            return scaled(start, zone.id, delta.x, delta.y, shift);
+          });
+        case "rotate": {
+          const center = state.pivot ?? centerOf(placement!);
+          return transform("Rotate", (start, pen, grab) => {
+            const from = Math.atan2(grab.y - center.y, grab.x - center.x);
+            let angle = Math.atan2(pen.y - center.y, pen.x - center.x) - from;
+            if (context.modifiers().shift) angle = Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
+            return angle === 0 ? start : rotated(start, center, angle);
+          });
+        }
+        case "skew":
+          return transform("Skew", (start, pen, grab) => {
+            const dx = pen.x - grab.x;
+            const dy = pen.y - grab.y;
+            return dx === 0 && dy === 0 ? start : skewed(start, zone.side, dx, dy);
+          });
+      }
+    },
+  });
+}
+
+export const selectTool = selectionTool("select", "Selection", false);
+export const smoothSelectTool = selectionTool("smoothSelect", "Smooth selection", true);
+
+/** Whether it is one of the selection tools: they show the selection's handles. */
+export const isSelectTool = ({ id }: Tool) => id === selectTool.id || id === smoothSelectTool.id;

@@ -11,6 +11,7 @@ describe("modes", () => {
     for (const mode of modes.list()) {
       expect(mode.tools.length, mode.id).toBeGreaterThan(0);
       for (const id of [...mode.tools, mode.eraserTool]) expect(tools.has(id), id).toBe(true);
+      expect(mode.tools, mode.id).toContain(mode.selectTool);
     }
   });
 

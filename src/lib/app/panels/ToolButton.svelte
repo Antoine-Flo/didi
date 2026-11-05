@@ -58,7 +58,7 @@
       title={tip(`tool.${tool.id}`)}
       onclick={() => run(`tool.${tool.id}`)}
     >
-      <Icon size={16} />
+      <Icon />
     </Popover.Trigger>
     <Popover.Portal>
       <Popover.Content
@@ -88,7 +88,7 @@
                 open = false;
               }}
             >
-              <item.icon size={16} fill={item.filledIcon ? "currentColor" : "none"} />
+              <item.icon fill={item.filledIcon ? "currentColor" : "none"} />
               {item.label}
             </button>
           {/each}
@@ -103,7 +103,7 @@
     title={tip(`tool.${tool.id}`)}
     onclick={() => run(`tool.${tool.id}`)}
   >
-    <tool.icon size={16} />
+    <tool.icon />
   </button>
 {/if}
 
@@ -113,8 +113,8 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    min-width: 140px;
-    max-height: min(560px, var(--bits-floating-available-height));
+    min-width: calc(140px * var(--ui-scale));
+    max-height: min(560px * var(--ui-scale), var(--bits-floating-available-height));
     padding: calc(var(--space) / 2);
     overflow-y: auto;
     background: var(--popup);
@@ -124,6 +124,6 @@
   }
 
   :global(.tool-popup.brushes) {
-    width: 220px;
+    width: calc(220px * var(--ui-scale));
   }
 </style>

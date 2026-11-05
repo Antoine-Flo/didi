@@ -76,7 +76,10 @@
 </script>
 
 <aside class="panel tool-column" style:top="{top}px" bind:this={element} bind:clientHeight={height}>
-  {#each tools as t (t.id)}
+  {#each tools as t, i (t.id)}
+    {#if i > 0 && (tools[i - 1].section ?? "draw") !== (t.section ?? "draw")}
+      <hr />
+    {/if}
     <ToolButton tool={t} active={active === t.id} settings={settings[t.id]} {side} {tip} {run} />
   {/each}
 
@@ -91,7 +94,7 @@
     ondblclick={onreset}
     {onkeydown}
   >
-    <GripHorizontal size={14} />
+    <GripHorizontal class="icon-small" />
   </button>
 </aside>
 
@@ -104,6 +107,15 @@
     gap: 2px;
     padding: calc(var(--space) / 2);
     pointer-events: auto;
+  }
+
+  hr {
+    flex: none;
+    width: 100%;
+    height: 1px;
+    margin: calc(var(--space) / 2) 0;
+    background: var(--border);
+    border: none;
   }
 
   /* Smaller than a tool, and quieter. */

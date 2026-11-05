@@ -118,7 +118,7 @@
           title={layer.visible ? "Hide" : "Show"}
           onclick={() => update(layer.id, { visible: !layer.visible })}
         >
-          {#if layer.visible}<Eye size={16} />{:else}<EyeOff size={16} />{/if}
+          {#if layer.visible}<Eye />{:else}<EyeOff />{/if}
         </button>
         {#if renaming === layer.id}
           <!-- svelte-ignore a11y_autofocus -->
@@ -147,7 +147,7 @@
           title={layer.locked ? "Unlock" : "Lock"}
           onclick={() => update(layer.id, { locked: !layer.locked })}
         >
-          {#if layer.locked}<Lock size={16} />{:else}<LockOpen size={16} />{/if}
+          {#if layer.locked}<Lock />{:else}<LockOpen />{/if}
         </button>
       </li>
     {/each}
@@ -155,7 +155,7 @@
 
   <div class="actions">
     <button class="icon" title={tip("layer.add")} onclick={() => run("layer.add")}>
-      <Plus size={16} />
+      <Plus />
     </button>
     <button
       class="icon"
@@ -163,7 +163,7 @@
       disabled={!active || active.index >= count - 1}
       onclick={() => run("layer.moveUp")}
     >
-      <ArrowUp size={16} />
+      <ArrowUp />
     </button>
     <button
       class="icon"
@@ -171,7 +171,7 @@
       disabled={!active || active.index <= 0}
       onclick={() => run("layer.moveDown")}
     >
-      <ArrowDown size={16} />
+      <ArrowDown />
     </button>
     <button
       class="icon"
@@ -179,7 +179,7 @@
       disabled={!active}
       onclick={() => run("layer.remove")}
     >
-      <Trash2 size={16} />
+      <Trash2 />
     </button>
   </div>
 </section>

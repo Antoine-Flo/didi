@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { Drawing, type DrawingChange } from "#lib/core/document/drawing.js";
 import { TILE_SIZE, tileKey } from "#lib/core/document/tiles.js";
+import type { Rect } from "#lib/core/geometry.js";
 import { History } from "#lib/core/history/history.js";
 import { capture, expectSameState, fill, firstDifference } from "#lib/core/test-utils.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
@@ -327,6 +328,67 @@ describe("libmypaint engine", () => {
     expect(differing).toEqual([]);
     // A few brushes only act in special conditions (e.g. blur on a uniform color).
     expect(silent.length, silent.join(", ")).toBeLessThan(BUNDLED_BRUSHES.length / 10);
+  });
+});
+
+describe("a stroke limited to an area", () => {
+  /** A stroke across the canvas at y = 150, in a band of it. */
+  function limited(limit: { clip: Rect; clipMask: Uint8Array | null }) {
+    const { drawing, id } = setup();
+    const stroke = new MyPaintStroke(mp, brush("deevad/liner"), drawing, id, 1, limit);
+    stroke.moveTo(20, 150);
+    draw(stroke, 20, 280, 150);
+    return { drawing, id, stroke };
+  }
+
+  it("changes nothing outside the rectangle", () => {
+    const { drawing, id, stroke } = limited({
+      clip: { x: 100, y: 100, width: 100, height: 100 },
+      clipMask: null,
+    });
+    stroke.finish("Stroke");
+    expect(pixel(drawing, id, 150, 150)[3]).toBeGreaterThan(0);
+    for (const x of [40, 99, 200, 260]) expect(pixel(drawing, id, x, 150)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("only changes the pixels of the mask", () => {
+    const clip = { x: 100, y: 100, width: 100, height: 100 };
+    // The left half only.
+    const clipMask = new Uint8Array(clip.width * clip.height);
+    for (let y = 0; y < clip.height; y++) clipMask.fill(1, y * 100, y * 100 + 50);
+    const { drawing, id, stroke } = limited({ clip, clipMask });
+    stroke.finish("Stroke");
+    expect(pixel(drawing, id, 120, 150)[3]).toBeGreaterThan(0);
+    expect(pixel(drawing, id, 150, 150)).toEqual([0, 0, 0, 0]);
+    expect(pixel(drawing, id, 170, 150)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("makes no undo step when it stays outside", () => {
+    const { stroke } = limited({ clip: { x: 0, y: 0, width: 50, height: 50 }, clipMask: null });
+    expect(stroke.finish("Stroke")).toBeNull();
+  });
+
+  it("is undone like any other", () => {
+    const { drawing, id, history } = (() => {
+      const context = setup();
+      context.drawing.writePixels(
+        context.id,
+        { x: 140, y: 140, width: 1, height: 1 },
+        new Uint8ClampedArray([1, 2, 3, 255]),
+      );
+      return context;
+    })();
+    const stroke = new MyPaintStroke(mp, brush("deevad/liner"), drawing, id, 1, {
+      clip: { x: 100, y: 100, width: 100, height: 100 },
+      clipMask: null,
+    });
+    stroke.moveTo(20, 150);
+    draw(stroke, 20, 280, 150);
+    history.push(stroke.finish("Stroke")!);
+    expect(pixel(drawing, id, 150, 150)[3]).toBeGreaterThan(0);
+    history.undo();
+    expect(pixel(drawing, id, 150, 150)).toEqual([0, 0, 0, 0]);
+    expect(pixel(drawing, id, 140, 140)).toEqual([1, 2, 3, 255]);
   });
 });
 

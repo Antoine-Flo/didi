@@ -77,7 +77,7 @@
 
     <div
       class="swatches"
-      style:--swatch-size="{swatchSize}px"
+      style:--swatch-size="calc({swatchSize}px * var(--ui-scale))"
       onwheel={(e) => {
         if (!e.ctrlKey || !onzoom) return;
         e.preventDefault();
@@ -105,7 +105,7 @@
         disabled={!color}
         onclick={() => run("palette.addColor")}
       >
-        <Plus size={12} />
+        <Plus />
       </button>
     </div>
   {:else if info}
@@ -114,10 +114,10 @@
 
   <div class="actions">
     <button class="icon" title={tip("palette.new")} onclick={() => run("palette.new")}>
-      <Plus size={16} />
+      <Plus />
     </button>
     <button class="icon" title={tip("palette.import")} onclick={() => run("palette.import")}>
-      <FileUp size={16} />
+      <FileUp />
     </button>
     <button
       class="icon"
@@ -125,7 +125,7 @@
       disabled={!info?.hasActive}
       onclick={() => (renaming = true)}
     >
-      <Pencil size={16} />
+      <Pencil />
     </button>
     <button
       class="icon"
@@ -133,7 +133,7 @@
       disabled={!info?.hasActive}
       onclick={() => run("palette.delete")}
     >
-      <Trash2 size={16} />
+      <Trash2 />
     </button>
   </div>
 </section>
@@ -149,7 +149,7 @@
     grid-template-columns: repeat(auto-fill, minmax(var(--swatch-size), 1fr));
     align-content: start;
     gap: 3px;
-    max-height: 160px;
+    max-height: calc(160px * var(--ui-scale));
     overflow-y: auto;
   }
 
@@ -187,5 +187,10 @@
     justify-content: center;
     color: var(--text-muted);
     box-shadow: inset 0 0 0 1px var(--field-border);
+  }
+
+  .add :global(svg) {
+    width: calc(12px * var(--ui-scale));
+    height: calc(12px * var(--ui-scale));
   }
 </style>

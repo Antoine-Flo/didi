@@ -24,6 +24,7 @@ import { selectionHandles } from "#lib/core/selection/handles.js";
 import { corners, toCanvas, type Placement, type Point } from "#lib/core/selection/placement.js";
 import type { OutlineRun } from "#lib/core/selection/shape.js";
 import { visibleRect, type Camera } from "./camera";
+import { CONTRAST_BLEND } from "./contrast-blend";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {
   normal: "normal",
@@ -137,7 +138,8 @@ export class DrawingView {
   private selection = new Graphics();
   private selectionPlace: Placement | null = null;
   private selectionPivot: Point | null = null;
-  private selectionDraft: readonly Point[] | null = null;
+  /** The exact pixels a selection being made would select, over the layers. */
+  private selectionDraft = new Sprite();
   /** A lasso's outline, in pixels of its box. Null: the box itself. */
   private selectionOutline: OutlineRun[] | null = null;
   private selectionHasHandles = false;
@@ -162,9 +164,12 @@ export class DrawingView {
       this.checkerMask,
       this.layersRoot,
       this.grid,
+      this.selectionDraft,
       this.selection,
       this.cursor,
     );
+    this.selectionDraft.blendMode = CONTRAST_BLEND;
+    this.selectionDraft.visible = false;
     this.root.addChild(this.checker, this.canvasRoot);
     for (const layer of drawing.layers) this.addView(layer.id);
     this.orderDirty = true;
@@ -216,21 +221,53 @@ export class DrawingView {
     this.drawSelection();
   }
 
-  /** Shows a lasso being drawn, in place of the selection. Null: none. */
-  setSelectionDraft(path: readonly Point[] | null) {
-    this.selectionDraft = path;
-    this.drawSelection();
+  /**
+   * Shows the pixels a selection being made would select: those of `rect`, or those of it where
+   * `mask` is 1. Null: none.
+   */
+  setSelectionDraft(draft: { rect: Rect; mask: Uint8Array | null } | null) {
+    const sprite = this.selectionDraft;
+    sprite.visible = !!draft;
+    if (!draft) return;
+    const { rect, mask } = draft;
+    this.showDraftMask(rect, mask);
+    sprite.position.set(rect.x, rect.y);
+    sprite.setSize(rect.width, rect.height);
+  }
+
+  private showDraftMask(rect: Rect, mask: Uint8Array | null) {
+    const sprite = this.selectionDraft;
+    const old = sprite.texture;
+    const ours = old !== Texture.EMPTY && old !== Texture.WHITE;
+    let bytes: Uint8Array | null = null;
+    if (mask) {
+      const texels = new Uint32Array(mask.length);
+      for (let i = 0; i < mask.length; i++) if (mask[i]) texels[i] = 0xffffffff;
+      bytes = new Uint8Array(texels.buffer);
+    }
+    if (bytes && ours && old.width === rect.width && old.height === rect.height) {
+      const source = old.source as BufferImageSource;
+      source.resource = bytes;
+      source.update();
+      return;
+    }
+    sprite.texture = bytes
+      ? new Texture({
+          source: new BufferImageSource({
+            resource: bytes,
+            width: rect.width,
+            height: rect.height,
+            alphaMode: "premultiplied-alpha",
+            scaleMode: "nearest",
+          }),
+        })
+      : Texture.WHITE;
+    if (ours) old.destroy(true);
   }
 
   private drawSelection() {
     const g = this.selection;
     g.clear();
-    // A lasso being drawn: only its line, not closed yet.
-    if (this.selectionDraft) {
-      const path = this.selectionDraft;
-      this.drawDashes(path.slice(1).map((point, i) => [path[i], point]));
-      return;
-    }
     const place = this.selectionPlace;
     if (!place) return;
     const line = { width: 1, pixelLine: true };
@@ -387,7 +424,7 @@ export class DrawingView {
 
   /** Applies the pending changes. Call once per frame, before rendering. */
   flush() {
-    if (this.selectionPlace || this.selectionDraft) {
+    if (this.selectionPlace) {
       const phase = Math.floor(performance.now() / 150) % 2;
       if (phase !== this.dashPhase) {
         this.dashPhase = phase;

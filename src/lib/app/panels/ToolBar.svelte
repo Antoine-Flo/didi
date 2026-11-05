@@ -1,6 +1,7 @@
 <script lang="ts">
-  // The bar above the canvas: the active tool's options.
+  // The bar above the canvas: the active tool's options, and on the side, actions on the document.
 
+  import type { Snippet } from "svelte";
   import Segmented from "#lib/app/widgets/Segmented.svelte";
   import Slider from "#lib/app/widgets/Slider.svelte";
   import {
@@ -15,12 +16,15 @@
     tool,
     settings,
     preview,
+    actions,
   }: {
     tool: Tool;
     /** The tool's settings, changed in place by the controls. */
     settings: ToolSettings;
     /** The color of the swatch, for tools that have one (see Tool.preview). */
     preview?: ColorPreview | null;
+    /** On the right, whatever the tool. Coming and going, they don't move the options. */
+    actions?: Snippet;
   } = $props();
 </script>
 
@@ -84,27 +88,35 @@
       {#if tool.hint}<span class="hint">{tool.hint}</span>{/if}
     {/each}
   </div>
+  <div class="actions">{@render actions?.()}</div>
 </div>
 
 <style>
   .toolbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: center;
     height: 100%;
     padding: 0 calc(var(--space) / 2);
   }
 
   .options {
+    grid-column: 2;
     display: flex;
     align-items: center;
     gap: calc(var(--space) * 2);
     padding: 0 var(--space);
   }
 
+  .actions {
+    grid-column: 3;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
   /* A fixed width: the bar does not change size while a value changes. */
   .options :global(.slider) {
-    width: 220px;
+    width: calc(220px * var(--ui-scale));
   }
 
   /* On a checkerboard, to show the opacity, or that there is no color. */

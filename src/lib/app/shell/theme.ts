@@ -49,6 +49,14 @@ export const TOKENS = [
   "radius",
   /** Corners of buttons, fields and list items. */
   "radius-small",
+  /** Icons in buttons and lists. */
+  "icon-size",
+  /** Chevrons and other small marks beside a text. */
+  "icon-size-small",
+  /** Icons of large buttons, e.g. the start screen's modes. */
+  "icon-size-large",
+  /** A percentage between two buttons, e.g. the zoom. It depends on the text size. */
+  "percent-width",
 ] as const;
 
 export type Token = (typeof TOKENS)[number];
@@ -60,6 +68,9 @@ export interface Theme {
   scheme: "dark" | "light";
   tokens: Record<Token, string>;
 }
+
+/** A size that follows the interface size chosen by the user (`--ui-scale`). */
+const scaled = (px: number) => `calc(${px}px * var(--ui-scale))`;
 
 export const DEFAULT_THEME: Theme = {
   version: 1,
@@ -85,12 +96,16 @@ export const DEFAULT_THEME: Theme = {
     overlay: "#00000059",
     shadow: "0 2px 10px #00000040",
     font: "system-ui, sans-serif",
-    "font-size": "12px",
-    space: "8px",
-    "control-height": "26px",
-    "titlebar-height": "42px",
-    radius: "6px",
-    "radius-small": "4px",
+    "font-size": scaled(12),
+    space: scaled(8),
+    "control-height": scaled(26),
+    "titlebar-height": scaled(42),
+    radius: scaled(6),
+    "radius-small": scaled(4),
+    "icon-size": scaled(16),
+    "icon-size-small": scaled(14),
+    "icon-size-large": scaled(20),
+    "percent-width": "4.5em",
   },
 };
 

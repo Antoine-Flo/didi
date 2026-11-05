@@ -89,8 +89,9 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
         id: `selection.${shape}`,
         title: `Tool: ${shape === "lasso" ? "Lasso" : "Rectangle"} selection`,
         run() {
-          host.tool = "select";
-          host.options.tools.select.shape = shape;
+          const tool = host.modes.get(host.mode).selectTool;
+          host.tool = tool;
+          host.options.tools[tool].shape = shape;
         },
       }),
     ),

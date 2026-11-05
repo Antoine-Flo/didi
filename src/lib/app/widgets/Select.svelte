@@ -42,7 +42,7 @@
 >
   <Select.Trigger class="select-trigger" {title}>
     <span>{label}</span>
-    <ChevronDown size={14} />
+    <ChevronDown class="icon-small" />
   </Select.Trigger>
   <Select.Portal>
     <Select.Content class="select-content" sideOffset={4} collisionPadding={popupPadding()}>
@@ -85,7 +85,7 @@
     z-index: 60;
     box-sizing: border-box;
     min-width: var(--bits-select-anchor-width);
-    max-height: min(var(--bits-select-content-available-height), 360px);
+    max-height: min(var(--bits-select-content-available-height), 360px * var(--ui-scale));
     padding: calc(var(--space) / 2);
     overflow-y: auto;
     background: var(--popup);

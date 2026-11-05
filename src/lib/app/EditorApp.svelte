@@ -33,7 +33,7 @@
   import { newEditor } from "#lib/app/files/new-drawing.js";
   import { createToolRegistry } from "#lib/app/tools/builtin.js";
   import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
-  import { selectTool } from "#lib/app/tools/select-tool.js";
+  import { isSelectTool } from "#lib/app/tools/select-tool.js";
   import type { BrushCursor, Tool } from "#lib/app/tools/tool.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
@@ -190,6 +190,9 @@
   // The layout (the side of the panels, the sizes of resizable panels), kept from one
   // session to the next.
   const layout = new LayoutPrefs();
+  /** The interface size as a factor. Saved panel sizes are at 100%: they follow it. */
+  const uiScale = $derived(layout.uiScale / 100);
+  $effect(() => document.documentElement.style.setProperty("--ui-scale", String(uiScale)));
   let colorPanel: HTMLElement;
   let palettePanel: HTMLElement;
   let layersPanel: HTMLElement;
@@ -209,8 +212,8 @@
     const layersMin = parseFloat(getComputedStyle(layersPanel).minHeight) || 0;
     return { size, min, max: Math.max(min, size + layers - layersMin) };
   }
-  const measureColor = () => measure(colorPanel, MIN_COLOR_HEIGHT);
-  const measurePalette = () => measure(palettePanel, MIN_PALETTE_HEIGHT);
+  const measureColor = () => measure(colorPanel, MIN_COLOR_HEIGHT * uiScale);
+  const measurePalette = () => measure(palettePanel, MIN_PALETTE_HEIGHT * uiScale);
 
   /** The panels' column: on the left for right-handed users, out of the drawing hand's way. */
   const panelsOnLeft = $derived(layout.hand === "right");
@@ -223,9 +226,14 @@
   function measurePanelWidth() {
     const size = panelColumn.getBoundingClientRect().width;
     // At most half the window, so the canvas keeps room.
-    const max = Math.min(MAX_PANEL_WIDTH, app.getBoundingClientRect().width / 2);
-    return { size, min: MIN_PANEL_WIDTH, max: Math.max(MIN_PANEL_WIDTH, max) };
+    const min = MIN_PANEL_WIDTH * uiScale;
+    const max = Math.min(MAX_PANEL_WIDTH * uiScale, app.getBoundingClientRect().width / 2);
+    return { size, min, max: Math.max(min, max) };
   }
+
+  /** A saved panel size, as CSS. */
+  const scaledSize = (size: number | undefined) =>
+    size !== undefined ? `calc(${size}px * var(--ui-scale))` : undefined;
 
   /** Swatch size in the palette, in pixels, changed with Ctrl + wheel. */
   const DEFAULT_SWATCH_SIZE = 18;
@@ -298,9 +306,7 @@
       painter.drain();
     }
     // Floating content belongs to a layer: lay it down before anything changes the layers.
-    // Brushes of the painting mode don't follow the selection yet: it goes with the mode.
     if (id.startsWith("layer.")) editor.applySelection();
-    if (id.startsWith("mode.")) editor.deselect();
     editor.commands.execute(id, params);
   }
 
@@ -363,6 +369,7 @@
     const unsubscribe = [
       editor.drawing.subscribe(bump),
       editor.history.subscribe(bump),
+      editor.selection.subscribe(bump),
       editor.onActiveLayerChange(bump),
     ];
     return () => unsubscribe.forEach((fn) => fn());
@@ -441,7 +448,7 @@
 <div
   class="app"
   class:panels-left={panelsOnLeft}
-  style:--panel-width={panelWidth !== undefined ? `${panelWidth}px` : undefined}
+  style:--panel-width={scaledSize(panelWidth)}
   role="application"
   bind:this={app}
   ondragover={(e) => e.preventDefault()}
@@ -459,7 +466,7 @@
         {painter}
         {brushCursor}
         hoverCursor={(p, zoom) => activeTool.hover?.(editor, p, zoom) ?? null}
-        selectionHandles={activeTool.id === selectTool.id}
+        selectionHandles={isSelectTool(activeTool)}
         {insets}
         oncamera={(c) => (camera = c)}
         oncursor={(p) => (cursor = p)}
@@ -470,11 +477,7 @@
   <!-- Separate panels, with a small gap between them (like Blender): the color, the palette
        and the layers, the first two resizable. -->
   <aside class="panel-column" bind:this={panelColumn}>
-    <div
-      class="panel color-panel"
-      style:height={colorHeight !== undefined ? `${colorHeight}px` : undefined}
-      bind:this={colorPanel}
-    >
+    <div class="panel color-panel" style:height={scaledSize(colorHeight)} bind:this={colorPanel}>
       <section class="section">
         <ColorPicker
           color={options.color}
@@ -487,13 +490,13 @@
     <Splitter
       orientation="horizontal"
       measure={measureColor}
-      onresize={(size) => layout.setSize("color", size)}
+      onresize={(size) => layout.setSize("color", size / uiScale)}
       onreset={() => layout.resetSize("color")}
     />
 
     <div
       class="panel palette-panel"
-      style:height={paletteHeight !== undefined ? `${paletteHeight}px` : undefined}
+      style:height={scaledSize(paletteHeight)}
       bind:this={palettePanel}
     >
       <PalettePanel
@@ -515,7 +518,7 @@
     <Splitter
       orientation="horizontal"
       measure={measurePalette}
-      onresize={(size) => layout.setSize("palette", size)}
+      onresize={(size) => layout.setSize("palette", size / uiScale)}
       onreset={() => layout.resetSize("palette")}
     />
 
@@ -530,7 +533,7 @@
       orientation="vertical"
       after={!panelsOnLeft}
       measure={measurePanelWidth}
-      onresize={(size) => layout.setSize("panels", size)}
+      onresize={(size) => layout.setSize("panels", size / uiScale)}
       onreset={() => layout.resetSize("panels")}
     />
   </div>
@@ -555,7 +558,15 @@
 
   <!-- The active tool's options, centered above the canvas. -->
   <div class="bar top" bind:this={top}>
-    <ToolBar tool={shownTool} settings={options.tools[shownTool.id]} preview={toolPreview} />
+    <ToolBar tool={shownTool} settings={options.tools[shownTool.id]} preview={toolPreview}>
+      {#snippet actions()}
+        {#if enabled("selection.deselect")}
+          <button title={tip("selection.deselect")} onclick={() => run("selection.deselect")}>
+            Deselect
+          </button>
+        {/if}
+      {/snippet}
+    </ToolBar>
   </div>
 
   <div class="bar bottom" bind:this={bottom}>
@@ -597,7 +608,14 @@
 </div>
 
 {#snippet layoutMenu()}
-  <LayoutMenu hand={layout.hand} disabled={dialogOpen} {tip} {run} />
+  <LayoutMenu
+    hand={layout.hand}
+    uiScale={layout.uiScale}
+    disabled={dialogOpen}
+    {tip}
+    {run}
+    onUiScale={(scale) => (layout.uiScale = scale)}
+  />
 {/snippet}
 
 {#snippet menuBar()}
@@ -639,7 +657,7 @@
     height: calc(100% + var(--titlebar-height));
     margin-top: calc(-1 * var(--titlebar-height));
     overflow: hidden;
-    --panel-width: 200px;
+    --panel-width: calc(200px * var(--ui-scale));
     /* One button, with its padding and border. */
     --tool-column-width: calc(var(--control-height) + var(--space) + 2px);
     /* Below the title bar. */
@@ -760,7 +778,7 @@
   }
 
   .layers-panel {
-    min-height: 120px;
+    min-height: calc(120px * var(--ui-scale));
   }
 
   .panel-column :global(.layers) {

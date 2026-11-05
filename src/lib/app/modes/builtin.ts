@@ -26,6 +26,7 @@ export const PIXEL_MODE: Mode = {
   },
   tools: ["pixel", "pixelEraser", "fill", "line", "rectangle", "ellipse", "select", "picker"],
   eraserTool: "pixelEraser",
+  selectTool: "select",
   // Like Aseprite: B is the pencil, E the eraser, G the paint bucket, L the line, U the
   // rectangle, Shift+U the ellipse, M the rectangle selection and Q the lasso.
   bindings: [
@@ -70,11 +71,16 @@ export const PAINTING_MODE: Mode = {
     "blend",
     "texture",
     "eraser",
+    "smoothSelect",
     "picker",
   ],
   eraserTool: "eraser",
-  // B (brush), E (eraser) and I (picker) are common shortcuts.
+  selectTool: "smoothSelect",
+  // B (brush), E (eraser) and I (picker) are common shortcuts. M is the rectangle selection and
+  // Q the lasso, as in pixel art.
   bindings: [
+    { keys: "m", command: "selection.rectangle" },
+    { keys: "q", command: "selection.lasso" },
     { keys: "n", command: "tool.pencil" },
     { keys: "a", command: "tool.airbrush" },
     { keys: "s", command: "tool.blend" },

@@ -359,6 +359,35 @@ describe("mirroring with a content handle", () => {
   });
 });
 
+describe("a rectangle being dragged", () => {
+  const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+
+  it("only shows a preview until the pen is lifted", () => {
+    const { editor, painter } = setup();
+    painter.begin(at(10.5, 10.5));
+    painter.move([at(20.5, 15.5)]);
+    painter.flush();
+    expect(editor.selection.rect).toBeNull();
+    const area = { x: 10, y: 10, width: 11, height: 6 };
+    expect(editor.selection.draft).toEqual({ rect: area });
+    painter.end();
+    expect(editor.selection.draft).toBeNull();
+    expect(editor.selection.rect).toEqual(area);
+    expect(editor.history.steps).toBe(1);
+  });
+
+  it("leaves nothing when cancelled", () => {
+    const { editor, painter } = setup();
+    painter.begin(at(10.5, 10.5));
+    painter.move([at(20.5, 15.5)]);
+    painter.flush();
+    painter.cancel();
+    expect(editor.selection.draft).toBeNull();
+    expect(editor.selection.rect).toBeNull();
+    expect(editor.history.steps).toBe(0);
+  });
+});
+
 describe("the lasso", () => {
   const BLOCK = { x: 5, y: 5, width: 30, height: 30 };
 
@@ -377,7 +406,7 @@ describe("the lasso", () => {
     return context;
   }
 
-  it("only shows its line until the pen is lifted", () => {
+  it("only shows a preview until the pen is lifted", () => {
     const { editor, painter, options } = setup();
     options.tools.select.shape = "lasso";
     const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
@@ -385,14 +414,40 @@ describe("the lasso", () => {
     painter.move([at(20.5, 10.5), at(20.5, 20.5)]);
     painter.flush();
     expect(editor.selection.rect).toBeNull();
-    expect(editor.selection.draft).toEqual([
-      { x: 10.5, y: 10.5 },
-      { x: 20.5, y: 10.5 },
-      { x: 20.5, y: 20.5 },
-    ]);
+    expect(editor.selection.draft?.rect).toEqual({ x: 10, y: 10, width: 11, height: 11 });
     painter.end();
     expect(editor.selection.draft).toBeNull();
     expect(editor.selection.rect).toEqual({ x: 10, y: 10, width: 11, height: 11 });
+  });
+
+  it("previews exactly what it will select, closing line included", () => {
+    const { editor, painter, options } = setup();
+    options.tools.select.shape = "lasso";
+    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    painter.begin(at(10.5, 10.5));
+    // Two sides of a triangle: the third one, from the end to the start, is not drawn.
+    painter.move([at(20.5, 10.5), at(20.5, 20.5)]);
+    painter.flush();
+    const preview = editor.selection.draft!;
+    const mask = shapeMask(preview.rect, preview.shape!);
+    const inMask = (x: number, y: number) => mask[(y - 10) * 11 + (x - 10)];
+    expect(inMask(15, 15)).toBe(1);
+    expect(inMask(13, 13)).toBe(1);
+    expect(inMask(12, 18)).toBe(0);
+    painter.end();
+    const { clip, clipMask } = selectionClip(editor.selection.state);
+    expect(clip).toEqual(preview.rect);
+    expect(clipMask).toEqual(mask);
+  });
+
+  it("previews nothing before a second pixel", () => {
+    const { editor, painter, options } = setup();
+    options.tools.select.shape = "lasso";
+    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    painter.begin(at(10.5, 10.5));
+    painter.flush();
+    expect(editor.selection.draft).toBeNull();
+    painter.cancel();
   });
 
   it("leaves nothing when cancelled", () => {
@@ -469,6 +524,43 @@ describe("the lasso", () => {
     const mask = shapeMask(rect!, shape!);
     expect(mask[20 * 21 + 20]).toBe(1);
     expect(mask[0]).toBe(0);
+  });
+});
+
+describe("the smooth selection tool", () => {
+  function smooth() {
+    const context = setup();
+    context.state.tool = "smoothSelect";
+    context.drag(10.5, 10.5, 19.5, 19.5);
+    return context;
+  }
+
+  it("selects and moves like the other one, pixels unchanged", () => {
+    const { editor, drag, pixel } = smooth();
+    expect(editor.selection.rect).toEqual(SQUARE);
+    drag(13, 13, 23, 13);
+    expect(pixel(20, 15)).toEqual(RED);
+    expect(pixel(29, 15)).toEqual(RED);
+    expect(pixel(30, 15)).toEqual(EMPTY);
+    expect(pixel(19, 15)).toEqual(EMPTY);
+  });
+
+  it("mixes pixels when content is scaled", () => {
+    const { editor, drag, pixel } = smooth();
+    // The east handle, ten pixels further: twice as wide. The edge fades, the middle stays.
+    drag(21.25, 15, 31.25, 15);
+    expect(editor.selection.rect?.width).toBe(20);
+    expect(pixel(20, 15)).toEqual(RED);
+    const edge = pixel(29, 15);
+    expect(edge[3]).toBeGreaterThan(0);
+    expect(edge[3]).toBeLessThan(255);
+  });
+
+  it("keeps pixels exact with the pixel art tool", () => {
+    const { editor, drag, pixel } = selected();
+    drag(21.25, 15, 31.25, 15);
+    expect(editor.selection.rect?.width).toBe(20);
+    expect(pixel(29, 15)).toEqual(RED);
   });
 });
 

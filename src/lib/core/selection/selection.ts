@@ -41,6 +41,12 @@ export interface SelectionState {
   readonly pivot?: Point | null;
 }
 
+/** What a selection being made would select. */
+export interface SelectionArea {
+  readonly rect: Rect;
+  readonly shape?: SelectionShape | null;
+}
+
 export const NO_SELECTION: SelectionState = { rect: null, floating: null };
 
 /** Where a selection is: its rectangle, with its transform. */
@@ -73,15 +79,23 @@ export function selectionClip({ rect, shape }: SelectionState): {
   return { clip: rect, clipMask: rect && shape ? shapeMask(rect, shape) : null };
 }
 
-/** The outline of a lasso, in pixels of its rectangle. Null: the rectangle itself. */
+const outlines = new WeakMap<Uint8Array, OutlineRun[]>();
+
+/**
+ * The outline of a lasso, in pixels of its rectangle. Null: the rectangle itself. Kept until the
+ * mask changes: it stays the same when the content moves or turns.
+ */
 export function selectionOutline({ rect, shape }: SelectionState): OutlineRun[] | null {
   if (!rect || !shape) return null;
-  return maskOutline(shapeMask(rect, shape), rect.width, rect.height);
+  const mask = shapeMask(rect, shape);
+  let outline = outlines.get(mask);
+  if (!outline) outlines.set(mask, (outline = maskOutline(mask, rect.width, rect.height)));
+  return outline;
 }
 
 export class Selection {
   private current = NO_SELECTION;
-  private path: readonly Point[] | null = null;
+  private drafted: SelectionArea | null = null;
   private changes = new Emitter<void>();
 
   get state(): SelectionState {
@@ -96,13 +110,13 @@ export class Selection {
     return this.current.floating;
   }
 
-  /** The path of a lasso being drawn, on the canvas: not a selection yet. */
-  get draft(): readonly Point[] | null {
-    return this.path;
+  /** What the selection being made would select: not a selection yet. */
+  get draft(): SelectionArea | null {
+    return this.drafted;
   }
 
-  setDraft(path: readonly Point[] | null) {
-    this.path = path;
+  setDraft(area: SelectionArea | null) {
+    this.drafted = area;
     this.changes.emit();
   }
 
@@ -196,10 +210,18 @@ export function lift(
 }
 
 /**
- * Shows floating content in `to`, in place of where it was shown (`from`). Stretched to fit,
- * with exact pixels, and laid over what its layer has there.
+ * Shows floating content in `to`, in place of where it was shown (`from`), stretched to fit and
+ * laid over what its layer has there. By default its pixels stay exact, each taken whole from
+ * the original under it. `smooth` mixes the four originals around it instead, for what must not
+ * look jagged: moved by whole pixels, the content still doesn't change at all.
  */
-export function showFloating(drawing: Drawing, floating: Floating, from: Placement, to: Placement) {
+export function showFloating(
+  drawing: Drawing,
+  floating: Floating,
+  from: Placement,
+  to: Placement,
+  smooth = false,
+) {
   const { layerId, base } = floating;
   const { tiles } = drawing.getLayer(layerId);
   const shown: TileSnapshot = new Map();
@@ -213,20 +235,88 @@ export function showFloating(drawing: Drawing, floating: Floating, from: Placeme
   if (!area) return;
   const data = tiles.readRegion(area);
   const { pixels, width, height } = floating;
+  if (!to.transform && to.width === width && to.height === height) {
+    layOverMoved(data, area, floating, to);
+    drawing.writePixels(layerId, area, data);
+    return;
+  }
+  const sample = smooth ? sampleSmooth : sampleExact;
+  // From the box to the canvas is affine: a step on the canvas is the same step everywhere.
+  const start = toBox(to, area.x + 0.5, area.y + 0.5);
+  const right = toBox(to, area.x + 1.5, area.y + 0.5);
+  const down = toBox(to, area.x + 0.5, area.y + 1.5);
+  const color = new Float64Array(4);
   for (let y = 0; y < area.height; y++) {
     for (let x = 0; x < area.width; x++) {
-      // The original pixel under the center of this one.
-      const q = toBox(to, area.x + x + 0.5, area.y + y + 0.5);
-      const sx = Math.floor(((q.x - to.x) * width) / to.width);
-      const sy = Math.floor(((q.y - to.y) * height) / to.height);
-      if (sx < 0 || sy < 0 || sx >= width || sy >= height) continue;
-      const s = (sy * width + sx) * 4;
-      const a = pixels[s + 3];
-      if (a === 0) continue;
+      const qx = start.x + x * (right.x - start.x) + y * (down.x - start.x);
+      const qy = start.y + x * (right.y - start.y) + y * (down.y - start.y);
+      const sx = ((qx - to.x) * width) / to.width;
+      const sy = ((qy - to.y) * height) / to.height;
+      if (!sample(pixels, width, height, sx, sy, color)) continue;
       const d = (y * area.width + x) * 4;
-      const keep = (255 - a) / 255;
-      for (let c = 0; c < 4; c++) data[d + c] = pixels[s + c] + Math.round(data[d + c] * keep);
+      const keep = (255 - color[3]) / 255;
+      for (let c = 0; c < 4; c++) data[d + c] = color[c] + data[d + c] * keep;
     }
   }
   drawing.writePixels(layerId, area, data);
 }
+
+/** Content only moved, by whole pixels: every pixel stays exact, whatever the sampling. */
+function layOverMoved(data: Uint8ClampedArray, area: Rect, floating: Floating, to: Rect) {
+  const { pixels, width } = floating;
+  for (let y = 0; y < area.height; y++) {
+    let s = ((area.y + y - to.y) * width + (area.x - to.x)) * 4;
+    let d = y * area.width * 4;
+    for (let x = 0; x < area.width; x++, s += 4, d += 4) {
+      const alpha = pixels[s + 3];
+      if (alpha === 0) continue;
+      const keep = (255 - alpha) / 255;
+      for (let c = 0; c < 4; c++) data[d + c] = pixels[s + c] + data[d + c] * keep;
+    }
+  }
+}
+
+type Sampler = (
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  color: Float64Array,
+) => boolean;
+
+/** The original pixel at a point of the content. False: nothing there. */
+const sampleExact: Sampler = (pixels, width, height, x, y, color) => {
+  const sx = Math.floor(x);
+  const sy = Math.floor(y);
+  if (sx < 0 || sy < 0 || sx >= width || sy >= height) return false;
+  const s = (sy * width + sx) * 4;
+  if (pixels[s + 3] === 0) return false;
+  for (let c = 0; c < 4; c++) color[c] = pixels[s + c];
+  return true;
+};
+
+/** The four original pixels around a point of the content, mixed. Beyond them: transparent. */
+const sampleSmooth: Sampler = (pixels, width, height, x, y, color) => {
+  const u = x - 0.5;
+  const v = y - 0.5;
+  const left = Math.floor(u);
+  const top = Math.floor(v);
+  if (left < -1 || top < -1 || left >= width || top >= height) return false;
+  const fx = u - left;
+  const fy = v - top;
+  color.fill(0);
+  for (let j = 0; j < 2; j++) {
+    const row = top + j;
+    if (row < 0 || row >= height) continue;
+    for (let i = 0; i < 2; i++) {
+      const col = left + i;
+      if (col < 0 || col >= width) continue;
+      const weight = (i ? fx : 1 - fx) * (j ? fy : 1 - fy);
+      if (weight === 0) continue;
+      const s = (row * width + col) * 4;
+      for (let c = 0; c < 4; c++) color[c] += pixels[s + c] * weight;
+    }
+  }
+  return color[3] > 0;
+};

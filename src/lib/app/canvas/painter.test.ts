@@ -48,6 +48,20 @@ const line = (y: number) =>
   Array.from({ length: 20 }, (_, i) => ({ x: 20 + i * 5, y, pressure: 1 }));
 
 describe("Painter", () => {
+  it("keeps brushes inside the selection", () => {
+    const { editor, painter, pixel } = setup();
+    editor.selection.set({ rect: { x: 60, y: 30, width: 20, height: 40 }, floating: null });
+    const [first, ...rest] = line(50);
+    painter.begin(first);
+    painter.move(rest);
+    painter.end();
+    painter.drain();
+    expect(pixel(70, 50)[3]).toBeGreaterThan(0);
+    expect(pixel(40, 50)).toEqual([0, 0, 0, 0]);
+    expect(pixel(100, 50)).toEqual([0, 0, 0, 0]);
+    expect(editor.history.steps).toBe(1);
+  });
+
   it("paints a stroke as one undo step", () => {
     const { editor, painter, pixel } = setup();
     const before = capture(editor.drawing);

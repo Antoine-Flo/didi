@@ -9,7 +9,7 @@
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
 import { TILE_SIZE, isTransparent, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
-import { union, type Rect } from "#lib/core/geometry.js";
+import { intersect, union, type Rect } from "#lib/core/geometry.js";
 import createLibMyPaint, { type LibMyPaint } from "./libmypaint.mjs";
 import type { MybBrush } from "./myb";
 
@@ -193,12 +193,21 @@ export class Brush {
   }
 }
 
+/** The only pixels a stroke can change: those of `clip`, or those of it where `clipMask` is 1. */
+export interface StrokeClip {
+  clip: Rect | null;
+  clipMask: Uint8Array | null;
+}
+
 /**
  * One stroke of a brush on a layer. Only one stroke can be in progress at a time.
  *
  * `opacity` (0 to 1) applies to the whole stroke: each pixel is mixed between its value
  * before the stroke and the brush's result. It works the same for every brush, whatever
  * its own opacity settings, and for erasers.
+ *
+ * `limit` applies when copying back to the layer: the brush still paints on its own surface
+ * outside it, like on a stencil, but none of that reaches the layer.
  */
 export class MyPaintStroke {
   private readonly original: TileSnapshot = new Map();
@@ -211,6 +220,7 @@ export class MyPaintStroke {
     private readonly drawing: Drawing,
     private readonly layerId: string,
     private readonly opacity = 1,
+    private readonly limit: StrokeClip = { clip: null, clipMask: null },
   ) {
     if (drawing.getLayer(layerId).locked) throw new Error(`Layer ${layerId} is locked`);
     if (!(opacity >= 0 && opacity <= 1)) throw new RangeError(`Invalid opacity ${opacity}`);
@@ -370,6 +380,10 @@ export class MyPaintStroke {
     if (x0 < 0 || y0 < 0 || x0 >= width || y0 >= height) return null;
     const w = Math.min(MP_TILE, width - x0);
     const h = Math.min(MP_TILE, height - y0);
+    const tile = { x: x0, y: y0, width: w, height: h };
+    const { clip, clipMask } = this.limit;
+    const area = clip ? intersect(tile, clip) : tile;
+    if (!area) return null;
     const src = this.mp.copyBack(tx, ty, w, h, this.opacity);
     if (!src) return null;
 
@@ -383,12 +397,22 @@ export class MyPaintStroke {
       out = before ? before.slice() : new Uint8ClampedArray(TILE_SIZE * TILE_SIZE * 4);
       this.working.set(key, out);
     }
-    for (let y = 0; y < h; y++) {
-      const s = y * MP_TILE * 4;
-      const o = ((y0 - lty * TILE_SIZE + y) * TILE_SIZE + (x0 - ltx * TILE_SIZE)) * 4;
-      out.set(src.subarray(s, s + w * 4), o);
+    const originX = ltx * TILE_SIZE;
+    const originY = lty * TILE_SIZE;
+    for (let y = area.y; y < area.y + area.height; y++) {
+      const s = ((y - y0) * MP_TILE + (area.x - x0)) * 4;
+      const o = ((y - originY) * TILE_SIZE + (area.x - originX)) * 4;
+      if (!clip || !clipMask) {
+        out.set(src.subarray(s, s + area.width * 4), o);
+        continue;
+      }
+      const row = (y - clip.y) * clip.width + (area.x - clip.x);
+      for (let i = 0; i < area.width; i++) {
+        if (!clipMask[row + i]) continue;
+        out.set(src.subarray(s + i * 4, s + i * 4 + 4), o + i * 4);
+      }
     }
-    return { key, rect: { x: x0 - ltx * TILE_SIZE, y: y0 - lty * TILE_SIZE, width: w, height: h } };
+    return { key, rect: { ...area, x: area.x - originX, y: area.y - originY } };
   }
 
   private assertActive() {
