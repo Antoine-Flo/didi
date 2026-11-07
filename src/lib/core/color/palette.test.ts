@@ -1,13 +1,8 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { RGB } from "./color";
-import {
-  DEFAULT_PALETTES,
-  PaletteLibrary,
-  parseHexPalette,
-  parsePaletteFile,
-  type Palette,
-} from "./palette";
+import { toHex, type RGB } from "./color";
+import { BUILTIN_PALETTES } from "./builtin-palettes";
+import { PaletteLibrary, parseHexPalette, parsePaletteFile, type Palette } from "./palette";
 
 const red: RGB = [255, 0, 0];
 const blue: RGB = [0, 0, 255];
@@ -29,7 +24,7 @@ describe("parsePaletteFile", () => {
     const bad = [
       "not json",
       "null",
-      '{"version": 2, "palettes": []}',
+      '{"version": 3, "palettes": []}',
       '{"version": 1}',
       '{"version": 1, "palettes": [{"name": 3, "colors": []}]}',
       '{"version": 1, "palettes": [{"name": "a", "colors": ["#ff00"]}]}',
@@ -37,22 +32,90 @@ describe("parsePaletteFile", () => {
     for (const text of bad) expect(() => parsePaletteFile(text), text).toThrow();
   });
 
-  it("clamps the active index", () => {
-    const text = JSON.stringify({ version: 1, active: 7, palettes: [{ name: "a", colors: [] }] });
-    expect(parsePaletteFile(text).active).toBe(0);
+  it("reads version 1 files: the shown palette by index, without unchanged built-in copies", () => {
+    const pico = BUILTIN_PALETTES[0];
+    const text = JSON.stringify({
+      version: 1,
+      active: 2,
+      palettes: [
+        { name: pico.name, colors: pico.colors.map(toHex) },
+        { name: "Sweetie 16", colors: ["#ff0000"] },
+        { name: "Mine", colors: [] },
+      ],
+    });
+    const { palettes, active } = parsePaletteFile(text);
+    expect(palettes.map((p) => p.name)).toEqual(["Sweetie 16", "Mine"]);
+    expect(active).toBe("Mine");
   });
 });
 
 describe("PaletteLibrary", () => {
-  it("starts with the default palettes, without sharing them", () => {
-    const library = new PaletteLibrary();
-    library.addColor([1, 2, 3]);
+  it("lists the user's palettes first, then the built-in ones, which cannot be changed", () => {
+    const library = new PaletteLibrary([{ name: "Mine", colors: [] }]);
+    expect(library.palettes.map((p) => p.name)).toEqual([
+      "Mine",
+      ...BUILTIN_PALETTES.map((p) => p.name),
+    ]);
+    expect(library.active?.name).toBe("Mine");
+    library.locked = false;
+    expect(library.editable?.name).toBe("Mine");
+    library.select(1);
     expect(library.active?.name).toBe("PICO-8");
-    expect(DEFAULT_PALETTES[0].colors).toHaveLength(16);
+    expect(library.editable).toBeNull();
+    expect(() => library.addColor(red)).toThrow();
+    expect(() => library.rename(1, "X")).toThrow();
+    expect(() => library.remove(1)).toThrow();
+    expect(() => library.setColor(0, red)).toThrow();
+    // Names are unique among all, and the file keeps the user's palettes only.
+    library.add({ name: "PICO-8", colors: [] });
+    expect(library.active?.name).toBe("PICO-8 2");
+    expect(library.toFile()).toEqual({
+      version: 2,
+      active: "PICO-8 2",
+      palettes: [
+        { name: "Mine", colors: [] },
+        { name: "PICO-8 2", colors: [] },
+      ],
+    });
+    // Removing a palette of the user keeps the built-in one shown.
+    library.select(2);
+    library.remove(0);
+    expect(library.active?.name).toBe("PICO-8");
+  });
+
+  it("shows the saved palette by name, the user's first", () => {
+    const shown = (active: string | null) =>
+      new PaletteLibrary([{ name: "Game Boy", colors: [] }], active).active;
+    expect(shown("Sweetie 16")?.name).toBe("Sweetie 16");
+    expect(shown("Game Boy")?.colors).toEqual([]);
+    expect(shown("Gone")?.name).toBe("Game Boy");
+    expect(new PaletteLibrary().active?.name).toBe("PICO-8");
+  });
+
+  it("offers well-known palettes, each with distinct colors and a unique name", () => {
+    const names = BUILTIN_PALETTES.map((p) => p.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(Object.fromEntries(BUILTIN_PALETTES.map((p) => [p.name, p.colors.length]))).toEqual({
+      "PICO-8": 16,
+      "Sweetie 16": 16,
+      "DawnBringer 16": 16,
+      "DawnBringer 32": 32,
+      "Endesga 32": 32,
+      "Commodore 64": 16,
+      "Game Boy": 4,
+      Nyx8: 8,
+      SLSO8: 8,
+      "Ammo-8": 8,
+      "Oil 6": 6,
+      "Twilight 5": 5,
+    });
+    for (const { name, colors } of BUILTIN_PALETTES) {
+      expect(new Set(colors.map(String)).size, name).toBe(colors.length);
+    }
   });
 
   it("adds palettes with unique names and shows them", () => {
-    const library = new PaletteLibrary([]);
+    const library = new PaletteLibrary([], null, []);
     library.add({ name: "A", colors: [] });
     library.add({ name: "A", colors: [] });
     library.add({ name: "A", colors: [] });
@@ -64,7 +127,7 @@ describe("PaletteLibrary", () => {
   });
 
   it("shows a neighbor after removing the shown palette", () => {
-    const library = new PaletteLibrary([]);
+    const library = new PaletteLibrary([], null, []);
     for (const name of ["A", "B", "C"]) library.add({ name, colors: [] });
     library.select(1);
     library.remove();
@@ -77,7 +140,7 @@ describe("PaletteLibrary", () => {
   });
 
   it("adds each color once, and removes colors", () => {
-    const library = new PaletteLibrary([{ name: "A", colors: [] }]);
+    const library = new PaletteLibrary([{ name: "A", colors: [] }], null, []);
     expect(library.addColor(red)).toBe(true);
     expect(library.addColor(blue)).toBe(true);
     expect(library.addColor([255, 0, 0])).toBe(false);
@@ -87,7 +150,7 @@ describe("PaletteLibrary", () => {
   });
 
   it("notifies changes only", () => {
-    const library = new PaletteLibrary([{ name: "A", colors: [] }]);
+    const library = new PaletteLibrary([{ name: "A", colors: [] }], null, []);
     const listener = vi.fn();
     library.subscribe(listener);
     library.select(0);
@@ -108,14 +171,15 @@ describe("PaletteLibrary", () => {
       colors: fc.array(color, { maxLength: 8 }),
     });
     fc.assert(
-      fc.property(fc.array(palette, { minLength: 1, maxLength: 5 }), fc.nat(), (list, active) => {
-        const library = new PaletteLibrary([]);
+      fc.property(fc.array(palette, { minLength: 1, maxLength: 5 }), fc.nat(), (list, shown) => {
+        const library = new PaletteLibrary([], null, []);
         list.forEach((p) => library.add(p));
-        library.select(active % list.length);
+        library.select(shown % list.length);
         const text = JSON.stringify(library.toFile());
-        const reloaded = parsePaletteFile(text);
+        const { palettes, active } = parsePaletteFile(text);
+        const reloaded = new PaletteLibrary(palettes, active, []);
         expect(reloaded.palettes).toEqual(library.palettes);
-        expect(reloaded.active).toBe(library.activeIndex);
+        expect(reloaded.activeIndex).toBe(library.activeIndex);
       }),
       { numRuns: 300 },
     );

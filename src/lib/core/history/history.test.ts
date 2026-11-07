@@ -33,6 +33,16 @@ describe("History", () => {
     expect(opacityOf(drawing, id)).toBe(0.5);
   });
 
+  it("keeps the marker for edits outside the drawing", () => {
+    const { history, id } = setup();
+    history.push(updateLayer(id, { opacity: 0.5 }));
+    const saved = history.marker;
+    const outside = { label: "Palette", apply() {}, revert() {}, outsideDrawing: true };
+    history.push(outside);
+    expect(history.marker).toBe(saved);
+    expect(history.undoLabel).toBe("Palette");
+  });
+
   it("gives a marker that tells whether the drawing changed since it was saved", () => {
     const { history, id } = setup();
     const saved = history.marker;

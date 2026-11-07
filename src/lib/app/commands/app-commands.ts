@@ -2,7 +2,8 @@
 // so they can be bound to shortcuts, listed in the command palette and later put in the
 // quick wheel; those that need params are marked `needsParams`.
 
-import { fromHex } from "#lib/core/color/color.js";
+import { fromHex, sameColor } from "#lib/core/color/color.js";
+import { addPaletteColor, removePaletteColor } from "#lib/core/color/palette-edits.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import type { PaletteLibrary } from "#lib/core/color/palette.js";
@@ -45,6 +46,8 @@ export interface AppHost {
   exportPng(): void;
   /** Asks for a .hex file and adds it as a new palette. */
   importPalette(): void;
+  /** Asks the user to confirm an action that cannot be undone. Resolves to their answer. */
+  confirm(question: { title: string; text: string; action: string }): Promise<boolean>;
   openCommandPalette(): void;
   /** Whether documents can be opened and saved as files. Without it, no such commands. */
   readonly canUseFiles: boolean;
@@ -65,6 +68,8 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     });
 
   const current = () => host.tools.get(host.tool);
+  /** The shown palette, if it can be edited. */
+  const editable = () => host.palettes?.editable ?? null;
   const resize = (direction: 1 | -1) => {
     const settings = host.options.tools[host.tool];
     if (settings) current().resize?.(settings, direction);
@@ -144,18 +149,25 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     registry.register({
       id: "palette.addColor",
       title: "Add color to palette",
-      enabled: () => host.palettes?.active != null && host.options.color !== null,
-      run: () => void host.palettes!.addColor(host.options.color!),
+      enabled: () => {
+        const color = host.options.color;
+        return color !== null && editable()?.colors.some((c) => sameColor(c, color)) === false;
+      },
+      run: (editor) => editor.history.push(addPaletteColor(host.palettes!, host.options.color!)),
     }),
     registry.register<{ index: number }>({
       id: "palette.removeColor",
       title: "Remove color from palette",
       needsParams: true,
       enabled: (_, { index }) =>
-        Number.isInteger(index) &&
-        index >= 0 &&
-        index < (host.palettes?.active?.colors.length ?? 0),
-      run: (_, { index }) => host.palettes!.removeColor(index),
+        Number.isInteger(index) && index >= 0 && index < (editable()?.colors.length ?? 0),
+      run: (editor, { index }) => editor.history.push(removePaletteColor(host.palettes!, index)),
+    }),
+    registry.register({
+      id: "palette.toggleLock",
+      title: "Lock or unlock palettes",
+      enabled: () => host.palettes !== null,
+      run: () => (host.palettes!.locked = !host.palettes!.locked),
     }),
     registry.register<{ index: number }>({
       id: "palette.select",
@@ -171,6 +183,19 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       enabled: () => host.palettes !== null,
       run: () => host.palettes!.add({ name: "Palette", colors: [] }),
     }),
+    registry.register<{ name: string }>({
+      id: "palette.duplicate",
+      title: "Copy palette",
+      needsParams: true,
+      enabled: (_, { name }) =>
+        host.palettes?.active != null && typeof name === "string" && name.trim() !== "",
+      run(_, { name }) {
+        // A copy is made to be edited: unlocked.
+        const palettes = host.palettes!;
+        palettes.add({ name: name.trim(), colors: [...palettes.active!.colors] });
+        palettes.locked = false;
+      },
+    }),
     registry.register({
       id: "palette.import",
       title: "Import palette (.hex)…",
@@ -182,14 +207,24 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       title: "Rename palette",
       needsParams: true,
       enabled: (_, { name }) =>
-        host.palettes?.active != null && typeof name === "string" && name.trim() !== "",
+        editable() != null && typeof name === "string" && name.trim() !== "",
       run: (_, { name }) => host.palettes!.rename(host.palettes!.activeIndex, name),
     }),
     registry.register({
       id: "palette.delete",
       title: "Delete palette",
-      enabled: () => host.palettes?.active != null,
-      run: () => host.palettes!.remove(),
+      enabled: () => editable() != null,
+      async run() {
+        const palettes = host.palettes!;
+        const palette = palettes.active!;
+        const confirmed = await host.confirm({
+          title: `Delete “${palette.name}”?`,
+          text: "This palette and its colors will be deleted. This can't be undone.",
+          action: "Delete",
+        });
+        const index = palettes.indexOf(palette);
+        if (confirmed && index >= 0) palettes.remove(index);
+      },
     }),
 
     registry.register({ id: "file.new", title: "New document…", run: () => host.newDocument() }),

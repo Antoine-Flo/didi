@@ -15,6 +15,11 @@ export interface Edit {
   revert(drawing: Drawing): void;
   /** Estimate of the memory this edit can keep alive, in bytes. Defaults to 0. */
   bytes?(): number;
+  /**
+   * The edit changes something else than the drawing (e.g. a palette), undone with it: not
+   * an unsaved change of the document.
+   */
+  readonly outsideDrawing?: boolean;
 }
 
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
@@ -36,6 +41,7 @@ export function group(label: string, edits: readonly Edit[]): Edit {
       for (let i = edits.length - 1; i >= 0; i--) edits[i].revert(d);
     },
     bytes: () => edits.reduce((sum, edit) => sum + (edit.bytes?.() ?? 0), 0),
+    outsideDrawing: edits.every((edit) => edit.outsideDrawing),
   };
 }
 

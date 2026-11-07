@@ -65,10 +65,11 @@ export class History {
   /**
    * Identifies the current state of the drawing, as reached through the history: compare
    * it with the marker saved with a file to know whether there are unsaved changes. Undoing
-   * back to the saved state gives the same marker again.
+   * back to the saved state gives the same marker again. Edits outside the drawing do not
+   * change it.
    */
   get marker(): unknown {
-    return this.past.at(-1) ?? null;
+    return this.past.findLast((edit) => !edit.outsideDrawing) ?? null;
   }
 
   /** Approximate memory kept by undo and redo steps, in bytes. */

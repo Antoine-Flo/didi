@@ -1,0 +1,68 @@
+// Undoable changes to the colors of a palette, kept in the document's history so that undo
+// follows the order of the user's actions. They do not touch the drawing.
+//
+// Undoing or redoing one shows its palette, to see the change. A palette deleted since is
+// left alone.
+
+import type { Edit } from "../history/edits";
+import type { RGB } from "./color";
+import type { Palette, PaletteLibrary } from "./palette";
+
+function paletteEdit(
+  label: string,
+  library: PaletteLibrary,
+  palette: Readonly<Palette>,
+  apply: () => void,
+  revert: () => void,
+): Edit {
+  const shown = (run: () => void) => () => {
+    const index = library.indexOf(palette);
+    if (index < 0) return;
+    library.select(index);
+    run();
+  };
+  return { label, apply: shown(apply), revert: shown(revert), outsideDrawing: true };
+}
+
+/** Adds `color` at the end of the shown palette. */
+export function addPaletteColor(library: PaletteLibrary, color: RGB): Edit {
+  const palette = library.active!;
+  const index = palette.colors.length;
+  return paletteEdit(
+    "Add palette color",
+    library,
+    palette,
+    () => library.insertColor(index, color, palette),
+    () => library.removeColor(index, palette),
+  );
+}
+
+/** Removes a color of the shown palette. */
+export function removePaletteColor(library: PaletteLibrary, index: number): Edit {
+  const palette = library.active!;
+  const color = [...palette.colors[index]] as RGB;
+  return paletteEdit(
+    "Remove palette color",
+    library,
+    palette,
+    () => library.removeColor(index, palette),
+    () => library.insertColor(index, color, palette),
+  );
+}
+
+/** Changes a color of `palette` from `before` to `after`. */
+export function changePaletteColor(
+  library: PaletteLibrary,
+  palette: Readonly<Palette>,
+  index: number,
+  before: RGB,
+  after: RGB,
+): Edit {
+  return paletteEdit(
+    "Change palette color",
+    library,
+    palette,
+    () => library.setColor(index, after, palette),
+    () => library.setColor(index, before, palette),
+  );
+}

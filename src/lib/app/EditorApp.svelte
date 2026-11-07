@@ -15,6 +15,7 @@
   import LayoutMenu from "#lib/app/shell/LayoutMenu.svelte";
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
+  import ConfirmDialog from "#lib/app/dialogs/ConfirmDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
   import { runCommand } from "#lib/app/commands/run-command.js";
   import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
@@ -133,6 +134,22 @@
   );
   let paletteOpen = $state(false);
 
+  /** The pending confirmation (see ConfirmDialog), answered once. */
+  let confirmRequest = $state<{
+    title: string;
+    text: string;
+    action: string;
+    onconfirm: () => void;
+  } | null>(null);
+  let answerConfirm: (confirmed: boolean) => void = () => {};
+  function confirm(question: { title: string; text: string; action: string }) {
+    answerConfirm(false);
+    return new Promise<boolean>((resolve) => {
+      answerConfirm = resolve;
+      confirmRequest = { ...question, onconfirm: () => resolve(true) };
+    });
+  }
+
   // Bumped on every change but pixels, so the UI re-reads the editor. Pixels change on every
   // frame of a stroke: only what shows them follows `pixelVersion`.
   let version = $state(0);
@@ -239,6 +256,7 @@
       saveDocumentAs: () => session.saveAs(),
       exportPng: () => session.exportPng(),
       importPalette: () => paletteInput.click(),
+      confirm,
       openCommandPalette: () => (paletteOpen = true),
       canUseFiles: capabilities.userFiles,
       quit: appWindow ? () => void appWindow?.close() : null,
@@ -258,7 +276,9 @@
   }
 
   /** A dialog is open: the menus do nothing, and the title bar is dimmed. */
-  const dialogOpen = $derived(startOpen || paletteOpen || unsavedRequest !== null);
+  const dialogOpen = $derived(
+    startOpen || paletteOpen || unsavedRequest !== null || confirmRequest !== null,
+  );
 
   /** Whether a command can run now, for menus. */
   function enabled(id: string, params?: unknown): boolean {
@@ -375,7 +395,7 @@
   }
 
   function onKeyDown(e: KeyboardEvent) {
-    if (isTyping(e) || paletteOpen || startOpen || unsavedRequest) return;
+    if (isTyping(e) || paletteOpen || startOpen || unsavedRequest || confirmRequest) return;
     // Esc is for the stroke in progress (see CanvasView), whichever hears it first.
     if (e.defaultPrevented || (e.key === "Escape" && painter.active)) return;
     const binding = keymap.match({
@@ -559,6 +579,13 @@
   ondiscardrecovery={() => session.discardRecovery()}
 />
 <UnsavedDialog request={unsavedRequest} />
+<ConfirmDialog
+  request={confirmRequest}
+  onclose={() => {
+    confirmRequest = null;
+    answerConfirm(false);
+  }}
+/>
 
 <style>
   /* The canvas fills the window, under the title bar too; the panels float over it, inset

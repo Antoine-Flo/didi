@@ -11,6 +11,7 @@
   import ColorPicker from "./ColorPicker.svelte";
   import LayersPanel from "./LayersPanel.svelte";
   import PalettePanel from "./PalettePanel.svelte";
+  import { PaletteColorSync } from "./palette-sync.js";
 
   let {
     layout,
@@ -39,6 +40,12 @@
     /** Runs a command (unless a stroke is in progress). */
     run: (command: string, params?: unknown) => void;
   } = $props();
+
+  // The picker also changes the palette color in use, if the palettes are unlocked.
+  const sync = new PaletteColorSync(
+    () => palettes,
+    () => editor.history,
+  );
 
   /** The interface size as a factor. Saved panel sizes are at 100%: they follow it. */
   const uiScale = $derived(layout.uiScale / 100);
@@ -77,7 +84,16 @@
 <aside class="column">
   <div class="panel color-panel" style:height={scaledSize(colorHeight)} bind:this={colorPanel}>
     <section class="section">
-      <ColorPicker {color} fill={colorHeight !== undefined} onchange={oncolor} />
+      <ColorPicker
+        {color}
+        fill={colorHeight !== undefined}
+        onchange={(c) => {
+          sync.change(color, c);
+          oncolor(c);
+        }}
+        ondragstart={() => sync.start(color)}
+        ondragend={() => sync.end()}
+      />
     </section>
   </div>
 

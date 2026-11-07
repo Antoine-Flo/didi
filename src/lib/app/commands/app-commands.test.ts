@@ -26,7 +26,7 @@ function setup(withView = true) {
     options: tools.defaultOptions(),
     view: withView ? view : null,
     hand: "right",
-    palettes: new PaletteLibrary([{ name: "A", colors: [] }]),
+    palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
     importImage: vi.fn(),
     newDocument: vi.fn(),
     openDocument: vi.fn(),
@@ -34,6 +34,7 @@ function setup(withView = true) {
     saveDocumentAs: vi.fn(),
     exportPng: vi.fn(),
     importPalette: vi.fn(),
+    confirm: vi.fn(async () => true),
     openCommandPalette: vi.fn(),
     canUseFiles: true,
     quit: vi.fn(),
@@ -108,26 +109,49 @@ describe("app commands", () => {
     expect(host.hand).toBe("right");
   });
 
-  it("sets the color, and edits palettes", () => {
+  it("sets the color, and edits palettes", async () => {
     const { editor, host } = setup();
     const palettes = host.palettes!;
     expect(editor.commands.isEnabled("color.set", { color: "nope" })).toBe(false);
     editor.commands.execute("color.set", { color: "#ff8000" });
     expect(host.options.color).toEqual([255, 128, 0]);
+    expect(palettes.locked).toBe(true);
+    expect(editor.commands.isEnabled("palette.addColor")).toBe(false);
+    expect(editor.commands.isEnabled("palette.delete")).toBe(false);
+    editor.commands.execute("palette.toggleLock");
+    expect(palettes.locked).toBe(false);
     editor.commands.execute("palette.addColor");
     expect(palettes.active?.colors).toEqual([[255, 128, 0]]);
     expect(editor.commands.isEnabled("palette.removeColor", { index: 1 })).toBe(false);
     editor.commands.execute("palette.removeColor", { index: 0 });
     expect(palettes.active?.colors).toEqual([]);
+    editor.commands.execute("history.undo");
+    expect(palettes.active?.colors).toEqual([[255, 128, 0]]);
+    editor.commands.execute("palette.removeColor", { index: 0 });
     editor.commands.execute("palette.new");
     editor.commands.execute("palette.rename", { name: "Mine" });
     expect(palettes.palettes.map((p) => p.name)).toEqual(["A", "Mine"]);
     editor.commands.execute("palette.select", { index: 0 });
+    // Deleting asks first.
+    vi.mocked(host.confirm).mockResolvedValueOnce(false);
     editor.commands.execute("palette.delete");
-    expect(palettes.palettes.map((p) => p.name)).toEqual(["Mine"]);
+    await vi.waitFor(() => expect(host.confirm).toHaveBeenCalledTimes(1));
+    expect(palettes.palettes.map((p) => p.name)).toEqual(["A", "Mine"]);
     editor.commands.execute("palette.delete");
+    await vi.waitFor(() => expect(palettes.palettes.map((p) => p.name)).toEqual(["Mine"]));
+    editor.commands.execute("palette.delete");
+    await vi.waitFor(() => expect(palettes.palettes).toEqual([]));
     expect(editor.commands.isEnabled("palette.delete")).toBe(false);
     expect(editor.commands.isEnabled("palette.addColor")).toBe(false);
+  });
+
+  it("copies a palette, unlocked to be edited", () => {
+    const { editor, host } = setup();
+    const palettes = host.palettes!;
+    expect(editor.commands.isEnabled("palette.duplicate", { name: " " })).toBe(false);
+    editor.commands.execute("palette.duplicate", { name: " Copy " });
+    expect(palettes.active?.name).toBe("Copy");
+    expect(palettes.locked).toBe(false);
   });
 
   it("controls the view, once there is one", () => {

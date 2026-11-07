@@ -4,7 +4,7 @@
 
   import { ChevronDown } from "@lucide/svelte";
   import { Select } from "bits-ui";
-  import { onDestroy } from "svelte";
+  import { onDestroy, type Snippet } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import { popupPadding } from "#lib/app/widgets/popup-padding.js";
 
@@ -13,14 +13,28 @@
     value,
     onchange,
     title,
+    item,
   }: {
-    items: { value: string; label: string }[];
+    /** Consecutive items with the same `group` are shown under it, as a heading. */
+    items: { value: string; label: string; group?: string }[];
     value: string;
     onchange: (value: string) => void;
     title?: string;
+    /** Content of an item in the list, instead of its label alone. */
+    item?: Snippet<[{ value: string; label: string }]>;
   } = $props();
 
   const label = $derived(items.find((i) => i.value === value)?.label ?? "");
+
+  /** The items in runs of the same group. */
+  const groups = $derived(
+    items.reduce<{ heading?: string; items: typeof items }[]>((runs, entry) => {
+      const last = runs.at(-1);
+      if (last && last.heading === entry.group) last.items.push(entry);
+      else runs.push({ heading: entry.group, items: [entry] });
+      return runs;
+    }, []),
+  );
 
   let open = false;
   function setOpen(next: boolean) {
@@ -32,6 +46,14 @@
   // Removed while open (e.g. its panel disappears): the canvas must not stay blocked.
   onDestroy(() => setOpen(false));
 </script>
+
+{#snippet entries(list: typeof items)}
+  {#each list as entry (entry.value)}
+    <Select.Item class={["select-item", item && "custom"]} value={entry.value} label={entry.label}>
+      {#if item}{@render item(entry)}{:else}{entry.label}{/if}
+    </Select.Item>
+  {/each}
+{/snippet}
 
 <Select.Root
   type="single"
@@ -47,10 +69,15 @@
   <Select.Portal>
     <Select.Content class="select-content" sideOffset={4} collisionPadding={popupPadding()}>
       <Select.Viewport class="select-viewport">
-        {#each items as item (item.value)}
-          <Select.Item class="select-item" value={item.value} label={item.label}>
-            {item.label}
-          </Select.Item>
+        {#each groups as run, i (i)}
+          {#if run.heading}
+            <Select.Group>
+              <Select.GroupHeading class="select-heading">{run.heading}</Select.GroupHeading>
+              {@render entries(run.items)}
+            </Select.Group>
+          {:else}
+            {@render entries(run.items)}
+          {/if}
         {/each}
       </Select.Viewport>
     </Select.Content>
@@ -102,6 +129,19 @@
     border-radius: var(--radius-small);
     white-space: nowrap;
     cursor: pointer;
+  }
+
+  :global(.select-heading) {
+    padding: calc(var(--space) / 2) var(--space);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* Custom content: as tall as it needs. */
+  :global(.select-item.custom) {
+    height: auto;
+    min-height: var(--control-height);
+    padding-block: calc(var(--space) / 2);
   }
 
   :global(.select-item[data-highlighted]) {

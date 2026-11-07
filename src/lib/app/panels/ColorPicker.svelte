@@ -15,6 +15,8 @@
     color,
     fill = false,
     onchange,
+    ondragstart,
+    ondragend,
   }: {
     /** Null: no color is selected. The hue and the area stay, without their markers. */
     color: RGB | null;
@@ -24,6 +26,9 @@
      */
     fill?: boolean;
     onchange: (color: RGB) => void;
+    /** A drag in the square or the hue bar starts: the changes until its end go together. */
+    ondragstart?: () => void;
+    ondragend?: () => void;
   } = $props();
 
   // Kept here rather than derived from `color`: gray and black have no hue or saturation,
@@ -47,15 +52,25 @@
       const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
       update(clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height));
     };
+    let dragging = false;
+    const stop = () => {
+      if (!dragging) return;
+      dragging = false;
+      ondragend?.();
+    };
     return {
       onpointerdown(e: PointerEvent) {
         if (e.button !== 0) return;
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        dragging = true;
+        ondragstart?.();
         at(e);
       },
       onpointermove(e: PointerEvent) {
         if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) at(e);
       },
+      onpointerup: stop,
+      onlostpointercapture: stop,
     };
   }
 
