@@ -1,10 +1,13 @@
 // The open document: its editor, mode, file and unsaved changes, and the file actions (new,
 // open, save, save as, export), recent files and crash recovery.
 //
-// Recovery: two minutes after a change, a copy of the document is written to the app data
+// Recovery: a few seconds after a change, a copy of the document is written to the app data
 // folder (never to the user's file). It is removed when the document is saved or closed
 // normally. At start, a copy left by a crash is moved aside and offered in the start
 // screen until the user opens or discards it.
+//
+// In a browser, there are no files: that copy is the document's only save. It stays when the
+// tab closes, and comes back by itself at start.
 
 import { documentFromEditor, editorFromDocument } from "#lib/core/file/didi-file.js";
 import type { Editor } from "#lib/core/editor/editor.js";
@@ -53,7 +56,9 @@ export interface RecoveryInfo {
 
 const DIDI_FILTER = [{ name: "Didi drawing", extensions: ["didi"] }];
 const PNG_FILTER = [{ name: "PNG image", extensions: ["png"] }];
-const RECOVERY_DELAY_MS = 2 * 60 * 1000;
+const RECOVERY_DELAY_MS = 3000;
+/** Longer for a document that is long to copy: at most a tenth of the time goes to that. */
+const RECOVERY_DELAY_PER_WRITE = 10;
 /** This session's copy, and the one left by a previous session that did not close. */
 const RECOVERY = { file: "recovery.didi", info: "recovery.json" };
 const PREVIOUS = { file: "recovery-previous.didi", info: "recovery-previous.json" };
@@ -87,6 +92,14 @@ export class Session {
   private extensions: Record<string, unknown> = {};
   private unsubscribe: () => void = () => {};
   private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The copy's last write or removal: they run one at a time, in order. */
+  private recoveryWork: Promise<unknown> = Promise.resolve();
+  private recoveryWrites = 0;
+  private recoveryWriteMs = 0;
+  /** A copy of this session exists, which may have to be removed. */
+  private copyWritten = false;
+  /** Changes are not in the copy yet. */
+  private copyPending = $state(false);
 
   /** `editor`: the document to start with, a new one by default, in `mode`. */
   constructor(
@@ -119,10 +132,19 @@ export class Session {
     );
   }
 
-  /** Loads the recent files, and sets aside a copy left by a crash. Call once at start. */
-  async start() {
+  /** Whether closing now would lose changes. In a browser, the copy keeps them. */
+  get unsaved(): boolean {
+    return canUseFiles() ? this.dirty : this.copyPending;
+  }
+
+  /**
+   * Loads the recent files, and sets aside a copy left by a crash. Call once at start. Returns
+   * whether the document was restored (in a browser).
+   */
+  async start(): Promise<boolean> {
     try {
       this.recent = await loadRecent();
+      if (!canUseFiles()) return await this.restoreCopy();
       const text = await readDataFile(RECOVERY.info);
       const bytes = text !== null ? await readDataBytes(RECOVERY.file) : null;
       if (text !== null && bytes) {
@@ -135,6 +157,22 @@ export class Session {
     } catch (e) {
       this.host.notify(`Could not read the app data: ${message(e)}`);
     }
+    return false;
+  }
+
+  /** In a browser: back to the document as it was when the tab closed. */
+  private async restoreCopy(): Promise<boolean> {
+    const text = await readDataFile(RECOVERY.info);
+    const bytes = text !== null ? await readDataBytes(RECOVERY.file) : null;
+    if (text === null || !bytes || !this.untouched) return false;
+    const info = JSON.parse(text) as RecoveryInfo;
+    const { doc } = await decodeDocument(bytes);
+    this.replace(editorFromDocument(doc), null, info.name, doc.mode ?? DEFAULT_MODE, true);
+    this.extensions = doc.extensions;
+    // Not in any file: replacing it would lose it.
+    this.savedMarker = {};
+    this.copyWritten = true;
+    return true;
   }
 
   /** Asks to save unsaved changes. Returns false if the user cancels. */
@@ -276,7 +314,13 @@ export class Session {
     return false;
   }
 
-  private replace(editor: Editor, path: string | null, name: string, mode: string) {
+  private replace(
+    editor: Editor,
+    path: string | null,
+    name: string,
+    mode: string,
+    keepCopy = false,
+  ) {
     this.setEditor(editor);
     this.path = path;
     this.name = name;
@@ -284,7 +328,7 @@ export class Session {
     this.extensions = {};
     this.savedMarker = editor.history.marker;
     this.savedHidden = hiddenLayers(editor);
-    void this.removeRecovery();
+    if (!keepCopy) void this.removeRecovery();
   }
 
   private setEditor(editor: Editor) {
@@ -315,29 +359,60 @@ export class Session {
   }
 
   private scheduleRecovery() {
-    if (this.recoveryTimer !== null || !this.dirty) return;
-    this.recoveryTimer = setTimeout(() => {
-      this.recoveryTimer = null;
-      this.writeRecovery().catch((e) =>
-        this.host.notify(`Could not write the recovery copy: ${message(e)}`),
-      );
-    }, RECOVERY_DELAY_MS);
+    if (this.recoveryTimer !== null || (!this.dirty && !this.copyWritten)) return;
+    this.copyPending = true;
+    this.recoveryTimer = setTimeout(
+      () => {
+        this.recoveryTimer = null;
+        const id = ++this.recoveryWrites;
+        const write = this.inOrder(() => this.writeRecovery());
+        write
+          .then(() => {
+            // Still pending if more changes came meanwhile. After a failure too.
+            if (id === this.recoveryWrites && this.recoveryTimer === null) {
+              this.copyPending = false;
+            }
+          })
+          .catch((e) => this.host.notify(`Could not write the recovery copy: ${message(e)}`));
+      },
+      Math.max(RECOVERY_DELAY_MS, this.recoveryWriteMs * RECOVERY_DELAY_PER_WRITE),
+    );
+  }
+
+  /** After the copy's work in progress: an older write must not land after a newer one. */
+  private inOrder(work: () => Promise<void>): Promise<void> {
+    const done = this.recoveryWork.then(work);
+    this.recoveryWork = done.catch(() => {});
+    return done;
   }
 
   private async writeRecovery() {
-    if (!this.dirty) return;
+    // Back to the saved state, e.g. everything undone: the copy would bring the changes back.
+    if (!this.dirty) {
+      if (this.copyWritten) await this.removeCopy();
+      return;
+    }
+    const start = performance.now();
     const { file } = await encodeDocument(
       documentFromEditor(this.editor, this.extensions, this.mode),
     );
     await writeDataBytes(RECOVERY.file, file);
     const info: RecoveryInfo = { name: this.name, path: this.path, time: Date.now() };
     await writeDataFile(RECOVERY.info, JSON.stringify(info));
+    this.recoveryWriteMs = performance.now() - start;
+    this.copyWritten = true;
   }
 
-  private async removeRecovery() {
+  private removeRecovery(): Promise<void> {
     if (this.recoveryTimer !== null) clearTimeout(this.recoveryTimer);
     this.recoveryTimer = null;
+    this.copyPending = false;
+    return this.inOrder(() => this.removeCopy());
+  }
+
+  private async removeCopy() {
     await removeDataFile(RECOVERY.file);
     await removeDataFile(RECOVERY.info);
+    this.copyWritten = false;
   }
 }

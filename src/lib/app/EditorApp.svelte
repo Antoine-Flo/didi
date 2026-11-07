@@ -85,9 +85,10 @@
     void session.newDocument(size.width, size.height, background, next.id);
   }
   const editor = $derived(session.editor);
-  // Shown at start, like Blender's splash screen.
+  // Shown at start, like Blender's splash screen. In a browser, only once it is known that
+  // no document comes back (see `session.start`).
   // svelte-ignore state_referenced_locally
-  let startOpen = $state(!initial);
+  let startOpen = $state(!initial && capabilities.userFiles);
 
   const tools = createToolRegistry();
   /** The document's mode: which tools and panels are shown. */
@@ -357,7 +358,9 @@
       palettes = library;
       library.subscribe(() => paletteVersion++);
     });
-    session.start();
+    void session.start().then((restored) => {
+      if (!initial && !capabilities.userFiles && !restored) startOpen = true;
+    });
     if (!capabilities.ownWindow) return;
     // Closing the window: offer to save unsaved changes first.
     const window = getCurrentWindow();
@@ -387,8 +390,8 @@
   // "● name — Didi" while there are unsaved changes (taskbar), and the same in our title bar.
   $effect(() => {
     windowTitle.name = session.name;
-    windowTitle.dirty = session.dirty;
-    const title = `${session.dirty ? "● " : ""}${session.name} — Didi`;
+    windowTitle.dirty = session.unsaved;
+    const title = `${session.unsaved ? "● " : ""}${session.name} — Didi`;
     if (capabilities.ownWindow) getCurrentWindow().setTitle(title);
     else document.title = title;
   });
@@ -432,9 +435,9 @@
     }
   }
 
-  /** In a browser, closing the tab would lose the document: the browser asks first. */
+  /** In a browser, closing the tab would lose the latest changes: the browser asks first. */
   function onBeforeUnload(e: BeforeUnloadEvent) {
-    if (!capabilities.ownWindow && session.dirty) e.preventDefault();
+    if (!capabilities.ownWindow && session.unsaved) e.preventDefault();
   }
 
   function onKeyDown(e: KeyboardEvent) {

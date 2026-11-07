@@ -66,9 +66,51 @@ beforeEach(() => {
   dialogs.open = dialogs.save = null;
   browser.active = browser.cancel = false;
   browser.written = [];
+  vi.useRealTimers();
 });
 
 describe("Session", () => {
+  it("keeps the document in a browser, and brings it back by itself", async () => {
+    browser.active = true;
+    vi.useFakeTimers();
+    const { session } = setup();
+    expect(await session.start()).toBe(false);
+    paint(session);
+    expect(session.unsaved).toBe(true);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(session.unsaved).toBe(false);
+    const layers = session.editor.drawing.layers.length;
+
+    const { session: next } = setup();
+    expect(await next.start()).toBe(true);
+    expect(next.editor.drawing.layers).toHaveLength(layers);
+    // Still kept, in case the tab closes again before any change.
+    expect(data.has("recovery.didi")).toBe(true);
+    expect(next.untouched).toBe(false);
+    expect(next.unsaved).toBe(false);
+  });
+
+  it("forgets the browser's copy once everything is undone, or the document replaced", async () => {
+    browser.active = true;
+    vi.useFakeTimers();
+    const { session } = setup("discard");
+    paint(session);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(data.has("recovery.didi")).toBe(true);
+    session.editor.history.undo();
+    expect(session.unsaved).toBe(true);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(data.has("recovery.didi")).toBe(false);
+    expect(session.unsaved).toBe(false);
+
+    paint(session);
+    await vi.advanceTimersByTimeAsync(3000);
+    await session.newDocument(8, 8, "transparent");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(data.has("recovery.didi")).toBe(false);
+    expect(await setup().session.start()).toBe(false);
+  });
+
   it("exports a PNG where the browser's dialog says", async () => {
     browser.active = true;
     const { session, host } = setup();
@@ -214,6 +256,23 @@ describe("Session", () => {
     );
     expect(session.editor).toBe(before);
     expect(session.busy).toBeNull();
+  });
+
+  it("has a copy to offer a few seconds after a change, if the app gets killed", async () => {
+    vi.useFakeTimers();
+    const { session: killed } = setup();
+    paint(killed);
+    expect(data.has("recovery.didi")).toBe(false);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(data.has("recovery.didi")).toBe(true);
+    const layers = killed.editor.drawing.layers.length;
+
+    const { session } = setup();
+    await session.start();
+    expect(session.recovery).toMatchObject({ name: "Untitled", path: null });
+    await session.recover();
+    expect(session.editor.drawing.layers).toHaveLength(layers);
+    expect(session.dirty).toBe(true);
   });
 
   it("offers the copy left by a crash, until it is recovered or discarded", async () => {

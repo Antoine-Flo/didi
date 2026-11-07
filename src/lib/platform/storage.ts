@@ -1,14 +1,39 @@
 // Files: app data files (palettes, recent files, recovery…) in the app data folder, and
 // the user's documents. See src-tauri/src/storage.rs.
 //
-// In a plain browser (dev server, lab), text data files fall back to localStorage; binary
-// data files and user files need the desktop app.
+// In a browser, text data files are in localStorage and binary ones in IndexedDB; user files
+// need the desktop app.
 
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { capabilities } from "./capabilities";
 
 const PREFIX = "didi:";
+
+let database: Promise<IDBDatabase> | null = null;
+
+/** Runs one request on the browser's store of binary data files. */
+function binaryStore<T>(
+  mode: IDBTransactionMode,
+  request: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
+  database ??= new Promise((resolve, reject) => {
+    const open = indexedDB.open("didi", 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("files");
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+  return database.then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const transaction = db.transaction("files", mode);
+        const result = request(transaction.objectStore("files"));
+        // Written for good only when the transaction is complete.
+        transaction.oncomplete = () => resolve(result.result);
+        transaction.onerror = transaction.onabort = () => reject(transaction.error);
+      }),
+  );
+}
 
 /** The contents of a data file, or null if it does not exist yet. */
 export async function readDataFile(name: string): Promise<string | null> {
@@ -21,9 +46,11 @@ export async function writeDataFile(name: string, contents: string): Promise<voi
   localStorage.setItem(PREFIX + name, contents);
 }
 
-/** The bytes of a data file, or null if it does not exist (or outside the desktop app). */
+/** The bytes of a data file, or null if it does not exist. */
 export async function readDataBytes(name: string): Promise<Uint8Array | null> {
-  if (!isTauri()) return null;
+  if (!isTauri()) {
+    return (await binaryStore<Uint8Array | undefined>("readonly", (s) => s.get(name))) ?? null;
+  }
   try {
     return new Uint8Array(await invoke<ArrayBuffer>("data_read_bytes", { name }));
   } catch (e) {
@@ -32,15 +59,18 @@ export async function readDataBytes(name: string): Promise<Uint8Array | null> {
   }
 }
 
-/** Writes a binary data file. Does nothing outside the desktop app. */
 export async function writeDataBytes(name: string, bytes: Uint8Array): Promise<void> {
-  if (!isTauri()) return;
+  if (!isTauri()) {
+    await binaryStore("readwrite", (s) => s.put(bytes, name));
+    return;
+  }
   await invoke("data_write_bytes", bytes, { headers: { name: encodeURIComponent(name) } });
 }
 
 export async function removeDataFile(name: string): Promise<void> {
-  if (isTauri()) await invoke("data_remove", { name });
-  else localStorage.removeItem(PREFIX + name);
+  if (isTauri()) return invoke("data_remove", { name });
+  localStorage.removeItem(PREFIX + name);
+  await binaryStore("readwrite", (s) => s.delete(name));
 }
 
 /** Whether user files can be opened and saved (desktop app only). */
