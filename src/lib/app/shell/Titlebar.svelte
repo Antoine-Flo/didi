@@ -5,8 +5,7 @@
   // put its menus on the left, and more before the window buttons (see window-title.svelte.ts).
 
   import { onMount, type Snippet } from "svelte";
-  import { capabilities } from "#lib/platform/capabilities.js";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { appWindow as ownWindow } from "#lib/platform/window.js";
 
   let {
     title,
@@ -25,7 +24,8 @@
   } = $props();
 
   let maximized = $state(false);
-  const appWindow = capabilities.ownWindow ? getCurrentWindow() : null;
+  // A local const: TypeScript knows it stays non-null in the handlers below.
+  const appWindow = ownWindow;
 
   onMount(() => {
     if (!appWindow) return;

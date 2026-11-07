@@ -16,10 +16,9 @@ export interface Transform {
   readonly ty: number;
 }
 
-export interface Point {
-  readonly x: number;
-  readonly y: number;
-}
+import type { Point } from "../geometry";
+
+export type { Point };
 
 /** Any rectangle is a placement, without a transform. */
 export interface Placement extends Rect {

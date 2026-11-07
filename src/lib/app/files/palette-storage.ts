@@ -1,6 +1,7 @@
 // Loads the user's palettes from the app data folder, and saves them after every change.
 
 import { PaletteLibrary, parsePaletteFile } from "#lib/core/color/palette.js";
+import { errorMessage } from "#lib/app/error-message.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 
 const FILE = "palettes.json";
@@ -30,11 +31,11 @@ export async function loadPalettes(onError: (message: string) => void): Promise<
         library = new PaletteLibrary(palettes, active);
       } catch (e) {
         await writeDataFile(BACKUP, text);
-        onError(`Palettes could not be read (${message(e)}), a copy was kept in ${BACKUP}.`);
+        onError(`Palettes could not be read (${errorMessage(e)}), a copy was kept in ${BACKUP}.`);
       }
     }
   } catch (e) {
-    onError(`Palettes could not be loaded: ${message(e)}`);
+    onError(`Palettes could not be loaded: ${errorMessage(e)}`);
   }
   autosave(library, onError);
   return library;
@@ -46,7 +47,7 @@ function autosave(library: PaletteLibrary, onError: (message: string) => void) {
     timer = null;
     const text = JSON.stringify(library.toFile(), null, 2) + "\n";
     return writeDataFile(FILE, text).catch((e) =>
-      onError(`Palettes could not be saved: ${message(e)}`),
+      onError(`Palettes could not be saved: ${errorMessage(e)}`),
     );
   };
   library.subscribe(() => {
@@ -59,5 +60,3 @@ function autosave(library: PaletteLibrary, onError: (message: string) => void) {
     await save();
   };
 }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));

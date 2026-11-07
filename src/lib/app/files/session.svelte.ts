@@ -7,6 +7,7 @@ import {
   type DocumentData,
 } from "#lib/core/file/didi-file.js";
 import type { Editor } from "#lib/core/editor/editor.js";
+import { errorMessage } from "#lib/app/error-message.js";
 import {
   canUseFiles,
   chooseBrowserFile,
@@ -47,8 +48,6 @@ export interface SessionHost {
 
 const DIDI_FILTER = [{ name: "Didi drawing", extensions: ["didi"] }];
 const PNG_FILTER = [{ name: "PNG image", extensions: ["png"] }];
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The document as last saved, to tell whether it has changed since. */
 interface SavedState {
@@ -102,7 +101,7 @@ export class Session {
       doc: documentFromEditor(this.editor, this.extensions, this.mode),
       info: { name: this.name, path: this.path, time: Date.now() },
     }),
-    onError: (e) => this.host.notify(`Could not write the recovery copy: ${message(e)}`),
+    onError: (e) => this.host.notify(`Could not write the recovery copy: ${errorMessage(e)}`),
   });
 
   /** `editor`: the document to start with, a new one by default, in `mode`. */
@@ -153,7 +152,7 @@ export class Session {
       await this.copy.remove();
       if (info) this.recovery = info;
     } catch (e) {
-      this.host.notify(`Could not read the app data: ${message(e)}`);
+      this.host.notify(`Could not read the app data: ${errorMessage(e)}`);
     }
     return false;
   }
@@ -284,7 +283,7 @@ export class Session {
       await action();
       return true;
     } catch (e) {
-      this.host.notify(`${failure}: ${message(e)}`);
+      this.host.notify(`${failure}: ${errorMessage(e)}`);
       return false;
     } finally {
       this.busy = null;

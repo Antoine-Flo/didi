@@ -5,6 +5,7 @@
 // "palette"; a panel without a size has its default one, see the Splitter widget). The
 // same in every mode: switching modes moves nothing.
 
+import { errorMessage } from "#lib/app/error-message.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 
 const FILE = "layout.json";
@@ -177,7 +178,7 @@ export class LayoutPrefs {
     try {
       await writeDataFile(FILE, text);
     } catch (e) {
-      this.onError(`Layout could not be saved: ${e instanceof Error ? e.message : e}`);
+      this.onError(`Layout could not be saved: ${errorMessage(e)}`);
     }
   }
 }

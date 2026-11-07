@@ -3,10 +3,9 @@
 // screen = translate(x, y) · rotate(rotation) · scale(zoom) · canvas
 // Pure math, no rendering, so it can be tested on its own.
 
-export interface Point {
-  x: number;
-  y: number;
-}
+import type { Point } from "#lib/core/geometry.js";
+
+export type { Point };
 
 export interface Camera {
   /** Screen position of the canvas origin. */

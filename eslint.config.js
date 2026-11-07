@@ -39,6 +39,24 @@ export default ts.config(
     },
   },
   {
+    // Tauri only through src/lib/platform: the interface asks it what it can do.
+    files: ["src/**"],
+    ignores: ["src/lib/platform/**", "src/routes/lab/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@tauri-apps/*"],
+              message: "Use src/lib/platform (capabilities, storage, window, pen) instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The core must stay independent from UI, rendering and platform.
     files: ["src/lib/core/**"],
     rules: {

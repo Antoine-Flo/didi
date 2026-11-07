@@ -1,3 +1,9 @@
+/** A position, in pixels. */
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
 /** Axis-aligned rectangle, in pixels. */
 export interface Rect {
   x: number;

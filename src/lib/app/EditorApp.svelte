@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { capabilities } from "#lib/platform/capabilities.js";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { appWindow } from "#lib/platform/window.js";
+  import { errorMessage } from "#lib/app/error-message.js";
   import "#lib/app/shell/ui.css";
   import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
   import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
@@ -241,7 +242,7 @@
       importPalette: () => paletteInput.click(),
       openCommandPalette: () => (paletteOpen = true),
       canUseFiles: capabilities.userFiles,
-      quit: capabilities.ownWindow ? () => void getCurrentWindow().close() : null,
+      quit: appWindow ? () => void appWindow?.close() : null,
     }),
   );
 
@@ -282,7 +283,7 @@
     heldModifiers();
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
-      .catch((e) => (error = `Brush engine unavailable: ${e instanceof Error ? e.message : e}`));
+      .catch((e) => (error = `Brush engine unavailable: ${errorMessage(e)}`));
 
     void layout.load(notify);
     loadPalettes(notify).then((library) => {
@@ -292,9 +293,9 @@
     void session.start().then((restored) => {
       if (!initial && !capabilities.userFiles && !restored) startOpen = true;
     });
-    if (!capabilities.ownWindow) return;
+    if (!appWindow) return;
     // Closing the window: offer to save unsaved changes first.
-    const window = getCurrentWindow();
+    const window = appWindow;
     const unlisten = window.onCloseRequested(async (event) => {
       event.preventDefault();
       if (!(await session.confirmDiscard())) return;
@@ -326,7 +327,7 @@
     windowTitle.name = session.name;
     windowTitle.dirty = session.unsaved;
     const title = `${session.unsaved ? "● " : ""}${session.name} — Didi`;
-    if (capabilities.ownWindow) getCurrentWindow().setTitle(title);
+    if (appWindow) appWindow.setTitle(title);
     else document.title = title;
   });
   $effect(() => {
@@ -355,7 +356,7 @@
       try {
         importImage(editor, await decodeImage(file), file.name.replace(/\.[^.]+$/, ""));
       } catch (e) {
-        error = `Cannot import ${file.name}: ${e instanceof Error ? e.message : e}`;
+        error = `Cannot import ${file.name}: ${errorMessage(e)}`;
       }
     }
   }
@@ -365,7 +366,7 @@
     try {
       palettes.add(parseHexPalette(await file.text(), file.name.replace(/\.[^.]+$/, "")));
     } catch (e) {
-      notify(`Cannot import ${file.name}: ${e instanceof Error ? e.message : e}`);
+      notify(`Cannot import ${file.name}: ${errorMessage(e)}`);
     }
   }
 
