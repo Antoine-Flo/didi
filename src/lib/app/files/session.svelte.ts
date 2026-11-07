@@ -1,31 +1,20 @@
 // The open document: its editor, mode, file and unsaved changes, and the file actions (new,
-// open, save, save as, export), recent files and crash recovery.
-//
-// Recovery: a few seconds after a change, a copy of the document is written to the app data
-// folder (never to the user's file). It is removed when the document is saved or closed
-// normally. At start, a copy left by a crash is moved aside and offered in the start
-// screen until the user opens or discards it.
-//
-// In a browser, there are no files: that copy is the document's only save. It stays when the
-// tab closes, and comes back by itself at start.
+// open, save, save as, export), recent files and crash recovery (see recovery-copy).
 
-import { documentFromEditor, editorFromDocument } from "#lib/core/file/didi-file.js";
+import {
+  documentFromEditor,
+  editorFromDocument,
+  type DocumentData,
+} from "#lib/core/file/didi-file.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import {
   canUseFiles,
   chooseBrowserFile,
   chooseFileToOpen,
   chooseFileToSave,
-  readDataBytes,
-  readDataFile,
-  removeDataFile,
-  writeDataBytes,
-  writeDataFile,
 } from "#lib/platform/storage.js";
 import {
-  decodeDocument,
   documentName,
-  encodeDocument,
   exportPng,
   renderPng,
   fileName,
@@ -36,6 +25,16 @@ import {
 import { newEditor, type Background } from "./new-drawing";
 import { DEFAULT_MODE } from "#lib/app/modes/mode.js";
 import { loadRecent, saveRecent, withRecent, type RecentFile } from "./recent";
+import {
+  discardSetAsideCopy,
+  readLeftCopy,
+  readSetAsideCopy,
+  RecoveryCopy,
+  setAsideLeftCopy,
+  type RecoveryInfo,
+} from "./recovery-copy.svelte";
+
+export type { RecoveryInfo } from "./recovery-copy.svelte";
 
 export type UnsavedChoice = "save" | "discard" | "cancel";
 
@@ -46,27 +45,38 @@ export interface SessionHost {
   askUnsaved(name: string): Promise<UnsavedChoice>;
 }
 
-export interface RecoveryInfo {
-  name: string;
-  /** The file the document came from, if it had one. */
-  path: string | null;
-  /** When the copy was written, in ms since 1970. */
-  time: number;
-}
-
 const DIDI_FILTER = [{ name: "Didi drawing", extensions: ["didi"] }];
 const PNG_FILTER = [{ name: "PNG image", extensions: ["png"] }];
-const RECOVERY_DELAY_MS = 3000;
-/** Longer for a document that is long to copy: at most a tenth of the time goes to that. */
-const RECOVERY_DELAY_PER_WRITE = 10;
-/** This session's copy, and the one left by a previous session that did not close. */
-const RECOVERY = { file: "recovery.didi", info: "recovery.json" };
-const PREVIOUS = { file: "recovery-previous.didi", info: "recovery-previous.json" };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-const hiddenLayers = (editor: Editor): ReadonlySet<string> =>
-  new Set(editor.drawing.layers.filter((l) => !l.visible).map((l) => l.id));
+/** The document as last saved, to tell whether it has changed since. */
+interface SavedState {
+  /** See History.marker. */
+  marker: unknown;
+  mode: string;
+  /** Visibility is saved, but is not in the history. */
+  hidden: ReadonlySet<string>;
+}
+
+const savedStateOf = (editor: Editor, mode: string): SavedState => ({
+  marker: editor.history.marker,
+  mode,
+  hidden: new Set(editor.drawing.layers.filter((l) => !l.visible).map((l) => l.id)),
+});
+
+/** What a document replacing the open one is. */
+interface Replacement {
+  /** Its file, null if it has none. */
+  path: string | null;
+  name: string;
+  mode: string;
+  extensions?: Record<string, unknown>;
+  /** Its changes are in no file (e.g. a recovered copy): replacing it would lose them. */
+  inNoFile?: boolean;
+  /** The recovery copy is this document's, and stays. */
+  keepCopy?: boolean;
+}
 
 export class Session {
   editor: Editor = $state.raw(newEditor());
@@ -81,25 +91,19 @@ export class Session {
   /** A copy left by a session that did not close normally. */
   recovery = $state.raw<RecoveryInfo | null>(null);
 
-  /** History marker of the last save: see History.marker. */
-  private savedMarker = $state.raw<unknown>(null);
-  /** The mode at the last save. */
-  private savedMode = $state(DEFAULT_MODE);
-  /** The layers hidden at the last save. Visibility is saved, but is not in the history. */
-  private savedHidden = $state.raw(hiddenLayers(this.editor));
+  private saved = $state.raw<SavedState>(savedStateOf(this.editor, DEFAULT_MODE));
   /** Bumped on every history or visibility change, to recompute `dirty`. */
   private revision = $state(0);
   private extensions: Record<string, unknown> = {};
   private unsubscribe: () => void = () => {};
-  private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
-  /** The copy's last write or removal: they run one at a time, in order. */
-  private recoveryWork: Promise<unknown> = Promise.resolve();
-  private recoveryWrites = 0;
-  private recoveryWriteMs = 0;
-  /** A copy of this session exists, which may have to be removed. */
-  private copyWritten = false;
-  /** Changes are not in the copy yet. */
-  private copyPending = $state(false);
+  private readonly copy = new RecoveryCopy({
+    needsCopy: () => this.dirty,
+    snapshot: () => ({
+      doc: documentFromEditor(this.editor, this.extensions, this.mode),
+      info: { name: this.name, path: this.path, time: Date.now() },
+    }),
+    onError: (e) => this.host.notify(`Could not write the recovery copy: ${message(e)}`),
+  });
 
   /** `editor`: the document to start with, a new one by default, in `mode`. */
   constructor(
@@ -108,9 +112,8 @@ export class Session {
     mode: string = DEFAULT_MODE,
   ) {
     this.setEditor(editor);
-    this.savedMarker = editor.history.marker;
-    this.savedHidden = hiddenLayers(editor);
-    this.mode = this.savedMode = mode;
+    this.mode = mode;
+    this.saved = savedStateOf(editor, mode);
   }
 
   /**
@@ -125,16 +128,17 @@ export class Session {
   /** Whether the document has changes that are not saved. */
   get dirty(): boolean {
     void this.revision;
+    const { saved } = this;
     return (
-      this.editor.history.marker !== this.savedMarker ||
-      this.mode !== this.savedMode ||
-      this.editor.drawing.layers.some((l) => l.visible === this.savedHidden.has(l.id))
+      this.editor.history.marker !== saved.marker ||
+      this.mode !== saved.mode ||
+      this.editor.drawing.layers.some((l) => l.visible === saved.hidden.has(l.id))
     );
   }
 
   /** Whether closing now would lose changes. In a browser, the copy keeps them. */
   get unsaved(): boolean {
-    return canUseFiles() ? this.dirty : this.copyPending;
+    return canUseFiles() ? this.dirty : this.copy.pending;
   }
 
   /**
@@ -145,15 +149,9 @@ export class Session {
     try {
       this.recent = await loadRecent();
       if (!canUseFiles()) return await this.restoreCopy();
-      const text = await readDataFile(RECOVERY.info);
-      const bytes = text !== null ? await readDataBytes(RECOVERY.file) : null;
-      if (text !== null && bytes) {
-        await writeDataBytes(PREVIOUS.file, bytes);
-        await writeDataFile(PREVIOUS.info, text);
-      }
-      await this.removeRecovery();
-      const previous = await readDataFile(PREVIOUS.info);
-      if (previous !== null) this.recovery = JSON.parse(previous) as RecoveryInfo;
+      const info = await setAsideLeftCopy();
+      await this.copy.remove();
+      if (info) this.recovery = info;
     } catch (e) {
       this.host.notify(`Could not read the app data: ${message(e)}`);
     }
@@ -162,16 +160,10 @@ export class Session {
 
   /** In a browser: back to the document as it was when the tab closed. */
   private async restoreCopy(): Promise<boolean> {
-    const text = await readDataFile(RECOVERY.info);
-    const bytes = text !== null ? await readDataBytes(RECOVERY.file) : null;
-    if (text === null || !bytes || !this.untouched) return false;
-    const info = JSON.parse(text) as RecoveryInfo;
-    const { doc } = await decodeDocument(bytes);
-    this.replace(editorFromDocument(doc), null, info.name, doc.mode ?? DEFAULT_MODE, true);
-    this.extensions = doc.extensions;
-    // Not in any file: replacing it would lose it.
-    this.savedMarker = {};
-    this.copyWritten = true;
+    const left = await readLeftCopy();
+    if (!left || !this.untouched) return false;
+    this.load(left.doc, { path: null, name: left.info.name, inNoFile: true, keepCopy: true });
+    this.copy.adopt();
     return true;
   }
 
@@ -190,14 +182,14 @@ export class Session {
     mode: string = DEFAULT_MODE,
   ) {
     if (!(await this.confirmDiscard())) return;
-    this.replace(newEditor(width, height, background), null, "Untitled", mode);
+    this.replace(newEditor(width, height, background), { path: null, name: "Untitled", mode });
   }
 
   /** Changes the document's mode: an unsaved change, but not an undo step. */
   setMode(id: string) {
     if (id === this.mode) return;
     this.mode = id;
-    this.scheduleRecovery();
+    this.copy.schedule();
   }
 
   /** Opens a .didi file: the given one, or one chosen by the user. */
@@ -207,8 +199,7 @@ export class Session {
     if (!path) return;
     await this.run(`Opening ${fileName(path)}…`, `Cannot open ${fileName(path)}`, async () => {
       const { doc, thumbnail } = await openDocument(path);
-      this.replace(editorFromDocument(doc), path, documentName(path), doc.mode ?? DEFAULT_MODE);
-      this.extensions = doc.extensions;
+      this.load(doc, { path, name: documentName(path) });
       if (thumbnail) await this.addRecent(path, thumbnail);
     });
   }
@@ -254,44 +245,34 @@ export class Session {
     const info = this.recovery;
     if (!info || !(await this.confirmDiscard())) return;
     await this.run("Recovering…", "Cannot recover the document", async () => {
-      const bytes = await readDataBytes(PREVIOUS.file);
-      if (!bytes) throw new Error("the copy is missing");
-      const { doc } = await decodeDocument(bytes);
-      this.replace(editorFromDocument(doc), info.path, info.name, doc.mode ?? DEFAULT_MODE);
-      this.extensions = doc.extensions;
-      // Not saved yet: the recovered changes are not in any file.
-      this.savedMarker = {};
+      const doc = await readSetAsideCopy();
+      this.load(doc, { path: info.path, name: info.name, inNoFile: true });
       // This session's copy first: at no point does a crash lose the document.
-      await this.inOrder(() => this.writeRecovery());
+      await this.copy.writeNow();
       await this.discardRecovery();
     });
   }
 
   async discardRecovery() {
     this.recovery = null;
-    await removeDataFile(PREVIOUS.file);
-    await removeDataFile(PREVIOUS.info);
+    await discardSetAsideCopy();
   }
 
   /** Forgets this session's recovery copy: call when closing normally. */
   async closing() {
-    await this.removeRecovery();
+    await this.copy.remove();
   }
 
   private async saveTo(path: string): Promise<boolean> {
     // The state being saved: later changes, during the save, stay unsaved.
     const doc = documentFromEditor(this.editor, this.extensions, this.mode);
-    const marker = this.editor.history.marker;
-    const hidden = hiddenLayers(this.editor);
-    const mode = this.mode;
+    const saved = savedStateOf(this.editor, this.mode);
     return this.run(`Saving ${fileName(path)}…`, `Cannot save ${fileName(path)}`, async () => {
       const thumbnail = await saveDocument(path, doc);
       this.path = path;
       this.name = documentName(path);
-      this.savedMarker = marker;
-      this.savedHidden = hidden;
-      this.savedMode = mode;
-      await this.removeRecovery();
+      this.saved = saved;
+      await this.copy.remove();
       await this.addRecent(path, thumbnail);
     });
   }
@@ -316,21 +297,24 @@ export class Session {
     return false;
   }
 
-  private replace(
-    editor: Editor,
-    path: string | null,
-    name: string,
-    mode: string,
-    keepCopy = false,
-  ) {
+  /** Replaces the open document with one read from a file or a copy. */
+  private load(doc: DocumentData, replacement: Omit<Replacement, "mode" | "extensions">) {
+    this.replace(editorFromDocument(doc), {
+      ...replacement,
+      mode: doc.mode ?? DEFAULT_MODE,
+      extensions: doc.extensions,
+    });
+  }
+
+  private replace(editor: Editor, replacement: Replacement) {
     this.setEditor(editor);
-    this.path = path;
-    this.name = name;
-    this.mode = this.savedMode = mode;
-    this.extensions = {};
-    this.savedMarker = editor.history.marker;
-    this.savedHidden = hiddenLayers(editor);
-    if (!keepCopy) void this.removeRecovery();
+    this.path = replacement.path;
+    this.name = replacement.name;
+    this.mode = replacement.mode;
+    this.extensions = replacement.extensions ?? {};
+    this.saved = savedStateOf(editor, replacement.mode);
+    if (replacement.inNoFile) this.saved = { ...this.saved, marker: {} };
+    if (!replacement.keepCopy) void this.copy.remove();
   }
 
   private setEditor(editor: Editor) {
@@ -338,7 +322,7 @@ export class Session {
     this.editor = editor;
     const changed = () => {
       this.revision++;
-      this.scheduleRecovery();
+      this.copy.schedule();
     };
     const unsubscribe = [
       editor.history.subscribe(changed),
@@ -358,63 +342,5 @@ export class Session {
       mode: this.mode,
     });
     await saveRecent(this.recent);
-  }
-
-  private scheduleRecovery() {
-    if (this.recoveryTimer !== null || (!this.dirty && !this.copyWritten)) return;
-    this.copyPending = true;
-    this.recoveryTimer = setTimeout(
-      () => {
-        this.recoveryTimer = null;
-        const id = ++this.recoveryWrites;
-        const write = this.inOrder(() => this.writeRecovery());
-        write
-          .then(() => {
-            // Still pending if more changes came meanwhile. After a failure too.
-            if (id === this.recoveryWrites && this.recoveryTimer === null) {
-              this.copyPending = false;
-            }
-          })
-          .catch((e) => this.host.notify(`Could not write the recovery copy: ${message(e)}`));
-      },
-      Math.max(RECOVERY_DELAY_MS, this.recoveryWriteMs * RECOVERY_DELAY_PER_WRITE),
-    );
-  }
-
-  /** After the copy's work in progress: an older write must not land after a newer one. */
-  private inOrder(work: () => Promise<void>): Promise<void> {
-    const done = this.recoveryWork.then(work);
-    this.recoveryWork = done.catch(() => {});
-    return done;
-  }
-
-  private async writeRecovery() {
-    // Back to the saved state, e.g. everything undone: the copy would bring the changes back.
-    if (!this.dirty) {
-      if (this.copyWritten) await this.removeCopy();
-      return;
-    }
-    const start = performance.now();
-    const { file } = await encodeDocument(
-      documentFromEditor(this.editor, this.extensions, this.mode),
-    );
-    await writeDataBytes(RECOVERY.file, file);
-    const info: RecoveryInfo = { name: this.name, path: this.path, time: Date.now() };
-    await writeDataFile(RECOVERY.info, JSON.stringify(info));
-    this.recoveryWriteMs = performance.now() - start;
-    this.copyWritten = true;
-  }
-
-  private removeRecovery(): Promise<void> {
-    if (this.recoveryTimer !== null) clearTimeout(this.recoveryTimer);
-    this.recoveryTimer = null;
-    this.copyPending = false;
-    return this.inOrder(() => this.removeCopy());
-  }
-
-  private async removeCopy() {
-    await removeDataFile(RECOVERY.file);
-    await removeDataFile(RECOVERY.info);
-    this.copyWritten = false;
   }
 }
