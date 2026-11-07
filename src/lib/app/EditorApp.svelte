@@ -133,14 +133,17 @@
   );
   let paletteOpen = $state(false);
 
-  // Bumped on every change, so the UI re-reads the editor.
+  // Bumped on every change but pixels, so the UI re-reads the editor. Pixels change on every
+  // frame of a stroke: only what shows them follows `pixelVersion`.
   let version = $state(0);
+  let pixelVersion = $state(0);
   let camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
   let cursor = $state<Point | null>(null);
   /** The tool bar's swatch: what the tool would make of the color drawn with, at the cursor. */
   const toolPreview = $derived.by(() => {
     if (!shownTool.preview) return null;
     void version;
+    void pixelVersion;
     const opacity = options.tools[tools.drawingTool]?.opacity;
     const current = { color: options.color, opacity: typeof opacity === "number" ? opacity : 1 };
     if (!cursor) return current;
@@ -307,7 +310,10 @@
     // Untracked: this effect must not depend on `version`, which it changes.
     untrack(bump);
     const unsubscribe = [
-      editor.drawing.subscribe(bump),
+      editor.drawing.subscribe((change) => {
+        if (change.type === "pixels-changed") pixelVersion++;
+        else bump();
+      }),
       editor.history.subscribe(bump),
       editor.selection.subscribe(bump),
       editor.onActiveLayerChange(bump),
