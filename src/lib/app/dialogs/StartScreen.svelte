@@ -22,7 +22,7 @@
     recent,
     recovery,
     oncreate,
-    onchoose,
+    onchange,
     onopen,
     onrecover,
     ondiscardrecovery,
@@ -34,8 +34,8 @@
     recent: readonly RecentFile[];
     recovery: RecoveryInfo | null;
     oncreate: (width: number, height: number, background: Background, mode: string) => void;
-    /** A mode card was chosen. */
-    onchoose?: (mode: Mode) => void;
+    /** The mode, the size or the background was changed by the user (a valid size only). */
+    onchange?: (width: number, height: number, background: Background, mode: string) => void;
     /** Opens a recent file, or asks for one without a path. */
     onopen: (path?: string) => void;
     onrecover: () => void;
@@ -61,7 +61,23 @@
     chosenId = next.id;
     ({ width, height } = next.newDocument.size);
     background = next.newDocument.background;
-    onchoose?.(next);
+    changed();
+  }
+
+  function changed() {
+    if (validSize(width) && validSize(height)) onchange?.(width, height, background, chosen.id);
+  }
+
+  function setSize(w: number, h: number) {
+    if (w === width && h === height) return;
+    ({ width, height } = { width: w, height: h });
+    changed();
+  }
+
+  function setBackground(next: Background) {
+    if (next === background) return;
+    background = next;
+    changed();
   }
 
   function create(w: number, h: number) {
@@ -130,7 +146,7 @@
                 <button
                   class="size"
                   class:active={w === width && h === height}
-                  onclick={() => ({ width, height } = { width: w, height: h })}>{w} × {h}</button
+                  onclick={() => setSize(w, h)}>{w} × {h}</button
                 >
               {/each}
             </div>
@@ -140,21 +156,35 @@
         <div class="group">
           <span class="label">Custom</span>
           <div class="custom">
-            <input type="number" min="1" max={MAX_SIZE} bind:value={width} aria-label="Width" />
+            <input
+              type="number"
+              min="1"
+              max={MAX_SIZE}
+              bind:value={width}
+              oninput={changed}
+              aria-label="Width"
+            />
             <span>×</span>
-            <input type="number" min="1" max={MAX_SIZE} bind:value={height} aria-label="Height" />
+            <input
+              type="number"
+              min="1"
+              max={MAX_SIZE}
+              bind:value={height}
+              oninput={changed}
+              aria-label="Height"
+            />
           </div>
         </div>
 
         <div class="group">
           <span class="label">Background</span>
           <div class="toggle">
-            <button class:active={background === "white"} onclick={() => (background = "white")}>
+            <button class:active={background === "white"} onclick={() => setBackground("white")}>
               White
             </button>
             <button
               class:active={background === "transparent"}
-              onclick={() => (background = "transparent")}
+              onclick={() => setBackground("transparent")}
             >
               Transparent
             </button>

@@ -30,7 +30,7 @@
   import { availableMenus, defaultMenus } from "#lib/app/commands/default-menus.js";
   import { createModeRegistry } from "#lib/app/modes/builtin.js";
   import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
-  import { newEditor } from "#lib/app/files/new-drawing.js";
+  import { newEditor, type Background } from "#lib/app/files/new-drawing.js";
   import { createToolRegistry } from "#lib/app/tools/builtin.js";
   import { pickerTool } from "#lib/app/tools/picker-tool.js";
   import { isSelectTool } from "#lib/app/tools/select-tool.js";
@@ -75,14 +75,13 @@
   );
 
   /**
-   * A mode chosen in the start screen. While the document behind is untouched, it becomes
-   * an empty one in that mode, so that what is behind matches the choice (also when
-   * clicking outside). A document with any change or a file is never replaced.
+   * A mode, a size or a background chosen in the start screen. While the document behind is
+   * untouched, it becomes an empty one with that choice, so that what is behind matches it
+   * (also when clicking outside). A document with any change or a file is never replaced.
    */
-  function chooseMode(next: Mode) {
-    if (!session.untouched || session.mode === next.id) return;
-    const { size, background } = next.newDocument;
-    void session.newDocument(size.width, size.height, background, next.id);
+  function previewNew(width: number, height: number, background: Background, mode: string) {
+    if (!session.untouched) return;
+    void session.newDocument(width, height, background, mode);
   }
   const editor = $derived(session.editor);
   // Shown at start, like Blender's splash screen. In a browser, only once it is known that
@@ -554,7 +553,7 @@
   recovery={session.recovery}
   oncreate={(width, height, background, mode) =>
     session.newDocument(width, height, background, mode)}
-  onchoose={chooseMode}
+  onchange={previewNew}
   onopen={(path) => session.open(path)}
   onrecover={() => session.recover()}
   ondiscardrecovery={() => session.discardRecovery()}
