@@ -26,6 +26,7 @@ function setup(withView = true) {
     options: tools.defaultOptions(),
     view: withView ? view : null,
     hand: "right",
+    togglePanels: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
     importImage: vi.fn(),
     newDocument: vi.fn(),
@@ -107,6 +108,12 @@ describe("app commands", () => {
     expect(host.hand).toBe("left");
     editor.commands.execute("view.rightHanded");
     expect(host.hand).toBe("right");
+  });
+
+  it("shows or hides the panels", () => {
+    const { editor, host } = setup();
+    editor.commands.execute("view.togglePanels");
+    expect(host.togglePanels).toHaveBeenCalledOnce();
   });
 
   it("sets the color, and edits palettes", async () => {

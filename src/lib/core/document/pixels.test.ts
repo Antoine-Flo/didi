@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { premultiply, unpremultiply } from "./pixels";
+import { keepAlpha, premultiply, unpremultiply } from "./pixels";
 
 const pixels = fc
   .array(fc.integer({ min: 0, max: 255 }), { minLength: 4, maxLength: 400 })
@@ -36,5 +36,34 @@ describe("pixel conversions", () => {
     const opaque = new Uint8ClampedArray([12, 34, 56, 255]);
     expect([...premultiply(opaque)]).toEqual([...opaque]);
     expect([...unpremultiply(opaque)]).toEqual([...opaque]);
+  });
+
+  it("keeps a pixel's opacity and its new color (alpha lock)", () => {
+    const before = new Uint8ClampedArray([0, 0, 64, 128]); // half-transparent blue
+    const out = new Uint8ClampedArray([255, 0, 0, 255]); // painted opaque red
+    keepAlpha(out, 0, before);
+    expect([...out]).toEqual([128, 0, 0, 128]);
+    // Transparent stays transparent, and erasing changes nothing.
+    const empty = new Uint8ClampedArray([255, 0, 0, 255]);
+    keepAlpha(empty, 0, undefined);
+    expect([...empty]).toEqual([0, 0, 0, 0]);
+    const erased = new Uint8ClampedArray([0, 0, 0, 0]);
+    keepAlpha(erased, 0, before);
+    expect([...erased]).toEqual([...before]);
+  });
+
+  it("always leaves a valid pixel with the old opacity (property)", () => {
+    fc.assert(
+      fc.property(pixels, pixels, (a, b) => {
+        const n = Math.min(a.length, b.length);
+        const before = premultiply(a.slice(0, n));
+        const out = premultiply(b.slice(0, n));
+        for (let i = 0; i < n; i += 4) {
+          keepAlpha(out, i, before);
+          expect(out[i + 3]).toBe(before[i + 3]);
+          expect(Math.max(out[i], out[i + 1], out[i + 2])).toBeLessThanOrEqual(out[i + 3]);
+        }
+      }),
+    );
   });
 });

@@ -27,6 +27,7 @@ import {
   type Sample,
   type Tool,
   type ToolContext,
+  type ToolGroup,
   type ToolStroke,
 } from "./tool";
 
@@ -72,16 +73,20 @@ function mypaintTool(id: string, title: string, icon: Tool["icon"], pigment = tr
   });
 }
 
+/** The painting brushes share a button when the tool column does not fit. */
+export const BRUSHES: ToolGroup = { id: "brushes", title: "Brushes" };
+const brushes = { group: BRUSHES, whenShort: true };
+
 export const MYPAINT_TOOLS = [
-  mypaintTool("pencil", "Pencil", PencilLine),
-  mypaintTool("ink", "Ink", PenTool),
-  mypaintTool("brush", "Brush", BrushIcon),
-  mypaintTool("watercolor", "Watercolor", Droplet),
+  { ...mypaintTool("pencil", "Pencil", PencilLine), group: brushes },
+  { ...mypaintTool("ink", "Ink", PenTool), group: brushes },
+  { ...mypaintTool("brush", "Brush", BrushIcon), group: brushes },
+  { ...mypaintTool("watercolor", "Watercolor", Droplet), group: brushes },
   // Normal mixing: an airbrush lays many light, large dabs over existing color, where
   // pigment mode costs the most, and the difference in look is slight.
-  mypaintTool("airbrush", "Airbrush", SprayCan, false),
-  mypaintTool("blend", "Blend", Blend),
-  mypaintTool("texture", "Texture", Sparkles),
+  { ...mypaintTool("airbrush", "Airbrush", SprayCan, false), group: brushes },
+  { ...mypaintTool("blend", "Blend", Blend), group: brushes },
+  { ...mypaintTool("texture", "Texture", Sparkles), group: brushes },
   { ...mypaintTool("eraser", "Eraser", EraserIcon), needsColor: false },
 ];
 

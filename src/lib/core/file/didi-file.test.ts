@@ -28,6 +28,7 @@ function state(editor: Editor) {
         name: l.name,
         visible: l.visible,
         locked: l.locked,
+        alphaLocked: l.alphaLocked,
         opacity: l.opacity,
         blendMode: l.blendMode,
       },
@@ -61,6 +62,7 @@ function sample(width = 300, height = 200): Editor {
   });
   drawing.updateLayer(drawing.layers[1].id, { visible: false, blendMode: "screen" });
   drawing.updateLayer(drawing.layers[2].id, { locked: true });
+  drawing.updateLayer(drawing.layers[0].id, { alphaLocked: true });
   const editor = new Editor(drawing);
   editor.setActiveLayer(drawing.layers[1].id);
   return editor;
@@ -75,6 +77,7 @@ describe(".didi files", () => {
     const back = editorFromDocument(reload(editor));
     expectSame(editor, back);
     expect(back.drawing.layers[2].locked).toBe(true);
+    expect(back.drawing.layers[0].alphaLocked).toBe(true);
     expect(back.history.steps).toBe(0);
   });
 
@@ -93,6 +96,7 @@ describe(".didi files", () => {
       name: fc.string({ minLength: 1, maxLength: 8 }).filter((s) => s.trim() !== ""),
       visible: fc.boolean(),
       locked: fc.boolean(),
+      alphaLocked: fc.boolean(),
       opacity: fc.double({ min: 0, max: 1, noNaN: true }),
       blendMode: fc.constantFrom(...BLEND_MODES),
       alpha: fc.integer({ min: 0, max: 255 }),
@@ -113,6 +117,7 @@ describe(".didi files", () => {
               visible: l.visible,
               opacity: l.opacity,
               blendMode: l.blendMode,
+              alphaLocked: l.alphaLocked,
             });
             drawing.addLayer(created);
             const rect = { x: l.x, y: l.y, width: 40, height: 30 };
@@ -226,6 +231,7 @@ describe(".didi files", () => {
         name: "Layer",
         visible: true,
         locked: false,
+        alphaLocked: false,
         opacity: 1,
         blendMode: "normal",
       });

@@ -113,6 +113,22 @@ describe("libmypaint engine", () => {
     }
   });
 
+  it("only recolors existing pixels on an alpha-locked layer", () => {
+    const { drawing, id } = setup();
+    // A half-transparent green band, under half of the stroke.
+    const band = { x: 0, y: 100, width: 150, height: 100 };
+    drawing.writePixels(id, band, fill(band, [0, 60, 0, 128]));
+    drawing.updateLayer(id, { alphaLocked: true });
+    const stroke = new MyPaintStroke(mp, brush("deevad/basic_digital_brush"), drawing, id);
+    draw(stroke, 50, 250, 150);
+    stroke.finish("Brush");
+    const [r, g, , a] = pixel(drawing, id, 100, 150);
+    expect(a).toBe(128);
+    expect(r).toBeGreaterThan(g);
+    // Outside the band, nothing appears.
+    expect(pixel(drawing, id, 200, 150)).toEqual([0, 0, 0, 0]);
+  });
+
   it("keeps the existing pixels around the stroke", () => {
     const { drawing, id } = setup();
     const all = { x: 0, y: 0, width: 300, height: 300 };

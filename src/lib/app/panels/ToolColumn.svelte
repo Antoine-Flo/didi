@@ -1,13 +1,17 @@
 <script lang="ts">
   // The tools of the mode, in a thin column beside the panels. A grip at the bottom moves it
-  // up or down along them (drag it, or the arrow keys); a double-click centers it again.
+  // up or down along them (drag it, or the arrow keys); a double-click puts it back at the top.
   // Its place is a fraction of the free height (0 at the top, 1 at the bottom), so it stays
   // in proportion when the window changes size; it is rounded to whole pixels, as a
   // fractional position would blur the icons.
+  //
+  // Some tools share a button (see tool-groups.ts); more of them in the compact layout, or
+  // when the column does not fit in the height it has.
 
   import { GripHorizontal } from "@lucide/svelte";
   import ToolButton from "#lib/app/panels/ToolButton.svelte";
   import type { Tool, ToolSettings } from "#lib/app/tools/tool.js";
+  import { shownTool, toolEntries, type ToolEntry } from "#lib/app/tools/tool-groups.js";
 
   let {
     tools,
@@ -15,6 +19,7 @@
     settings,
     side,
     trackHeight,
+    compact = false,
     position,
     element = $bindable(),
     onmove,
@@ -31,6 +36,8 @@
     side: "left" | "right";
     /** The height the column can move in, in pixels. */
     trackHeight: number;
+    /** The compact layout: the tools are grouped as when short of height. */
+    compact?: boolean;
     /** 0 at the top, 1 at the bottom. */
     position: number;
     element?: HTMLElement;
@@ -46,6 +53,34 @@
   /** How far down the column can go. */
   const free = $derived(Math.max(0, trackHeight - height));
   const top = $derived(Math.round(position * free));
+
+  // Short of height: more tools grouped. The column's height ungrouped is kept, to ungroup
+  // once there is room for it again; it is measured again when the tools change.
+  let short = $state(false);
+  let fullHeight = 0;
+  $effect(() => {
+    void tools;
+    short = false;
+  });
+  $effect(() => {
+    if (height === 0 || trackHeight === 0) return;
+    if (!short && height > trackHeight) {
+      fullHeight = height;
+      short = true;
+    } else if (short && trackHeight >= fullHeight) {
+      short = false;
+    }
+  });
+  const entries = $derived(toolEntries(tools, compact || short));
+  const sectionOf = (entry: ToolEntry) =>
+    (entry.kind === "tool" ? entry.tool : entry.tools[0]).section ?? "draw";
+
+  /** The tool each group's button shows when none of its tools is active: the last used. */
+  const lastUsed = $state<Record<string, string>>({});
+  $effect(() => {
+    const group = tools.find((t) => t.id === active)?.group?.group;
+    if (group) lastUsed[group.id] = active;
+  });
 
   let drag: { pointer: number; from: number; top: number } | null = null;
 
@@ -76,16 +111,30 @@
 </script>
 
 <aside class="panel tool-column" style:top="{top}px" bind:this={element} bind:clientHeight={height}>
-  {#each tools as t, i (t.id)}
-    {#if i > 0 && (tools[i - 1].section ?? "draw") !== (t.section ?? "draw")}
+  {#each entries as entry, i (entry.kind === "tool" ? entry.tool.id : entry.group.id)}
+    {#if i > 0 && sectionOf(entries[i - 1]) !== sectionOf(entry)}
       <hr />
     {/if}
-    <ToolButton tool={t} active={active === t.id} settings={settings[t.id]} {side} {tip} {run} />
+    {#if entry.kind === "tool"}
+      {@const t = entry.tool}
+      <ToolButton tool={t} active={active === t.id} settings={settings[t.id]} {side} {tip} {run} />
+    {:else}
+      {@const t = shownTool(entry.tools, active, lastUsed[entry.group.id])}
+      <ToolButton
+        tool={t}
+        group={{ title: entry.group.title, tools: entry.tools, settings }}
+        active={active === t.id}
+        settings={settings[t.id]}
+        {side}
+        {tip}
+        {run}
+      />
+    {/if}
   {/each}
 
   <button
     class="grip"
-    title="Drag to move, double-click to center"
+    title="Drag to move, double-click to put back at the top"
     aria-label="Move the tools"
     {onpointerdown}
     {onpointermove}

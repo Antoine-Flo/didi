@@ -9,6 +9,7 @@
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
 import { TILE_SIZE, isTransparent, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
+import { keepAlpha } from "#lib/core/document/pixels.js";
 import { intersect, union, type Rect } from "#lib/core/geometry.js";
 import createLibMyPaint, { type LibMyPaint } from "./libmypaint.mjs";
 import type { MybBrush } from "./myb";
@@ -212,6 +213,8 @@ export interface StrokeClip {
 export class MyPaintStroke {
   private readonly original: TileSnapshot = new Map();
   private readonly working = new Map<number, Uint8ClampedArray>();
+  /** The layer's alpha lock: pixels keep their opacity. */
+  private readonly alphaLocked: boolean;
   private finished = false;
 
   constructor(
@@ -222,7 +225,9 @@ export class MyPaintStroke {
     private readonly opacity = 1,
     private readonly limit: StrokeClip = { clip: null, clipMask: null },
   ) {
-    if (drawing.getLayer(layerId).locked) throw new Error(`Layer ${layerId} is locked`);
+    const layer = drawing.getLayer(layerId);
+    if (layer.locked) throw new Error(`Layer ${layerId} is locked`);
+    this.alphaLocked = layer.alphaLocked;
     if (!(opacity >= 0 && opacity <= 1)) throw new RangeError(`Invalid opacity ${opacity}`);
     if (mp.current) throw new Error("Another stroke is in progress");
     mp.current = this;
@@ -410,6 +415,14 @@ export class MyPaintStroke {
       for (let i = 0; i < area.width; i++) {
         if (!clipMask[row + i]) continue;
         out.set(src.subarray(s + i * 4, s + i * 4 + 4), o + i * 4);
+      }
+    }
+    if (this.alphaLocked) {
+      // Pixels left out by the clip mask are as before: this leaves them unchanged.
+      const before = this.original.get(key);
+      for (let y = area.y; y < area.y + area.height; y++) {
+        const o = ((y - originY) * TILE_SIZE + (area.x - originX)) * 4;
+        for (let i = 0; i < area.width * 4; i += 4) keepAlpha(out, o + i, before);
       }
     }
     return { key, rect: { ...area, x: area.x - originX, y: area.y - originY } };

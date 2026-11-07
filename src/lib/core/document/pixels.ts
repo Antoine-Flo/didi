@@ -27,3 +27,25 @@ export function unpremultiply(premultiplied: Uint8ClampedArray): Uint8ClampedArr
   }
   return out;
 }
+
+/**
+ * Gives a painted pixel back its opacity from before, keeping its new color (alpha lock).
+ * `out` holds the pixel as painted at `j`, `before` the same pixel before painting at `k`
+ * (undefined: it was transparent). Both premultiplied. A pixel that was transparent stays
+ * so, and one erased completely keeps its old color.
+ */
+export function keepAlpha(
+  out: Uint8ClampedArray,
+  j: number,
+  before: Uint8ClampedArray | undefined,
+  k = j,
+) {
+  const a0 = before ? before[k + 3] : 0;
+  const a = out[j + 3];
+  if (a0 === 0 || a === 0) {
+    for (let c = 0; c < 4; c++) out[j + c] = before ? before[k + c] : 0;
+    return;
+  }
+  for (let c = 0; c < 3; c++) out[j + c] = Math.min(a0, Math.round((out[j + c] * a0) / a));
+  out[j + 3] = a0;
+}

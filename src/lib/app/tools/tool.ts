@@ -134,6 +134,13 @@ export interface ToolStroke {
 /** "draw": it changes pixels. "pick": it chooses what to work on (an area, a color). */
 export type ToolSection = "draw" | "pick";
 
+/** Tools sharing one button of the tool column (see tool-groups.ts). */
+export interface ToolGroup {
+  readonly id: string;
+  /** In English, e.g. "Shapes". */
+  readonly title: string;
+}
+
 export interface Tool<S extends ToolSettings = ToolSettings> {
   /** Unique, e.g. "pixel". Its command is `tool.<id>`. */
   readonly id: string;
@@ -147,6 +154,11 @@ export interface Tool<S extends ToolSettings = ToolSettings> {
   readonly hint?: string;
   /** Which part of the tool column it goes in. By default, "draw". */
   readonly section?: ToolSection;
+  /**
+   * The group whose button it shares in the tool column. With `whenShort`, only when the
+   * column does not fit in the window's height.
+   */
+  readonly group?: { readonly group: ToolGroup; readonly whenShort?: boolean };
   /**
    * Id of the brush set it offers (see $lib/mypaint/brush-sets), in a popup next to its
    * button. Its settings then have a `preset`: the brush in use.

@@ -12,6 +12,7 @@
     dirty,
     menu,
     end,
+    center,
     dimmed = false,
   }: {
     title: string;
@@ -19,6 +20,8 @@
     menu?: Snippet | null;
     /** Before the window buttons, e.g. the layout menu. */
     end?: Snippet | null;
+    /** Instead of the title, in the middle, e.g. the tool's options on a small screen. */
+    center?: Snippet | null;
     /** Under a dialog's overlay, except the window buttons. */
     dimmed?: boolean;
   } = $props();
@@ -37,7 +40,8 @@
 
   function onMouseDown(e: MouseEvent) {
     if (!appWindow || e.button !== 0) return;
-    if ((e.target as Element).closest("button")) return;
+    // Not from a control: a slider would move the window.
+    if ((e.target as Element).closest("button, input, label, select, [role='slider']")) return;
     if (e.detail === 2) appWindow.toggleMaximize();
     else appWindow.startDragging();
   }
@@ -48,10 +52,14 @@
   <div class="bar">
     {@render menu?.()}
 
-    <span class="title">
-      {#if dirty}<span class="dirty" title="Unsaved changes">●</span>{/if}
-      {title}
-    </span>
+    {#if center}
+      <div class="center">{@render center()}</div>
+    {:else}
+      <span class="title">
+        {#if dirty}<span class="dirty" title="Unsaved changes">●</span>{/if}
+        {title}
+      </span>
+    {/if}
 
     <div class="end">{@render end?.()}</div>
 
@@ -149,6 +157,19 @@
     text-overflow: ellipsis;
   }
 
+  /* Between the menus and the end, as wide as the room left. */
+  .center {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .center > :global(*) {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
   .dirty {
     color: var(--text-faint);
     font-size: 0.8em;
@@ -156,6 +177,7 @@
 
   .end {
     display: flex;
+    flex: none;
     align-items: center;
     margin-left: auto;
   }

@@ -12,6 +12,7 @@
 import type { Drawing } from "../document/drawing";
 import { replaceTiles, type Edit } from "../history/edits";
 import { intersect, type Rect } from "../geometry";
+import { keepAlpha } from "../document/pixels";
 import { TILE_SIZE, tileKey, type TileSnapshot } from "../document/tiles";
 import type { Pixel } from "./pixel-path";
 
@@ -58,6 +59,8 @@ export class StrokeRaster {
   private readonly coverage = new Map<number, Float32Array>();
   private readonly dirty = new Set<number>();
   private readonly bounds: Rect;
+  /** The layer's alpha lock: pixels keep their opacity. */
+  private readonly alphaLocked: boolean;
   private finished = false;
 
   constructor(
@@ -65,7 +68,9 @@ export class StrokeRaster {
     private readonly layerId: string,
     private readonly style: StrokeStyle,
   ) {
-    if (drawing.getLayer(layerId).locked) throw new Error(`Layer ${layerId} is locked`);
+    const layer = drawing.getLayer(layerId);
+    if (layer.locked) throw new Error(`Layer ${layerId} is locked`);
+    this.alphaLocked = layer.alphaLocked;
     if (!(style.opacity >= 0 && style.opacity <= 1)) throw new RangeError("Invalid opacity");
     if (style.color.some((c) => !(c >= 0 && c <= 255))) throw new RangeError("Invalid color");
     const canvas = { x: 0, y: 0, width: drawing.width, height: drawing.height };
@@ -225,5 +230,6 @@ export class StrokeRaster {
     if (out[j] > a) out[j] = a;
     if (out[j + 1] > a) out[j + 1] = a;
     if (out[j + 2] > a) out[j + 2] = a;
+    if (this.alphaLocked) keepAlpha(out, j, src);
   }
 }

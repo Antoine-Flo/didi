@@ -90,5 +90,20 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "selection.deselect" },
       ],
     },
+    {
+      title: "View",
+      items: [
+        { command: "view.zoomIn" },
+        { command: "view.zoomOut" },
+        { command: "view.actualSize" },
+        { command: "view.fit" },
+        "separator",
+        { command: "view.rotateLeft" },
+        { command: "view.rotateRight" },
+        { command: "view.resetRotation" },
+        "separator",
+        { command: "view.togglePanels" },
+      ],
+    },
   ];
 }

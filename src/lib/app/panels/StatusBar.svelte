@@ -1,29 +1,31 @@
 <script lang="ts">
-  // The bar below the canvas: the document's mode and messages on the left, the view (zoom,
+  // The bar below the canvas: the shortcuts' button and messages on the left, the view (zoom,
   // rotation) in the middle, the cursor position and the document's size on the right. The
   // buttons run commands.
 
-  import { Compass, Maximize, RotateCcw, RotateCw, ZoomIn, ZoomOut } from "@lucide/svelte";
-  import ModeSwitch from "#lib/app/panels/ModeSwitch.svelte";
-  import type { Mode } from "#lib/app/modes/mode.js";
+  import {
+    Compass,
+    Keyboard,
+    Maximize,
+    RotateCcw,
+    RotateCw,
+    ZoomIn,
+    ZoomOut,
+  } from "@lucide/svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { Camera, Point } from "#lib/render/camera.js";
 
   let {
     editor,
-    modes,
-    mode,
     cursor,
     busy,
     error,
     camera,
     tip,
     run,
+    onShortcuts,
   }: {
     editor: Editor;
-    modes: Mode[];
-    /** Id of the document's mode. */
-    mode: string;
     /** Position on the drawing, in pixels. */
     cursor: Point | null;
     /** What is being done (saving…), if anything. */
@@ -32,6 +34,8 @@
     camera: Camera;
     tip: (id: string) => string;
     run: (id: string, params?: unknown) => void;
+    /** Opens the list of keyboard shortcuts. */
+    onShortcuts: () => void;
   } = $props();
 
   const degrees = (radians: number) => Math.round((radians * 180) / Math.PI);
@@ -39,7 +43,7 @@
 
 <footer class="panel statusbar">
   <div class="status-start">
-    <ModeSwitch {modes} {mode} {tip} {run} />
+    <button class="icon" title="Keyboard shortcuts" onclick={onShortcuts}><Keyboard /></button>
     {#if busy}<span>{busy}</span>{/if}
     {#if error}<span class="error">{error}</span>{/if}
   </div>

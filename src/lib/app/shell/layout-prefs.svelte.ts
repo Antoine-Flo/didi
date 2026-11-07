@@ -1,7 +1,8 @@
 // The user's layout preferences, saved in the app data folder so they are kept from one
 // session to the next: the hand (the panels on the left for right-handed users, on the
 // right for left-handed ones), where the tool column sits along it, the interface size, and
-// the sizes of resizable panels, in pixels at 100% interface size, by panel id (e.g.
+// whether the layout is compact, whether the panels' column is open (on a wide window; see EditorApp), the sizes of
+// resizable panels, in pixels at 100% interface size, by panel id (e.g.
 // "palette"; a panel without a size has its default one, see the Splitter widget). The
 // same in every mode: switching modes moves nothing.
 
@@ -13,6 +14,9 @@ const VERSION = 1;
 const SAVE_DELAY_MS = 300;
 
 export type Hand = "right" | "left";
+/** The compact layout: on a small window ("auto"), always, or never. */
+export type CompactMode = "auto" | "on" | "off";
+const COMPACT_MODES: readonly CompactMode[] = ["auto", "on", "off"];
 
 /** The interface size, in percent. Barely below 100: the interface is already compact. */
 export const UI_SCALE_MIN = 90;
@@ -25,10 +29,13 @@ export interface LayoutPrefsData {
   toolsPosition: number;
   /** The interface size, in percent. */
   uiScale: number;
+  /** The panels' column is shown. */
+  panelsOpen: boolean;
+  compact: CompactMode;
   sizes: Record<string, number>;
 }
 
-const DEFAULT_TOOLS_POSITION = 0.5;
+const DEFAULT_TOOLS_POSITION = 0;
 
 /** The preferences in a saved file. Anything unexpected is ignored: they are not precious. */
 export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
@@ -51,6 +58,12 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
       prefs.uiScale = s;
     }
   }
+  if ("panelsOpen" in data && typeof data.panelsOpen === "boolean") {
+    prefs.panelsOpen = data.panelsOpen;
+  }
+  if ("compact" in data && COMPACT_MODES.includes(data.compact as CompactMode)) {
+    prefs.compact = data.compact as CompactMode;
+  }
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};
     for (const [id, size] of Object.entries(data.sizes)) {
@@ -66,12 +79,19 @@ export class LayoutPrefs {
     hand: "right",
     toolsPosition: DEFAULT_TOOLS_POSITION,
     uiScale: 100,
+    panelsOpen: true,
+    compact: "auto",
     sizes: {},
   });
   /** Changed before loading: kept over the saved values. */
-  private changed: { hand?: true; toolsPosition?: true; uiScale?: true; sizes: string[] } = {
-    sizes: [],
-  };
+  private changed: {
+    hand?: true;
+    toolsPosition?: true;
+    uiScale?: true;
+    panelsOpen?: true;
+    compact?: true;
+    sizes: string[];
+  } = { sizes: [] };
   private loaded = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private onError: (message: string) => void = () => {};
@@ -115,6 +135,28 @@ export class LayoutPrefs {
     this.scheduleSave();
   }
 
+  get panelsOpen(): boolean {
+    return this.data.panelsOpen;
+  }
+
+  set panelsOpen(open: boolean) {
+    if (open === this.data.panelsOpen) return;
+    this.data.panelsOpen = open;
+    if (!this.loaded) this.changed.panelsOpen = true;
+    this.scheduleSave();
+  }
+
+  get compact(): CompactMode {
+    return this.data.compact;
+  }
+
+  set compact(mode: CompactMode) {
+    if (mode === this.data.compact) return;
+    this.data.compact = mode;
+    if (!this.loaded) this.changed.compact = true;
+    this.scheduleSave();
+  }
+
   /** The size of a panel, or undefined for its default size. */
   size(id: string): number | undefined {
     return this.data.sizes[id];
@@ -147,6 +189,12 @@ export class LayoutPrefs {
         }
         if (saved.uiScale !== undefined && !this.changed.uiScale) {
           this.data.uiScale = saved.uiScale;
+        }
+        if (saved.panelsOpen !== undefined && !this.changed.panelsOpen) {
+          this.data.panelsOpen = saved.panelsOpen;
+        }
+        if (saved.compact !== undefined && !this.changed.compact) {
+          this.data.compact = saved.compact;
         }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {
           if (!this.changed.sizes.includes(id)) this.data.sizes[id] = size;

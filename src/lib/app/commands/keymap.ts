@@ -131,6 +131,17 @@ export class KeymapIndex {
     return chord === null ? undefined : this.byChord.get(chord);
   }
 
+  /** Each bound command with its chords, in keymap order (params ignored). */
+  shortcuts(): { command: string; chords: string[] }[] {
+    const byCommand = new Map<string, string[]>();
+    for (const [chord, b] of this.byChord) {
+      const chords = byCommand.get(b.command);
+      if (chords) chords.push(chord);
+      else byCommand.set(b.command, [chord]);
+    }
+    return [...byCommand].map(([command, chords]) => ({ command, chords }));
+  }
+
   /** The chords bound to a command with these params, in keymap order. */
   chordsFor(command: string, params?: unknown): string[] {
     const wanted = JSON.stringify(params);

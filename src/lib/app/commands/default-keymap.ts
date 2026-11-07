@@ -43,5 +43,6 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "4", command: "view.rotateLeft" },
     { keys: "6", command: "view.rotateRight" },
     { keys: "5", command: "view.resetRotation" },
+    { keys: "ctrl+b", command: "view.togglePanels" },
   ],
 };

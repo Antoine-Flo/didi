@@ -23,6 +23,18 @@ const row = (y: number, x0: number, x1: number): Pixel[] =>
   Array.from({ length: x1 - x0 + 1 }, (_, i) => ({ x: x0 + i, y }));
 
 describe("StrokeRaster", () => {
+  it("only recolors existing pixels on an alpha-locked layer", () => {
+    const { drawing, id } = setup();
+    const rect = { x: 0, y: 0, width: 1, height: 1 };
+    drawing.writePixels(id, rect, new Uint8ClampedArray([0, 0, 64, 128]));
+    drawing.updateLayer(id, { alphaLocked: true });
+    const stroke = new StrokeRaster(drawing, id, RED);
+    stroke.setPixels(row(0, 0, 1), 1, true);
+    stroke.finish("Pencil");
+    expect(pixelAt(drawing, id, 0, 0)).toEqual([128, 0, 0, 128]);
+    expect(pixelAt(drawing, id, 1, 0)).toEqual([0, 0, 0, 0]);
+  });
+
   it("builds round pixel brushes", () => {
     expect(pixelStamp(1)).toEqual([{ x: 0, y: 0 }]);
     expect(pixelStamp(2)).toHaveLength(4);

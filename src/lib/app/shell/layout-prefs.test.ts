@@ -2,18 +2,22 @@ import { describe, expect, it } from "vitest";
 import { parseLayoutPrefs } from "./layout-prefs.svelte";
 
 describe("layout preferences", () => {
-  it("reads the hand and the panel sizes", () => {
+  it("reads the hand, whether the panels are open and their sizes", () => {
     const text = JSON.stringify({
       version: 1,
       hand: "left",
       toolsPosition: 0.25,
       uiScale: 125,
+      panelsOpen: false,
+      compact: "on",
       sizes: { palette: 240 },
     });
     expect(parseLayoutPrefs(text)).toEqual({
       hand: "left",
       toolsPosition: 0.25,
       uiScale: 125,
+      panelsOpen: false,
+      compact: "on",
       sizes: { palette: 240 },
     });
   });
@@ -22,6 +26,8 @@ describe("layout preferences", () => {
     const text = JSON.stringify({
       hand: "both",
       toolsPosition: 2,
+      panelsOpen: "no",
+      compact: "maybe",
       sizes: { a: "big", b: -5, c: null, d: 120 },
     });
     expect(parseLayoutPrefs(text)).toEqual({ sizes: { d: 120 } });

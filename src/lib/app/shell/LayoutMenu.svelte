@@ -1,14 +1,17 @@
 <script lang="ts">
   // The layout menu of the title bar, next to the window buttons (like VS Code's): options
   // on one line each, a label on the left and its controls on the right. Using one leaves
-  // the menu open, to see the result and try another: the side of the panels (a small sketch
-  // for each, the active one highlighted) and the interface size.
+  // the menu open, to see the result and try another: the document's mode, the side of the
+  // panels (a small sketch for each, the active one highlighted), the compact layout and the
+  // interface size.
 
   import { PanelsTopLeft, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { DropdownMenu } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
+  import type { Mode } from "#lib/app/modes/mode.js";
   import {
+    type CompactMode,
     type Hand,
     UI_SCALE_MAX,
     UI_SCALE_MIN,
@@ -16,14 +19,22 @@
   } from "#lib/app/shell/layout-prefs.svelte.js";
 
   let {
+    modes,
+    mode,
     hand,
+    compact,
     uiScale,
     disabled = false,
     tip,
     run,
     onUiScale,
+    onCompact,
   }: {
+    modes: Mode[];
+    /** Id of the document's mode. */
+    mode: string;
     hand: Hand;
+    compact: CompactMode;
     /** In percent. */
     uiScale: number;
     /** Does not open, e.g. while a dialog is open. */
@@ -31,7 +42,14 @@
     tip: (command: string) => string;
     run: (command: string) => void;
     onUiScale: (scale: number) => void;
+    onCompact: (mode: CompactMode) => void;
   } = $props();
+
+  const COMPACT: { mode: CompactMode; label: string; title: string }[] = [
+    { mode: "auto", label: "Auto", title: "Compact on small screens" },
+    { mode: "on", label: "On", title: "Always compact" },
+    { mode: "off", label: "Off", title: "Never compact" },
+  ];
 
   const LAYOUTS: { hand: Hand; label: string; command: string }[] = [
     { hand: "right", label: "Right-handed", command: "view.rightHanded" },
@@ -57,17 +75,33 @@
 </script>
 
 <DropdownMenu.Root onOpenChange={setOpen}>
-  <DropdownMenu.Trigger bind:ref={trigger} class="layout-trigger" title="Layout" {disabled}>
+  <DropdownMenu.Trigger bind:ref={trigger} class="title-button" title="Layout" {disabled}>
     <PanelsTopLeft />
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content
-      class="menu-content"
+      class="menu-content layout-menu"
       customAnchor={anchor}
       align="end"
       sideOffset={4}
       collisionPadding={8}
     >
+      <DropdownMenu.Group class="layout-option">
+        <DropdownMenu.GroupHeading class="layout-option-label">Mode</DropdownMenu.GroupHeading>
+        <div class="controls side">
+          {#each modes as m (m.id)}
+            <DropdownMenu.Item
+              class="menu-item layout-text-item"
+              data-active={m.id === mode ? "" : undefined}
+              title={tip(`mode.${m.id}`)}
+              closeOnSelect={false}
+              onSelect={() => run(`mode.${m.id}`)}
+            >
+              {m.title}
+            </DropdownMenu.Item>
+          {/each}
+        </div>
+      </DropdownMenu.Group>
       <DropdownMenu.Group class="layout-option">
         <DropdownMenu.GroupHeading class="layout-option-label">
           Interface side
@@ -92,6 +126,22 @@
                   <rect class="fill" x="17" y="5" width="5" height="9" />
                 {/if}
               </svg>
+            </DropdownMenu.Item>
+          {/each}
+        </div>
+      </DropdownMenu.Group>
+      <DropdownMenu.Group class="layout-option">
+        <DropdownMenu.GroupHeading class="layout-option-label">Compact</DropdownMenu.GroupHeading>
+        <div class="controls side">
+          {#each COMPACT as option (option.mode)}
+            <DropdownMenu.Item
+              class="menu-item layout-text-item"
+              data-active={option.mode === compact ? "" : undefined}
+              title={option.title}
+              closeOnSelect={false}
+              onSelect={() => onCompact(option.mode)}
+            >
+              {option.label}
             </DropdownMenu.Item>
           {/each}
         </div>
@@ -129,11 +179,18 @@
 </DropdownMenu.Root>
 
 <style>
+  /* Two columns shared by every line: the labels, and the controls, as wide as the widest. */
+  :global(.layout-menu) {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: calc(var(--space) * 2);
+  }
+
   :global(.layout-option) {
-    display: flex;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
     align-items: center;
-    justify-content: space-between;
-    gap: calc(var(--space) * 2);
     padding-left: var(--space);
   }
 
@@ -146,12 +203,12 @@
     white-space: nowrap;
   }
 
-  /* The same width on each line, that of the size's controls, which look like the zoom's in
-     the status bar: two square buttons around the percentage. */
+  /* At least as wide as the size's controls, which look like the zoom's in the status bar:
+     two square buttons around the percentage. */
   .controls {
     display: flex;
     align-items: center;
-    width: calc(2 * var(--control-height) + var(--percent-width));
+    min-width: calc(2 * var(--control-height) + var(--percent-width));
   }
 
   .side {
@@ -165,6 +222,11 @@
     padding: 0;
   }
 
+  :global(.menu-item.layout-text-item) {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
   .value {
     flex: none;
     width: var(--percent-width);
@@ -172,8 +234,9 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Rounded, like the menus and window buttons next to it. */
-  :global(.layout-trigger) {
+  /* Rounded, like the menus and window buttons next to it; also the title bar's undo and
+     redo when compact (see EditorApp). */
+  :global(.title-button) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -187,8 +250,8 @@
     cursor: default;
   }
 
-  :global(.layout-trigger:hover:not(:disabled)),
-  :global(.layout-trigger[data-state="open"]) {
+  :global(.title-button:hover:not(:disabled)),
+  :global(.title-button[data-state="open"]) {
     color: var(--text);
     background: var(--hover);
   }

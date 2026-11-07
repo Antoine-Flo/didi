@@ -32,8 +32,8 @@ class Mirror {
       case "layer-added": {
         const layer = d.getLayer(c.id);
         this.order.splice(c.index, 0, c.id);
-        const { name, visible, opacity, blendMode, locked } = layer;
-        this.props.set(c.id, { name, visible, opacity, blendMode, locked });
+        const { name, visible, opacity, blendMode, locked, alphaLocked } = layer;
+        this.props.set(c.id, { name, visible, opacity, blendMode, locked, alphaLocked });
         this.pixels.set(
           c.id,
           layer.tiles.readRegion({ x: 0, y: 0, width: d.width, height: d.height }),

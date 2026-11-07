@@ -80,7 +80,7 @@
     flex: none;
     position: relative;
     touch-action: none;
-    --thickness: calc(var(--space) / 2);
+    --thickness: var(--space);
   }
 
   .horizontal {

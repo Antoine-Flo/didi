@@ -54,6 +54,18 @@ svg.lucide-icon.icon-large {
   padding: var(--space);
 }
 
+/* The top row of a panel (palettes, layers): a list taking the width, then icon buttons. */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.panel-header > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .section + .section {
   border-top: 1px solid var(--border);
 }

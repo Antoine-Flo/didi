@@ -26,6 +26,7 @@ import {
   type Tool,
   type ToolContext,
   type ToolField,
+  type ToolGroup,
   type ToolMenu,
   type ToolStroke,
 } from "./tool";
@@ -81,9 +82,21 @@ function shapeTool(id: string, title: string, icon: Tool["icon"], kind: ShapeKin
   });
 }
 
-export const lineTool = shapeTool("line", "Line", Slash, "line");
-export const rectangleTool = shapeTool("rectangle", "Rectangle", Square, "rectangle");
-export const ellipseTool = shapeTool("ellipse", "Ellipse", Circle, "ellipse");
+/** Rectangles and ellipses share a button; the line joins them when room is short. */
+export const SHAPES: ToolGroup = { id: "shapes", title: "Shapes" };
+
+export const lineTool: Tool = {
+  ...shapeTool("line", "Line", Slash, "line"),
+  group: { group: SHAPES, whenShort: true },
+};
+export const rectangleTool: Tool = {
+  ...shapeTool("rectangle", "Rectangle", Square, "rectangle"),
+  group: { group: SHAPES },
+};
+export const ellipseTool: Tool = {
+  ...shapeTool("ellipse", "Ellipse", Circle, "ellipse"),
+  group: { group: SHAPES },
+};
 
 const pixelOf = (s: Sample): Pixel => ({ x: Math.floor(s.x), y: Math.floor(s.y) });
 

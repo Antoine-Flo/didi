@@ -1,6 +1,6 @@
 # Didi
 
-Logiciel de dessin pour tablette graphique, aussi à l'aise en pixel art qu'en peinture 2D, intégré à Godot.
+Logiciel de dessin pour tablette graphique, en pixel art comme en peinture 2D, avec des cours intégrés pour apprendre à dessiner.
 
 ## Démarrer
 

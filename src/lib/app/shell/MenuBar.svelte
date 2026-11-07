@@ -3,7 +3,7 @@
   // command, with the command's title and shortcut; a disabled command shows a disabled
   // item. Menus come from data (see default-menus.ts).
 
-  import { ChevronRight } from "@lucide/svelte";
+  import { ChevronRight, Menu } from "@lucide/svelte";
   import { Menubar } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
@@ -11,6 +11,7 @@
 
   let {
     menus,
+    collapsed = false,
     disabled = false,
     title,
     shortcut,
@@ -18,6 +19,8 @@
     run,
   }: {
     menus: MenuDefinition[];
+    /** One button for all the menus, each a submenu: on a small screen. */
+    collapsed?: boolean;
     /** Nothing opens, e.g. while a dialog is open. */
     disabled?: boolean;
     /** A command's title. */
@@ -70,7 +73,19 @@
 {/snippet}
 
 <Menubar.Root class="menubar" onValueChange={setValue}>
-  {#each menus as menu (menu.title)}
+  {#if collapsed}
+    <Menubar.Menu>
+      <Menubar.Trigger class="menubar-trigger menubar-icon" title="Menu" {disabled}>
+        <Menu />
+      </Menubar.Trigger>
+      <Menubar.Portal>
+        <Menubar.Content class="menu-content menubar-content" align="start" sideOffset={2}>
+          {@render entries(menus.map((m) => ({ label: m.title, items: m.items })))}
+        </Menubar.Content>
+      </Menubar.Portal>
+    </Menubar.Menu>
+  {/if}
+  {#each collapsed ? [] : menus as menu (menu.title)}
     <Menubar.Menu>
       <Menubar.Trigger class="menubar-trigger" {disabled}>{menu.title}</Menubar.Trigger>
       <Menubar.Portal>
@@ -102,6 +117,12 @@
     border-radius: var(--radius-small);
     font: inherit;
     cursor: default;
+  }
+
+  :global(.menubar-trigger.menubar-icon) {
+    display: flex;
+    align-items: center;
+    padding: 0 calc(var(--space) / 2);
   }
 
   :global(.menubar-trigger:hover:not(:disabled)),

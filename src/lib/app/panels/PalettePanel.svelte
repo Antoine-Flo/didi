@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { CopyPlus, Lock, LockOpen, Menu, Plus } from "@lucide/svelte";
+  import { CopyPlus, Lock, LockOpen, Plus } from "@lucide/svelte";
   import { DropdownMenu } from "bits-ui";
-  import { onDestroy } from "svelte";
-  import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import { sameColor, toHex, type RGB } from "#lib/core/color/color.js";
   import type { PaletteLibrary } from "#lib/core/color/palette.js";
   import CopyPaletteDialog from "#lib/app/dialogs/CopyPaletteDialog.svelte";
+  import PanelMenu from "#lib/app/widgets/PanelMenu.svelte";
   import Select from "#lib/app/widgets/Select.svelte";
 
   let {
@@ -57,17 +56,6 @@
   /** Name of the built-in palette being copied, while its dialog is open. */
   let copying = $state<string | null>(null);
 
-  // While the menu is open, a click on the canvas only closes it.
-  let menuOpen = false;
-  function setMenuOpen(next: boolean) {
-    if (next === menuOpen) return;
-    menuOpen = next;
-    if (next) popupOpened();
-    else popupClosed();
-  }
-  // Removed while open: the canvas must not stay blocked.
-  onDestroy(() => setMenuOpen(false));
-
   let renaming = $state(false);
   function rename(input: HTMLInputElement) {
     if (!renaming) return;
@@ -77,7 +65,7 @@
 </script>
 
 <section class="section palettes" class:fill>
-  <div class="header">
+  <div class="panel-header">
     {#if info?.hasActive}
       {#if renaming}
         <!-- svelte-ignore a11y_autofocus -->
@@ -138,44 +126,31 @@
         {#if info?.locked}<Lock />{:else}<LockOpen />{/if}
       </button>
     {/if}
-    <DropdownMenu.Root onOpenChange={setMenuOpen}>
-      <DropdownMenu.Trigger class="palette-menu-trigger" title="Palette menu" disabled={!info}>
-        <Menu />
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          class="menu-content"
-          align="end"
-          sideOffset={4}
-          collisionPadding={8}
-          onCloseAutoFocus={(e) => {
-            // "Rename": the name's field keeps the focus, instead of the menu's button.
-            if (renaming) e.preventDefault();
-          }}
-        >
-          <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.new")}>
-            New palette
-          </DropdownMenu.Item>
-          <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.import")}>
-            Import palette (.hex)…
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
-            class="menu-item"
-            disabled={!editable}
-            onSelect={() => (renaming = true)}
-          >
-            Rename palette
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
-            class="menu-item"
-            disabled={!editable}
-            onSelect={() => run("palette.delete")}
-          >
-            Delete palette
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <PanelMenu
+      title="Palette menu"
+      disabled={!info}
+      onCloseAutoFocus={(e) => {
+        // "Rename": the name's field keeps the focus, instead of the menu's button.
+        if (renaming) e.preventDefault();
+      }}
+    >
+      <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.new")}>
+        New palette
+      </DropdownMenu.Item>
+      <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.import")}>
+        Import palette (.hex)…
+      </DropdownMenu.Item>
+      <DropdownMenu.Item class="menu-item" disabled={!editable} onSelect={() => (renaming = true)}>
+        Rename palette
+      </DropdownMenu.Item>
+      <DropdownMenu.Item
+        class="menu-item"
+        disabled={!editable}
+        onSelect={() => run("palette.delete")}
+      >
+        Delete palette
+      </DropdownMenu.Item>
+    </PanelMenu>
   </div>
 
   {#if info?.hasActive}
@@ -249,29 +224,6 @@
 
   .preview span {
     flex: 1;
-  }
-
-  /* The palette's name, then its lock and its menu. */
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
-
-  .header > :global(:first-child) {
-    flex: 1;
-    min-width: 0;
-  }
-
-  :global(.palette-menu-trigger) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-  }
-
-  :global(.palette-menu-trigger[data-state="open"]) {
-    background: var(--hover);
   }
 
   .swatches {

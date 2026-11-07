@@ -1,12 +1,18 @@
+<script lang="ts" module>
+  export type PanelTab = "color" | "layers";
+</script>
+
 <script lang="ts">
   // The column of panels beside the canvas: separate panels, with a small gap between them
   // (like Blender): the color, the palette and the layers, the first two resizable. Their
-  // sizes are kept in LayoutPrefs.
+  // sizes are kept in LayoutPrefs. Short of height, one tab at a time: the color with the
+  // palette, or the layers, each with the whole height.
 
   import type { RGB } from "#lib/core/color/color.js";
   import type { PaletteLibrary } from "#lib/core/color/palette.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { LayoutPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
+  import Segmented from "#lib/app/widgets/Segmented.svelte";
   import Splitter from "#lib/app/widgets/Splitter.svelte";
   import ColorPicker from "./ColorPicker.svelte";
   import LayersPanel from "./LayersPanel.svelte";
@@ -22,7 +28,11 @@
     palettes,
     paletteVersion,
     tip,
+    shortcut,
     run,
+    tab = null,
+    tabBar = false,
+    ontab = () => {},
   }: {
     layout: LayoutPrefs;
     editor: Editor;
@@ -37,8 +47,15 @@
     paletteVersion: number;
     /** Tooltip of a command, with its shortcut. */
     tip: (command: string) => string;
+    /** A command's first shortcut, e.g. "Ctrl+J", if it has one. */
+    shortcut: (command: string) => string | undefined;
     /** Runs a command (unless a stroke is in progress). */
     run: (command: string, params?: unknown) => void;
+    /** The tab shown, or null: every panel. */
+    tab?: PanelTab | null;
+    /** With tabs, a bar to switch between them (else switched from outside). */
+    tabBar?: boolean;
+    ontab?: (tab: PanelTab) => void;
   } = $props();
 
   // The picker also changes the palette color in use, if the palettes are unlocked.
@@ -70,18 +87,31 @@
    * to their minimum.
    */
   function measure(panel: HTMLElement, min: number) {
+    // In the color tab, the palette gives way instead.
+    const below = tab ? palettePanel : layersPanel;
     const size = panel.getBoundingClientRect().height;
-    const layers = layersPanel.getBoundingClientRect().height;
-    const layersMin = parseFloat(getComputedStyle(layersPanel).minHeight) || 0;
-    return { size, min, max: Math.max(min, size + layers - layersMin) };
+    const rest = below.getBoundingClientRect().height;
+    const restMin = parseFloat(getComputedStyle(below).minHeight) || 0;
+    return { size, min, max: Math.max(min, size + rest - restMin) };
   }
+
+  const TABS = [
+    { value: "color", label: "Color" },
+    { value: "layers", label: "Layers" },
+  ] as const;
 
   /** A saved panel size, as CSS. */
   const scaledSize = (size: number | undefined) =>
     size !== undefined ? `calc(${size}px * var(--ui-scale))` : undefined;
 </script>
 
-<aside class="column">
+<aside class="column" class:tabbed={tab !== null} data-tab={tab}>
+  {#if tab && tabBar}
+    <div class="panel tab-bar">
+      <Segmented label="Panels" value={tab} choices={TABS} onselect={(t) => ontab(t as PanelTab)} />
+    </div>
+  {/if}
+
   <div class="panel color-panel" style:height={scaledSize(colorHeight)} bind:this={colorPanel}>
     <section class="section">
       <ColorPicker
@@ -106,14 +136,14 @@
 
   <div
     class="panel palette-panel"
-    style:height={scaledSize(paletteHeight)}
+    style:height={tab ? undefined : scaledSize(paletteHeight)}
     bind:this={palettePanel}
   >
     <PalettePanel
       library={palettes}
       version={paletteVersion}
       {color}
-      fill={paletteHeight !== undefined}
+      fill={tab !== null || paletteHeight !== undefined}
       {swatchSize}
       onzoom={(factor) =>
         layout.setSize(
@@ -125,15 +155,17 @@
     />
   </div>
 
-  <Splitter
-    orientation="horizontal"
-    measure={() => measure(palettePanel, MIN_PALETTE_HEIGHT * uiScale)}
-    onresize={(size) => layout.setSize("palette", size / uiScale)}
-    onreset={() => layout.resetSize("palette")}
-  />
+  {#if !tab}
+    <Splitter
+      orientation="horizontal"
+      measure={() => measure(palettePanel, MIN_PALETTE_HEIGHT * uiScale)}
+      onresize={(size) => layout.setSize("palette", size / uiScale)}
+      onreset={() => layout.resetSize("palette")}
+    />
+  {/if}
 
   <div class="panel grow layers-panel" bind:this={layersPanel}>
-    <LayersPanel {editor} {version} {tip} {run} />
+    <LayersPanel {editor} {version} {tip} {shortcut} {run} />
   </div>
 </aside>
 
@@ -141,7 +173,8 @@
   .column {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--space) / 2);
+    /* The same gutter everywhere: between panels, and around the tool column. */
+    gap: var(--space);
     height: 100%;
   }
 
@@ -175,5 +208,31 @@
   .column :global(.layers) {
     flex: 1;
     min-height: 0;
+  }
+
+  /* One tab at a time: the others stay (with their state), hidden. */
+  .tab-bar {
+    flex: none;
+    padding: 2px;
+  }
+
+  .tab-bar :global(.segmented) {
+    width: 100%;
+  }
+
+  .tab-bar :global(.segmented > *) {
+    flex: 1;
+  }
+
+  .tabbed .palette-panel {
+    flex: 1 1 0;
+    min-height: calc(60px * var(--ui-scale));
+  }
+
+  [data-tab="layers"] .color-panel,
+  [data-tab="layers"] .palette-panel,
+  [data-tab="layers"] :global(.splitter),
+  [data-tab="color"] .layers-panel {
+    display: none;
   }
 </style>

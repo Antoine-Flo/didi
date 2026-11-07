@@ -34,6 +34,8 @@ export interface AppHost {
   readonly view: ViewControls | null;
   /** The user's drawing hand: the panels are on the other side (left for right-handed users). */
   hand: Hand;
+  /** Shows or hides the panels' column. */
+  togglePanels(): void;
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
   importImage(): void;
@@ -248,6 +250,11 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       id: "view.leftHanded",
       title: "Layout: Left-handed (panels on the right)",
       run: () => (host.hand = "left"),
+    }),
+    registry.register({
+      id: "view.togglePanels",
+      title: "Show or hide panels",
+      run: () => host.togglePanels(),
     }),
   ];
   if (host.canUseFiles) {

@@ -17,6 +17,7 @@
     dirty={windowTitle.dirty}
     menu={windowTitle.menu}
     end={windowTitle.end}
+    center={windowTitle.center}
     dimmed={windowTitle.dimmed}
   />
   <div class="content">{@render children()}</div>

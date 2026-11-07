@@ -99,6 +99,24 @@ describe("KeymapIndex", () => {
     expect(index.chordsFor("view.zoomIn")).toEqual(["plus", "="]);
   });
 
+  it("lists each command once with its chords, the overridden ones dropped", () => {
+    const index = new KeymapIndex({
+      version: 1,
+      bindings: [
+        { keys: "b", command: "tool.brush" },
+        { keys: "ctrl+z", command: "history.undo" },
+        { keys: "ctrl+y", command: "history.redo" },
+        { keys: "ctrl+shift+z", command: "history.redo" },
+        { keys: "b", command: "tool.pixel" },
+      ],
+    });
+    expect(index.shortcuts()).toEqual([
+      { command: "tool.pixel", chords: ["b"] },
+      { command: "history.undo", chords: ["ctrl+z"] },
+      { command: "history.redo", chords: ["ctrl+y", "ctrl+shift+z"] },
+    ]);
+  });
+
   it("has a valid default keymap without duplicate chords", () => {
     const chords = DEFAULT_KEYMAP.bindings.map((b) => normalizeChord(b.keys));
     expect(new Set(chords).size).toBe(chords.length);

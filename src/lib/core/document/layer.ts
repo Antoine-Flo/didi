@@ -15,6 +15,8 @@ export interface LayerProps {
   blendMode: BlendMode;
   /** A locked layer refuses pixel changes. */
   locked: boolean;
+  /** Painting keeps each pixel's opacity: it only recolors what is already there. */
+  alphaLocked: boolean;
 }
 
 export interface Layer extends LayerProps {
@@ -52,6 +54,7 @@ export const LAYER_PROP_KEYS: readonly (keyof LayerProps)[] = [
   "opacity",
   "blendMode",
   "locked",
+  "alphaLocked",
 ];
 
 export const DEFAULT_LAYER_PROPS: LayerProps = {
@@ -60,6 +63,7 @@ export const DEFAULT_LAYER_PROPS: LayerProps = {
   opacity: 1,
   blendMode: "normal",
   locked: false,
+  alphaLocked: false,
 };
 
 /** Throws if some props are invalid. */

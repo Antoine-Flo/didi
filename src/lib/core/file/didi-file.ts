@@ -9,7 +9,8 @@
 //   { "format": "didi", "version": 1, "width": 2048, "height": 2048, "mode": "pixel",
 //     "activeLayer": 1,
 //     "layers": [{ "name": "Background", "file": "layers/1.png", "visible": true,
-//                  "locked": false, "opacity": 1, "blendMode": "normal" }, …],
+//                  "locked": false, "alphaLocked": false, "opacity": 1,
+//                  "blendMode": "normal" }, …],
 //     "extensions": {} }
 //
 // `mode` is the editor mode the document is drawn in (e.g. "pixel"), chosen by the app;
@@ -80,6 +81,7 @@ export function documentFromEditor(
         name: l.name,
         visible: l.visible,
         locked: l.locked,
+        alphaLocked: l.alphaLocked,
         opacity: l.opacity,
         blendMode: l.blendMode,
       },
@@ -305,7 +307,7 @@ function readLayerEntry(entry: unknown, index: number): { props: LayerProps; fil
     if (typeof e.name !== "string" || !e.name.trim()) fail("invalid name");
     props.name = e.name as string;
   }
-  for (const key of ["visible", "locked"] as const) {
+  for (const key of ["visible", "locked", "alphaLocked"] as const) {
     if (e[key] !== undefined) {
       if (typeof e[key] !== "boolean") fail(`invalid ${key}`);
       props[key] = e[key] as boolean;
