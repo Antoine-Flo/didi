@@ -33,9 +33,9 @@
   import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
   import { newEditor } from "#lib/app/files/new-drawing.js";
   import { createToolRegistry } from "#lib/app/tools/builtin.js";
-  import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
+  import { pickerTool } from "#lib/app/tools/picker-tool.js";
   import { isSelectTool } from "#lib/app/tools/select-tool.js";
-  import type { BrushCursor, Tool } from "#lib/app/tools/tool.js";
+  import { ToolState } from "#lib/app/tools/tool-state.svelte.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
   import { loadMyPaint } from "#lib/mypaint/engine.js";
@@ -91,54 +91,24 @@
   // svelte-ignore state_referenced_locally
   let startOpen = $state(!initial && capabilities.userFiles);
 
-  const tools = createToolRegistry();
   /** The document's mode: which tools and panels are shown. */
   const mode = $derived(modes.resolve(session.mode));
-  /** Id of the active tool. */
   // svelte-ignore state_referenced_locally
-  let tool = $state(mode.tools[0]);
-  let options = $state(tools.defaultOptions());
-  const activeTool = $derived(tools.get(tool));
-  /** The tool the panels show: Alt turns any tool into the picker while it is held. */
-  const shownTool = $derived(held.alt ? pickerTool : activeTool);
-  /** The tool picking serves: the active one, or the one in use before the picker. */
-  // svelte-ignore state_referenced_locally
-  let drawingTool = $state(tool);
-  $effect.pre(() => {
-    if (tool !== pickerTool.id) drawingTool = tool;
-  });
-
-  /** The tool used now. The pen's eraser end uses the mode's eraser. */
-  function toolFor(eraser: boolean): Tool {
-    return eraser ? tools.get(mode.eraserTool) : activeTool;
-  }
-
-  // Each mode remembers its last tool: switching back finds it again.
-  const lastTool: Record<string, string> = {};
-  // svelte-ignore state_referenced_locally
-  let shownMode = mode.id;
+  const tools = new ToolState(createToolRegistry(), mode);
+  const options = tools.options;
   $effect.pre(() => {
     const next = mode;
-    untrack(() => {
-      if (next.id === shownMode) return;
-      lastTool[shownMode] = tool;
-      shownMode = next.id;
-      tool = lastTool[next.id] ?? next.tools[0];
-    });
+    untrack(() => tools.setMode(next));
   });
-
-  /** The mode's tools, and the active one if it comes from elsewhere (e.g. Ctrl+K). */
-  const shownTools = $derived(
-    [...mode.tools, ...(mode.tools.includes(tool) ? [] : [tool])]
-      .filter((id) => tools.has(id))
-      .map((id) => tools.get(id)),
-  );
+  const activeTool = $derived(tools.active);
+  /** The tool the panels show: Alt turns any tool into the picker while it is held. */
+  const shownTool = $derived(held.alt ? pickerTool : activeTool);
 
   // One painter for the whole session: it keeps the brushes it has loaded.
   const painter = new Painter(session.editor, {
-    tool: toolFor,
+    tool: (eraser) => tools.forPen(eraser),
     options: () => $state.snapshot(options),
-    onPick: (picked) => applyPicked(options, drawingTool, picked),
+    onPick: (picked) => tools.pick(picked),
     onMessage: notify,
     modifiers: heldModifiers,
   });
@@ -165,11 +135,6 @@
   );
   let paletteOpen = $state(false);
 
-  function brushCursor(eraser: boolean): BrushCursor {
-    const t = toolFor(eraser);
-    return t.cursor(options.tools[t.id] ?? t.defaults);
-  }
-
   // Bumped on every change, so the UI re-reads the editor.
   let version = $state(0);
   let camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
@@ -178,7 +143,7 @@
   const toolPreview = $derived.by(() => {
     if (!shownTool.preview) return null;
     void version;
-    const opacity = options.tools[drawingTool]?.opacity;
+    const opacity = options.tools[tools.drawingTool]?.opacity;
     const current = { color: options.color, opacity: typeof opacity === "number" ? opacity : 1 };
     if (!cursor) return current;
     return shownTool.preview(editor, options.tools[shownTool.id], cursor, current);
@@ -281,12 +246,12 @@
         layout.hand = hand;
       },
       get tool() {
-        return tool;
+        return tools.id;
       },
       set tool(id) {
-        tool = id;
+        tools.id = id;
       },
-      tools,
+      tools: tools.registry,
       options,
       get view() {
         return canvasView;
@@ -476,7 +441,7 @@
         bind:this={canvasView}
         {editor}
         {painter}
-        {brushCursor}
+        brushCursor={(eraser) => tools.cursor(eraser)}
         hoverCursor={(p, zoom) => activeTool.hover?.(editor, p, zoom) ?? null}
         selectionHandles={isSelectTool(activeTool)}
         {insets}
@@ -554,7 +519,7 @@
        along it. -->
   <div class="tool-track" bind:clientHeight={toolTrackHeight}>
     <ToolColumn
-      tools={shownTools}
+      tools={tools.inBar}
       active={shownTool.id}
       settings={options.tools}
       side={popupSide}
