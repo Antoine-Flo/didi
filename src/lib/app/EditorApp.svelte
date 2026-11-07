@@ -4,10 +4,8 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import "#lib/app/shell/ui.css";
   import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
-  import ColorPicker from "#lib/app/panels/ColorPicker.svelte";
   import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
-  import LayersPanel from "#lib/app/panels/LayersPanel.svelte";
-  import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
+  import PanelColumn from "#lib/app/panels/PanelColumn.svelte";
   import StatusBar from "#lib/app/panels/StatusBar.svelte";
   import ToolBar from "#lib/app/panels/ToolBar.svelte";
   import ToolColumn from "#lib/app/panels/ToolColumn.svelte";
@@ -167,28 +165,6 @@
   /** The interface size as a factor. Saved panel sizes are at 100%: they follow it. */
   const uiScale = $derived(layout.uiScale / 100);
   $effect(() => document.documentElement.style.setProperty("--ui-scale", String(uiScale)));
-  let colorPanel: HTMLElement;
-  let palettePanel: HTMLElement;
-  let layersPanel: HTMLElement;
-  const MIN_COLOR_HEIGHT = 140;
-  const MIN_PALETTE_HEIGHT = 60;
-  /** Set by the user, else undefined: the panel is as tall as its content. */
-  const colorHeight = $derived(layout.size("color"));
-  const paletteHeight = $derived(layout.size("palette"));
-
-  /**
-   * A resizable panel's height, and how far it can go: it may take the layers' height down
-   * to their minimum.
-   */
-  function measure(panel: HTMLElement, min: number) {
-    const size = panel.getBoundingClientRect().height;
-    const layers = layersPanel.getBoundingClientRect().height;
-    const layersMin = parseFloat(getComputedStyle(layersPanel).minHeight) || 0;
-    return { size, min, max: Math.max(min, size + layers - layersMin) };
-  }
-  const measureColor = () => measure(colorPanel, MIN_COLOR_HEIGHT * uiScale);
-  const measurePalette = () => measure(palettePanel, MIN_PALETTE_HEIGHT * uiScale);
-
   /** The panels' column: on the left for right-handed users, out of the drawing hand's way. */
   const panelsOnLeft = $derived(layout.hand === "right");
   /** Popups of the tool column open towards the canvas. */
@@ -208,12 +184,6 @@
   /** A saved panel size, as CSS. */
   const scaledSize = (size: number | undefined) =>
     size !== undefined ? `calc(${size}px * var(--ui-scale))` : undefined;
-
-  /** Swatch size in the palette, in pixels, changed with Ctrl + wheel. */
-  const DEFAULT_SWATCH_SIZE = 18;
-  const MIN_SWATCH_SIZE = 12;
-  const MAX_SWATCH_SIZE = 64;
-  const swatchSize = $derived(layout.size("swatch") ?? DEFAULT_SWATCH_SIZE);
 
   /** Space taken by the floating panels over the canvas, margins included. */
   function insets(): Insets {
@@ -451,58 +421,19 @@
     {/key}
   </div>
 
-  <!-- Separate panels, with a small gap between them (like Blender): the color, the palette
-       and the layers, the first two resizable. -->
-  <aside class="panel-column" bind:this={panelColumn}>
-    <div class="panel color-panel" style:height={scaledSize(colorHeight)} bind:this={colorPanel}>
-      <section class="section">
-        <ColorPicker
-          color={options.color}
-          fill={colorHeight !== undefined}
-          onchange={(c) => (options.color = c)}
-        />
-      </section>
-    </div>
-
-    <Splitter
-      orientation="horizontal"
-      measure={measureColor}
-      onresize={(size) => layout.setSize("color", size / uiScale)}
-      onreset={() => layout.resetSize("color")}
+  <div class="panel-column" bind:this={panelColumn}>
+    <PanelColumn
+      {layout}
+      {editor}
+      {version}
+      color={options.color}
+      oncolor={(c) => (options.color = c)}
+      {palettes}
+      {paletteVersion}
+      {tip}
+      {run}
     />
-
-    <div
-      class="panel palette-panel"
-      style:height={scaledSize(paletteHeight)}
-      bind:this={palettePanel}
-    >
-      <PalettePanel
-        library={palettes}
-        version={paletteVersion}
-        color={options.color}
-        fill={paletteHeight !== undefined}
-        {swatchSize}
-        onzoom={(factor) =>
-          layout.setSize(
-            "swatch",
-            Math.min(MAX_SWATCH_SIZE, Math.max(MIN_SWATCH_SIZE, swatchSize * factor)),
-          )}
-        {tip}
-        {run}
-      />
-    </div>
-
-    <Splitter
-      orientation="horizontal"
-      measure={measurePalette}
-      onresize={(size) => layout.setSize("palette", size / uiScale)}
-      onreset={() => layout.resetSize("palette")}
-    />
-
-    <div class="panel grow layers-panel" bind:this={layersPanel}>
-      <LayersPanel {editor} {version} {tip} {run} />
-    </div>
-  </aside>
+  </div>
 
   <!-- The column's inner edge: drag it to change the column's width. -->
   <div class="column-edge">
@@ -683,9 +614,6 @@
     top: var(--top-inset);
     right: var(--space);
     bottom: var(--space);
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--space) / 2);
     width: var(--panel-width);
   }
 
@@ -729,37 +657,5 @@
   .app .column-edge :global(.splitter) {
     flex: 1;
     margin: 0;
-  }
-
-  .panel-column .panel {
-    display: flex;
-    flex-direction: column;
-    flex: none;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .panel-column .grow {
-    flex: 1;
-  }
-
-  .color-panel .section {
-    flex: 1;
-    min-height: 0;
-  }
-
-  /* Give way first when the window is too short for their set heights. */
-  .panel-column .color-panel,
-  .panel-column .palette-panel {
-    flex: 0 1 auto;
-  }
-
-  .layers-panel {
-    min-height: calc(120px * var(--ui-scale));
-  }
-
-  .panel-column :global(.layers) {
-    flex: 1;
-    min-height: 0;
   }
 </style>
