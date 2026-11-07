@@ -12,8 +12,8 @@ import { tileKey, type TileSnapshot } from "../document/tiles";
 import { Emitter } from "../emitter";
 import { intersect, type Rect } from "../geometry";
 import { replaceTiles, type Edit } from "../history/edits";
-import { boundsOf, toBox, toCanvas, type Placement, type Point, type Transform } from "./placement";
-import { maskOutline, shapeFrom, shapeMask, type OutlineRun, type SelectionShape } from "./shape";
+import { boundsOf, toBox, type Placement, type Point, type Transform } from "./placement";
+import { maskOutline, shapeMask, shapeOf, type OutlineRun, type SelectionShape } from "./shape";
 
 /** Content lifted from a layer. */
 export interface Floating {
@@ -34,7 +34,7 @@ export interface SelectionState {
   readonly rect: Rect | null;
   /** Floating content only: its rotation and skew, the rectangle being its box. */
   readonly transform?: Transform | null;
-  /** The lasso's shape, inside the rectangle. None: the whole rectangle is selected. */
+  /** Which pixels of the rectangle are selected (a lasso, an inversion). None: all of them. */
   readonly shape?: SelectionShape | null;
   readonly floating: Floating | null;
   /** The center of rotation, on the canvas, if moved. By default, the center of the box. */
@@ -56,19 +56,87 @@ export function placementOf({ rect, transform }: SelectionState): Placement | nu
 
 /**
  * The selection once floating content is laid where it is shown: the rectangle around it, in
- * the canvas. The pixels don't change.
+ * the canvas, and the pixels it covers there (turned, it is no longer a rectangle). The pixels
+ * of the layer don't change.
  */
 export function appliedState(drawing: Drawing, state: SelectionState): SelectionState {
   if (!state.floating) return state;
   const { width, height } = drawing;
   const placement = placementOf(state);
   const rect = placement && intersect(boundsOf(placement), { x: 0, y: 0, width, height });
-  if (!placement || !rect || !state.shape) return { rect, floating: null };
-  // The path as it is shown, for the new rectangle.
-  const shown = state.shape.points.map((p) =>
-    toCanvas(placement, placement.x + p.x * placement.width, placement.y + p.y * placement.height),
-  );
-  return { rect, shape: shapeFrom(shown, rect), floating: null };
+  if (!placement || !rect) return NO_SELECTION;
+  if (!state.shape && !placement.transform) return { rect, floating: null };
+  // Each pixel of the new rectangle takes the selected pixel shown at its center, if any.
+  const box = { x: placement.x, y: placement.y, width: placement.width, height: placement.height };
+  const inBox = state.shape ? shapeMask(box, state.shape) : null;
+  const mask = new Uint8Array(rect.width * rect.height);
+  for (let y = 0; y < rect.height; y++) {
+    for (let x = 0; x < rect.width; x++) {
+      const q = toBox(placement, rect.x + x + 0.5, rect.y + y + 0.5);
+      const bx = Math.floor(q.x - box.x);
+      const by = Math.floor(q.y - box.y);
+      if (bx < 0 || by < 0 || bx >= box.width || by >= box.height) continue;
+      if (!inBox || inBox[by * box.width + bx]) mask[y * rect.width + x] = 1;
+    }
+  }
+  return selectionOfMask(rect, mask);
+}
+
+/** The selection of a mask of `rect`, cut down to the pixels selected: none if none is. */
+export function selectionOfMask(rect: Rect, mask: Uint8Array): SelectionState {
+  let left = rect.width;
+  let right = -1;
+  let top = rect.height;
+  let bottom = -1;
+  for (let y = 0; y < rect.height; y++) {
+    for (let x = 0; x < rect.width; x++) {
+      if (!mask[y * rect.width + x]) continue;
+      left = Math.min(left, x);
+      right = Math.max(right, x);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < 0) return NO_SELECTION;
+  const width = right - left + 1;
+  const height = bottom - top + 1;
+  let cut = mask;
+  if (width !== rect.width || height !== rect.height) {
+    cut = new Uint8Array(width * height);
+    for (let y = 0; y < height; y++) {
+      const from = (top + y) * rect.width + left;
+      cut.set(mask.subarray(from, from + width), y * width);
+    }
+  }
+  return {
+    rect: { x: rect.x + left, y: rect.y + top, width, height },
+    shape: shapeOf(cut, width, height),
+    floating: null,
+  };
+}
+
+/** The whole canvas. */
+export function allSelected(drawing: Drawing): SelectionState {
+  return { rect: { x: 0, y: 0, width: drawing.width, height: drawing.height }, floating: null };
+}
+
+/**
+ * Every pixel of the canvas the selection leaves out, floating content laid first. Nothing
+ * selected: the whole canvas.
+ */
+export function invertedState(drawing: Drawing, state: SelectionState): SelectionState {
+  const canvas = allSelected(drawing);
+  const { rect, shape } = appliedState(drawing, state);
+  if (!rect) return canvas;
+  const { width } = drawing;
+  const mask = new Uint8Array(width * drawing.height).fill(1);
+  const inRect = shape ? shapeMask(rect, shape) : null;
+  for (let y = 0; y < rect.height; y++) {
+    for (let x = 0; x < rect.width; x++) {
+      if (!inRect || inRect[y * rect.width + x]) mask[(rect.y + y) * width + rect.x + x] = 0;
+    }
+  }
+  return selectionOfMask(canvas.rect!, mask);
 }
 
 /** What limits drawing: the rectangle, and which of its pixels are selected. */
@@ -234,10 +302,35 @@ export function showFloating(
   const area = intersect(boundsOf(to), tiles.bounds);
   if (!area) return;
   const data = tiles.readRegion(area);
+  layOver(data, area, floating, to, smooth);
+  drawing.writePixels(layerId, area, data);
+}
+
+/**
+ * Floating content as it is shown, alone: its pixels over the rectangle around it, which may
+ * hang over the canvas's edges. Premultiplied.
+ */
+export function floatingImage(
+  floating: Floating,
+  to: Placement,
+): { rect: Rect; pixels: Uint8ClampedArray } {
+  const rect = boundsOf(to);
+  const pixels = new Uint8ClampedArray(rect.width * rect.height * 4);
+  layOver(pixels, rect, floating, to, false);
+  return { rect, pixels };
+}
+
+/** Lays floating content shown at `to` over `data`, the pixels of `area`. */
+function layOver(
+  data: Uint8ClampedArray,
+  area: Rect,
+  floating: Floating,
+  to: Placement,
+  smooth: boolean,
+) {
   const { pixels, width, height } = floating;
   if (!to.transform && to.width === width && to.height === height) {
     layOverMoved(data, area, floating, to);
-    drawing.writePixels(layerId, area, data);
     return;
   }
   const sample = smooth ? sampleSmooth : sampleExact;
@@ -258,7 +351,6 @@ export function showFloating(
       for (let c = 0; c < 4; c++) data[d + c] = color[c] + data[d + c] * keep;
     }
   }
-  drawing.writePixels(layerId, area, data);
 }
 
 /** Content only moved, by whole pixels: every pixel stays exact, whatever the sampling. */

@@ -4,8 +4,9 @@
   // maximize. In a browser, which has its own window, it has no window buttons. The page can
   // put its menus on the left, and more before the window buttons (see window-title.svelte.ts).
 
-  import { onMount, type Snippet } from "svelte";
-  import { appWindow as ownWindow } from "#lib/platform/window.js";
+  import type { Snippet } from "svelte";
+  import { appWindow } from "#lib/platform/window.js";
+  import WindowButtons from "./WindowButtons.svelte";
 
   let {
     title,
@@ -25,18 +26,6 @@
     /** Under a dialog's overlay, except the window buttons. */
     dimmed?: boolean;
   } = $props();
-
-  let maximized = $state(false);
-  // A local const: TypeScript knows it stays non-null in the handlers below.
-  const appWindow = ownWindow;
-
-  onMount(() => {
-    if (!appWindow) return;
-    const update = async () => (maximized = await appWindow.isMaximized());
-    update();
-    const unlisten = appWindow.onResized(update);
-    return () => void unlisten.then((fn) => fn());
-  });
 
   function onMouseDown(e: MouseEvent) {
     if (!appWindow || e.button !== 0) return;
@@ -64,26 +53,7 @@
     <div class="end">{@render end?.()}</div>
 
     {#if appWindow}
-      <div class="controls">
-        <button title="Minimize" aria-label="Minimize" onclick={() => appWindow.minimize()}>
-          <svg viewBox="0 0 10 10"><path d="M0 5.5h10" /></svg>
-        </button>
-        <button
-          title={maximized ? "Restore" : "Maximize"}
-          aria-label={maximized ? "Restore" : "Maximize"}
-          onclick={() => appWindow.toggleMaximize()}
-        >
-          {#if maximized}
-            <svg viewBox="0 0 10 10"><path d="M2.5 2.5V.5h7v7h-2M.5 2.5h7v7h-7z" /></svg>
-          {:else}
-            <svg viewBox="0 0 10 10"><path d="M.5 .5h9v9h-9z" /></svg>
-          {/if}
-        </button>
-        <!-- Goes through the close request, which offers to save unsaved changes. -->
-        <button class="close" title="Close" aria-label="Close" onclick={() => appWindow.close()}>
-          <svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" /></svg>
-        </button>
-      </div>
+      <div class="controls"><WindowButtons /></div>
     {/if}
   </div>
 </header>
@@ -189,46 +159,7 @@
 
   .controls {
     display: flex;
-    gap: 2px;
     align-items: center;
     padding: 0 calc(var(--space) / 2);
-  }
-
-  /* Rounded, like the other buttons of the app. Styled here entirely, as the lab pages
-     don't load the interface's base styles. */
-  .controls button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: calc(36px * var(--ui-scale));
-    height: var(--control-height);
-    padding: 0;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    border-radius: var(--radius-small);
-  }
-
-  .controls button:hover {
-    color: var(--text);
-    background: var(--hover);
-  }
-
-  .controls .close:hover {
-    color: var(--window-close-text);
-    background: var(--window-close);
-  }
-
-  svg {
-    width: calc(10px * var(--ui-scale));
-    height: calc(10px * var(--ui-scale));
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1;
-    shape-rendering: crispEdges;
-  }
-
-  .close svg {
-    shape-rendering: geometricPrecision;
   }
 </style>

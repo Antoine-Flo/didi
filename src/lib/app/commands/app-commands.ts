@@ -12,6 +12,9 @@ import { bundledBrush, findBundledBrush } from "#lib/mypaint/brushes.js";
 import type { ModeRegistry } from "#lib/app/modes/mode.js";
 import type { ToolOptions, ToolRegistry } from "#lib/app/tools/tool.js";
 import type { Hand } from "#lib/app/shell/layout-prefs.svelte.js";
+import { movable } from "#lib/core/editor/editor-commands.js";
+import { errorMessage } from "#lib/app/error-message.js";
+import { copy, toPaste } from "./clipboard";
 
 /** The view controls of the canvas, once it is mounted. */
 export interface ViewControls {
@@ -53,6 +56,8 @@ export interface AppHost {
   openCommandPalette(): void;
   /** Whether documents can be opened and saved as files. Without it, no such commands. */
   readonly canUseFiles: boolean;
+  /** Shows a short message to the user, e.g. why a command did nothing. */
+  notify(message: string): void;
   /** Closes the app (offering to save first). Null where it cannot: no such command. */
   readonly quit: (() => void) | null;
 }
@@ -75,6 +80,14 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
   const resize = (direction: 1 | -1) => {
     const settings = host.options.tools[host.tool];
     if (settings) current().resize?.(settings, direction);
+  };
+
+  /** Tells the user a clipboard operation failed. */
+  const failed = (what: string) => (e: unknown) =>
+    host.notify(`Cannot ${what}: ${errorMessage(e)}`);
+  /** The mode's selection tool, whose handles move and scale floating content. */
+  const selectionTool = () => {
+    host.tool = host.modes.get(host.mode).selectTool;
   };
 
   // A command per mode and per tool registered so far.
@@ -226,6 +239,56 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
         });
         const index = palettes.indexOf(palette);
         if (confirmed && index >= 0) palettes.remove(index);
+      },
+    }),
+
+    // Edit: the clipboard, and transforming the selected pixels (with the selection's tool).
+    registry.register({
+      id: "edit.copy",
+      title: "Copy",
+      enabled: (editor) => editor.selection.floating !== null || editor.activeLayer !== null,
+      run: (editor) => void copy(editor).catch(failed("copy")),
+    }),
+    registry.register({
+      id: "edit.cut",
+      title: "Cut",
+      enabled: (editor) => editor.editableLayer(true) !== null,
+      run(editor) {
+        const done = copy(editor);
+        editor.clear("Cut");
+        void done.catch(failed("copy"));
+      },
+    }),
+    registry.register({
+      id: "edit.paste",
+      title: "Paste",
+      enabled: (editor) => editor.activeLayer !== null && !editor.activeLayer.locked,
+      run: (editor) =>
+        void toPaste(editor)
+          .then((paste) => {
+            if (!paste) return host.notify("Nothing to paste: copy an image first.");
+            if (editor.paste(paste.image, paste.at)) selectionTool();
+          })
+          .catch(failed("paste")),
+    }),
+    registry.register({
+      id: "edit.pasteAsLayer",
+      title: "Paste as new layer",
+      run: (editor) =>
+        void toPaste(editor)
+          .then((paste) => {
+            if (!paste) return host.notify("Nothing to paste: copy an image first.");
+            editor.pasteAsLayer(paste.image, paste.at);
+          })
+          .catch(failed("paste")),
+    }),
+    registry.register({
+      id: "edit.transform",
+      title: "Transform",
+      enabled: movable,
+      run(editor) {
+        if (editor.transform()) selectionTool();
+        else host.notify("Nothing to transform: nothing is drawn there.");
       },
     }),
 

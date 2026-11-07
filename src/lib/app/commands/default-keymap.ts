@@ -34,6 +34,16 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "enter", command: "selection.apply" },
     { keys: "escape", command: "selection.cancel" },
     { keys: "ctrl+d", command: "selection.deselect" },
+    { keys: "ctrl+a", command: "selection.selectAll" },
+    { keys: "ctrl+shift+i", command: "selection.invert" },
+
+    { keys: "ctrl+x", command: "edit.cut" },
+    { keys: "ctrl+c", command: "edit.copy" },
+    { keys: "ctrl+v", command: "edit.paste" },
+    { keys: "ctrl+shift+v", command: "edit.pasteAsLayer" },
+    { keys: "delete", command: "edit.clear" },
+    { keys: "backspace", command: "edit.clear" },
+    { keys: "ctrl+t", command: "edit.transform" },
 
     { keys: "0", command: "view.fit" },
     { keys: "1", command: "view.actualSize" },

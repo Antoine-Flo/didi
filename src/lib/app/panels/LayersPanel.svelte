@@ -257,7 +257,14 @@
             >
               {#if layer.visible}<Eye />{:else}<EyeOff />{/if}
             </button>
-            <LayerThumb tiles={layer.tiles} stamp={stamps[layer.id] ?? 0} />
+            <button
+              class="thumb-button"
+              title="Double-click to select its content"
+              onclick={() => run("layer.select", { id: layer.id })}
+              ondblclick={() => run("selection.layerContent", { id: layer.id })}
+            >
+              <LayerThumb tiles={layer.tiles} stamp={stamps[layer.id] ?? 0} />
+            </button>
             {#if renaming === layer.id}
               <!-- svelte-ignore a11y_autofocus -->
               <input
@@ -358,6 +365,19 @@
   li input {
     flex: 1;
     min-width: 0;
+  }
+
+  /* Only the thumbnail shows. */
+  .thumb-button {
+    display: flex;
+    flex: none;
+    padding: 0;
+    background: none;
+    border: none;
+  }
+
+  .thumb-button:hover:not(:disabled) {
+    background: none;
   }
 
   .name {

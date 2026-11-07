@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the main window and the preview window",
+  "windows": ["main", "preview"],
   "permissions": [
     "core:default",
     "core:window:allow-set-title",
@@ -11,8 +11,11 @@
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-start-dragging",
+    "core:webview:allow-create-webview-window",
     "opener:default",
     "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-write-image",
+    "clipboard-manager:allow-read-image",
     "dialog:allow-open",
     "dialog:allow-save"
   ]

@@ -6,6 +6,8 @@ import { isTauri } from "@tauri-apps/api/core";
 export const capabilities = {
   /** Its own window: minimize, maximize, move, close, quit. A browser has its own buttons. */
   ownWindow: isTauri(),
+  /** Windows of its own besides the main one, e.g. the preview popped out. */
+  windows: isTauri(),
   /** Documents as files on disk: open, save, recent files. */
   userFiles: isTauri(),
 } as const;

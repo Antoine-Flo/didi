@@ -13,6 +13,8 @@ export const windowTitle = $state<{
   center: Snippet | null;
   /** A dialog is open: the bar is dimmed like the rest of the window. */
   dimmed: boolean;
+  /** No title bar: the page has its own (e.g. the preview window). */
+  hidden: boolean;
 }>({
   name: "Didi",
   dirty: false,
@@ -20,4 +22,5 @@ export const windowTitle = $state<{
   end: null,
   center: null,
   dimmed: false,
+  hidden: false,
 });

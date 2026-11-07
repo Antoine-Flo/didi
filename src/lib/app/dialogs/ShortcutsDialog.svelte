@@ -21,7 +21,7 @@
   const CATEGORIES: { title: string; prefixes: string[] }[] = [
     { title: "Tools", prefixes: ["tool", "brush"] },
     { title: "Selection", prefixes: ["selection"] },
-    { title: "Edit", prefixes: ["history"] },
+    { title: "Edit", prefixes: ["history", "edit"] },
     { title: "View", prefixes: ["view"] },
     { title: "Layers", prefixes: ["layer"] },
     { title: "File", prefixes: ["file", "app", "mode"] },

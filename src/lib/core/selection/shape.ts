@@ -1,15 +1,17 @@
-// The free shape of a selection (the lasso), inside its rectangle.
+// The free shape of a selection (a lasso, an inverted selection), inside its rectangle.
 //
-// It is kept as a path, in fractions of the rectangle: it follows the rectangle when an edge
-// moves or the content is scaled. The pixels it selects come from that path: those it goes
-// through, and those it surrounds.
+// It is kept as a mask, at the size it was made at: which pixels of the rectangle are
+// selected. When an edge of the rectangle moves, or the content is scaled, the mask is
+// stretched to the new size, each pixel taking the one under its center.
 
 import type { Rect } from "../geometry";
 import type { Point } from "./placement";
 
 export interface SelectionShape {
-  /** The closed path, in fractions of the rectangle, 0 to 1. */
-  readonly points: readonly Point[];
+  /** 1 for a selected pixel, row by row. */
+  readonly mask: Uint8Array;
+  readonly width: number;
+  readonly height: number;
 }
 
 /** A straight piece of an outline, in pixels from the rectangle's top left corner. */
@@ -20,16 +22,18 @@ export interface OutlineRun {
   y1: number;
 }
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+/**
+ * A mask as a shape, or null if every pixel is selected: the rectangle is enough. Its mask
+ * is kept, not copied.
+ */
+export function shapeOf(mask: Uint8Array, width: number, height: number): SelectionShape | null {
+  return mask.every((v) => v === 1) ? null : { mask, width, height };
+}
 
-/** A shape from a path on the canvas, cut to `rect`. */
+/** The shape of a closed path on the canvas, in `rect` (see `pathSelection`). */
 export function shapeFrom(points: readonly Point[], rect: Rect): SelectionShape {
-  return {
-    points: points.map((p) => ({
-      x: clamp01((p.x - rect.x) / rect.width),
-      y: clamp01((p.y - rect.y) / rect.height),
-    })),
-  };
+  const local = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
+  return { mask: pathMask(local, rect.width, rect.height), width: rect.width, height: rect.height };
 }
 
 /**
@@ -69,9 +73,9 @@ function markLine(
   }
 }
 
-function buildMask({ points }: SelectionShape, width: number, height: number): Uint8Array {
+/** The pixels a closed path (in pixels of the mask) goes through, and those it surrounds. */
+function pathMask(local: readonly Point[], width: number, height: number): Uint8Array {
   const mask = new Uint8Array(width * height);
-  const local = points.map((p) => ({ x: p.x * width, y: p.y * height }));
   // What it surrounds: the pixels whose center is inside, row by row. Each piece of the path is
   // only looked at for the rows it reaches: a long path has a lot of short pieces.
   const rows: number[][] = Array.from({ length: height }, () => []);
@@ -98,15 +102,30 @@ function buildMask({ points }: SelectionShape, width: number, height: number): U
   return mask;
 }
 
-const masks = new WeakMap<SelectionShape, { width: number; height: number; mask: Uint8Array }>();
+const stretched = new WeakMap<
+  SelectionShape,
+  { width: number; height: number; mask: Uint8Array }
+>();
 
-/** Which pixels of `rect` are selected: 1 for yes, row by row. Kept until the size changes. */
+/**
+ * Which pixels of `rect` are selected: 1 for yes, row by row. The shape's own mask at its
+ * size; stretched otherwise, and kept until the size changes again.
+ */
 export function shapeMask(rect: Rect, shape: SelectionShape): Uint8Array {
   const { width, height } = rect;
-  const known = masks.get(shape);
+  if (width === shape.width && height === shape.height) return shape.mask;
+  const known = stretched.get(shape);
   if (known && known.width === width && known.height === height) return known.mask;
-  const mask = buildMask(shape, width, height);
-  masks.set(shape, { width, height, mask });
+  const mask = new Uint8Array(width * height);
+  const columns = Array.from({ length: width }, (_, x) =>
+    Math.min(shape.width - 1, Math.floor(((x + 0.5) * shape.width) / width)),
+  );
+  for (let y = 0; y < height; y++) {
+    const row = Math.min(shape.height - 1, Math.floor(((y + 0.5) * shape.height) / height));
+    const from = row * shape.width;
+    for (let x = 0; x < width; x++) mask[y * width + x] = shape.mask[from + columns[x]];
+  }
+  stretched.set(shape, { width, height, mask });
   return mask;
 }
 

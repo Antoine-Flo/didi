@@ -28,6 +28,7 @@ function setup(withView = true) {
     hand: "right",
     togglePanels: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
+    notify: vi.fn(),
     importImage: vi.fn(),
     newDocument: vi.fn(),
     openDocument: vi.fn(),

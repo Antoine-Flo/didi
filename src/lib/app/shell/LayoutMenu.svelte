@@ -2,8 +2,8 @@
   // The layout menu of the title bar, next to the window buttons (like VS Code's): options
   // on one line each, a label on the left and its controls on the right. Using one leaves
   // the menu open, to see the result and try another: the document's mode, the side of the
-  // panels (a small sketch for each, the active one highlighted), the compact layout and the
-  // interface size.
+  // panels (a small sketch for each, the active one highlighted), the compact layout, the
+  // interface size and the preview window.
 
   import { PanelsTopLeft, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { DropdownMenu } from "bits-ui";
@@ -29,6 +29,8 @@
     run,
     onUiScale,
     onCompact,
+    preview,
+    onPreview,
   }: {
     modes: Mode[];
     /** Id of the document's mode. */
@@ -43,12 +45,20 @@
     run: (command: string) => void;
     onUiScale: (scale: number) => void;
     onCompact: (mode: CompactMode) => void;
+    /** The preview window is open. */
+    preview: boolean;
+    onPreview: (open: boolean) => void;
   } = $props();
 
   const COMPACT: { mode: CompactMode; label: string; title: string }[] = [
     { mode: "auto", label: "Auto", title: "Compact on small screens" },
     { mode: "on", label: "On", title: "Always compact" },
     { mode: "off", label: "Off", title: "Never compact" },
+  ];
+
+  const PREVIEW: { open: boolean; label: string; title: string }[] = [
+    { open: true, label: "On", title: "Show the drawing in a window of its own" },
+    { open: false, label: "Off", title: "Close the preview window" },
   ];
 
   const LAYOUTS: { hand: Hand; label: string; command: string }[] = [
@@ -172,6 +182,22 @@
           >
             <ZoomIn />
           </DropdownMenu.Item>
+        </div>
+      </DropdownMenu.Group>
+      <DropdownMenu.Group class="layout-option">
+        <DropdownMenu.GroupHeading class="layout-option-label">Preview</DropdownMenu.GroupHeading>
+        <div class="controls side">
+          {#each PREVIEW as option (option.open)}
+            <DropdownMenu.Item
+              class="menu-item layout-text-item"
+              data-active={option.open === preview ? "" : undefined}
+              title={option.title}
+              closeOnSelect={false}
+              onSelect={() => onPreview(option.open)}
+            >
+              {option.label}
+            </DropdownMenu.Item>
+          {/each}
         </div>
       </DropdownMenu.Group>
     </DropdownMenu.Content>

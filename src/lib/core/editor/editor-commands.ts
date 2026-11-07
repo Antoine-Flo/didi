@@ -1,4 +1,4 @@
-// Editor commands: layers, selection and history. Without an explicit `id`, layer commands target the
+// Editor commands: layers, selection, edits of pixels and history. Without an explicit `id`, layer commands target the
 // active layer, so they can be bound to shortcuts or the quick wheel without params.
 
 import type { CommandRegistry } from "./commands";
@@ -11,6 +11,10 @@ const exists = (d: Drawing, id: string | undefined): id is string =>
   id !== undefined && d.layers.some((l) => l.id === id);
 
 const target = (editor: Editor, id?: string) => id ?? editor.activeLayer?.id;
+
+/** Pixels can be lifted (or are): floating content, or a visible layer that isn't locked. */
+export const movable = (editor: Editor) =>
+  editor.selection.floating !== null || editor.editableLayer()?.visible === true;
 
 /** Registers the editor commands. Returns a function that unregisters them. */
 export function registerEditorCommands(registry: CommandRegistry<Editor>): () => void {
@@ -33,6 +37,43 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
       enabled: (editor) => editor.selection.rect !== null,
       run: (editor) => editor.deselect(),
     }),
+
+    registry.register({
+      id: "selection.selectAll",
+      title: "Select all",
+      run: (editor) => editor.selectAll(),
+    }),
+    registry.register<{ id?: string } | undefined>({
+      id: "selection.layerContent",
+      title: "Select layer content",
+      enabled: (editor, params) => exists(editor.drawing, target(editor, params?.id)),
+      run: (editor, params) => void editor.selectLayerContent(target(editor, params?.id)),
+    }),
+    registry.register({
+      id: "selection.invert",
+      title: "Invert selection",
+      run: (editor) => editor.invertSelection(),
+    }),
+
+    registry.register({
+      id: "edit.clear",
+      title: "Delete",
+      enabled: (editor) => editor.editableLayer(true) !== null,
+      run: (editor) => editor.clear(),
+    }),
+    ...(
+      [
+        ["edit.flipHorizontal", "Flip horizontally", "horizontal"],
+        ["edit.flipVertical", "Flip vertically", "vertical"],
+      ] as const
+    ).map(([commandId, title, axis]) =>
+      registry.register({
+        id: commandId,
+        title,
+        enabled: (editor) => movable(editor),
+        run: (editor) => editor.flip(axis),
+      }),
+    ),
 
     registry.register<{ index?: number; props?: Partial<LayerProps> } | undefined>({
       id: "layer.add",

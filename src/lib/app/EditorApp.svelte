@@ -11,6 +11,13 @@
   } from "@lucide/svelte";
   import { capabilities } from "#lib/platform/capabilities.js";
   import { appWindow } from "#lib/platform/window.js";
+  import {
+    closeStalePreview,
+    openPreviewWindow,
+    type OpenWindow,
+  } from "#lib/platform/preview-window.js";
+  import { sendToWindow } from "#lib/app/preview/preview-link.js";
+  import PreviewPopin from "#lib/app/preview/PreviewPopin.svelte";
   import { errorMessage } from "#lib/app/error-message.js";
   import "#lib/app/shell/ui.css";
   import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
@@ -336,6 +343,7 @@
       get palettes() {
         return palettes;
       },
+      notify,
       importImage: () => fileInput.click(),
       newDocument: () => (startOpen = true),
       openDocument: (path) => session.open(path),
@@ -412,6 +420,7 @@
       palettes = library;
       library.subscribe(() => paletteVersion++);
     });
+    void closeStalePreview();
     void session.start().then((restored) => {
       if (!initial && !capabilities.userFiles && !restored) startOpen = true;
     });
@@ -422,9 +431,31 @@
       event.preventDefault();
       if (!(await session.confirmDiscard())) return;
       await Promise.all([session.closing(), flushPalettes(), layout.flush()]);
+      previewWindow?.close();
       await window.destroy();
     });
     return () => void unlisten.then((fn) => fn());
+  });
+
+  // The preview of the whole drawing: over the canvas ("in"), or in a window of its own
+  // ("out"), which is sent the drawing while it is open.
+  let preview = $state<"off" | "in" | "out">("off");
+  let previewWindow: OpenWindow | null = null;
+  function setPreview(next: "off" | "in" | "out") {
+    if (next === preview) return;
+    if (preview === "out") previewWindow?.close();
+    previewWindow = null;
+    preview = next;
+    if (next !== "out") return;
+    const opened = openPreviewWindow(() => {
+      if (previewWindow !== opened) return;
+      previewWindow = null;
+      preview = "off";
+    });
+    previewWindow = opened;
+  }
+  $effect(() => {
+    if (preview === "out") return sendToWindow(editor.drawing);
   });
 
   // Follows the open document's changes.
@@ -653,6 +684,15 @@
     {#if !optionsInTitle}{@render toolBar()}{/if}
   </div>
 
+  {#if preview === "in"}
+    <PreviewPopin
+      drawing={editor.drawing}
+      side={panelsOnLeft ? "right" : "left"}
+      onPopOut={capabilities.windows ? () => setPreview("out") : null}
+      onClose={() => setPreview("off")}
+    />
+  {/if}
+
   <div class="bar bottom" bind:this={bottom}>
     {#if !compact}
       <StatusBar
@@ -743,6 +783,8 @@
     onUiScale={(scale) => (layout.uiScale = scale)}
     compact={layout.compact}
     onCompact={(mode) => (layout.compact = mode)}
+    preview={preview !== "off"}
+    onPreview={(open) => setPreview(open ? "in" : "off")}
   />
 {/snippet}
 
@@ -862,8 +904,11 @@
 
   /* The whole height, beside the status bar. Closed, it slides out past the window's
      edge. */
+  /* Above the options' panels, which may reach it on a narrow screen (see ToolBar), like
+     the panels' tab and the tools. */
   .panel-column {
     position: absolute;
+    z-index: 1;
     top: var(--content-top);
     right: var(--space);
     bottom: var(--space);
@@ -887,6 +932,7 @@
   /* Above the tool column, in the options' line, as wide as the tools. */
   .panels-tab {
     position: absolute;
+    z-index: 1;
     top: var(--content-top);
     right: calc(var(--column-space) + var(--space));
     display: flex;
@@ -959,6 +1005,7 @@
      it to the canvas, except on the column. */
   .tool-track {
     position: absolute;
+    z-index: 1;
     top: calc(var(--content-top) + var(--tabs-height) + var(--space));
     bottom: calc(var(--bar-height) + 2 * var(--space));
     right: calc(var(--column-space) + var(--space));

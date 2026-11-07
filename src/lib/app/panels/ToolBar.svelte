@@ -45,23 +45,6 @@
   const sliders = $derived((tool.fields ?? []).filter(isSlider));
   const rest = $derived((tool.fields ?? []).filter((field) => !isSlider(field)));
 
-  // Wrapped, each line is a panel of its own, as wide as its content; on one line, a single
-  // panel. As wide either way (see the gaps below): changing does not wrap or unwrap them.
-  let slidersElement: HTMLElement;
-  let restElement: HTMLElement;
-  let toolbarWidth = $state(0);
-  let split = $state(false);
-  $effect(() => {
-    void toolbarWidth;
-    void tool;
-    void settings;
-    split =
-      wrap &&
-      slidersElement.childElementCount > 0 &&
-      restElement.childElementCount > 0 &&
-      restElement.offsetTop > slidersElement.offsetTop;
-  });
-
   let optionsElement: HTMLElement;
   let optionsWidth = $state(0);
   $effect(() => {
@@ -120,18 +103,12 @@
   {/if}
 {/snippet}
 
-<!-- The sliders on one line, whatever the room; the rest (toggles, choices, actions) after
-     them, on the next line when wrapped, in a panel of its own. -->
-<div
-  class="toolbar"
-  class:panel={!bare && !split}
-  class:wrap
-  class:split
-  class:wrap-left={wrapSide === "left"}
-  bind:clientWidth={toolbarWidth}
->
+<!-- Wrapped (a narrow screen), each group is a panel of its own, as wide as its content: the
+     sliders together, never broken, then each of the other controls and the actions, beside
+     or below, against the side away from the panels' tab. -->
+<div class="toolbar" class:panel={!bare && !wrap} class:wrap class:wrap-left={wrapSide === "left"}>
   <div class="options" bind:this={optionsElement} bind:clientWidth={optionsWidth}>
-    <div class="group" class:panel={split} bind:this={slidersElement}>
+    <div class="group sliders" class:panel={wrap}>
       <!-- Not when wrapped: a narrow screen, where the panels' tab shows the color. -->
       {#if preview && !wrap}
         <span class="swatch" aria-hidden="true">
@@ -145,33 +122,32 @@
         {@render control(field)}
       {/each}
     </div>
-    <div class="group rest" class:panel={split} bind:this={restElement}>
-      {#each rest as field (field.key)}
-        {@render control(field)}
-      {:else}
-        {#if !tool.fields?.length && tool.hint}<span class="hint">{tool.hint}</span>{/if}
-      {/each}
-      {#if wrap}{@render actions?.()}{/if}
-    </div>
+    {#each rest as field (field.key)}
+      <div class="group" class:panel={wrap}>{@render control(field)}</div>
+    {:else}
+      {#if !tool.fields?.length && tool.hint}
+        <div class="group" class:panel={wrap}><span class="hint">{tool.hint}</span></div>
+      {/if}
+    {/each}
+    <div class="group actions" class:panel={wrap}>{@render actions?.()}</div>
   </div>
-  {#if !wrap}<div class="actions">{@render actions?.()}</div>{/if}
 </div>
 
 <style>
+  /* The options, then the actions: as wide as they are, nothing more. */
   .toolbar {
-    display: grid;
-    /* The options' column may get less than their width: the sliders shrink. */
-    grid-template-columns: 1fr minmax(0, auto) 1fr;
+    display: flex;
     align-items: center;
     height: 100%;
     padding: 0 calc(var(--space) / 2);
   }
 
   .options {
-    grid-column: 2;
     display: flex;
+    flex: 0 1 auto;
     align-items: center;
     gap: calc(var(--space) * 2);
+    min-width: 0;
     /* Room for the focus outline, which the clipping would hide. */
     padding: 2px var(--space);
     /* Too narrow for the sliders' smallest, for a moment: the bar then moves (see EditorApp). */
@@ -183,23 +159,29 @@
     display: contents;
   }
 
-  /* Wrapped: the sliders' group on one line, never broken, the rest beside or below, each
-     line centered and as high as the bar. */
+  .actions :global(*) {
+    white-space: nowrap;
+  }
+
+  /* Wrapped: no bar, a panel per group, the window's gutter between them, each as high as
+     the bar. The sliders, first, are centered on their line. */
   .toolbar.wrap {
-    display: flex;
-    justify-content: center;
     height: auto;
-    /* Less the border: each line as high as the bar. */
-    padding: calc(var(--space) / 2 - 1px) calc(var(--space) / 2);
+    padding: 0;
+    pointer-events: none;
   }
 
   .wrap .options {
+    flex: 1;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--space) calc(var(--space) * 2);
-    max-width: 100%;
+    justify-content: flex-end;
+    gap: var(--space);
     padding: 0;
     overflow: visible;
+  }
+
+  .wrap-left .options {
+    justify-content: flex-start;
   }
 
   .wrap .group {
@@ -207,44 +189,20 @@
     flex: 0 1 auto;
     align-items: center;
     gap: var(--space);
+    box-sizing: border-box;
     min-width: 0;
+    /* As high as the bar, whatever they hold (a checkbox is lower than a button). */
+    height: var(--bar-height);
+    padding: 0 calc(var(--space) / 2);
+    pointer-events: auto;
+  }
+
+  .wrap .sliders {
+    margin: 0 auto;
   }
 
   .wrap .group:not(:has(*)) {
     display: none;
-  }
-
-  /* Split, one panel per line, the window's gutter between them: the padding moves from the
-     bar to each panel, out of the gap between them, so their width is the same. */
-  .toolbar.split {
-    padding: 0;
-    pointer-events: none;
-  }
-
-  /* Less the extra panel's borders. */
-  .split .options {
-    column-gap: calc(var(--space) - 2px);
-  }
-
-  .split .group {
-    padding: calc(var(--space) / 2 - 1px) calc(var(--space) / 2);
-    pointer-events: auto;
-  }
-
-  /* On its own line, against the side away from the panels' tab. */
-  .split .rest {
-    margin-left: auto;
-  }
-
-  .split.wrap-left .rest {
-    margin-right: auto;
-    margin-left: 0;
-  }
-
-  .actions {
-    grid-column: 3;
-    justify-self: end;
-    white-space: nowrap;
   }
 
   /* A fixed width: the bar does not change size while a value changes. Short of room, the

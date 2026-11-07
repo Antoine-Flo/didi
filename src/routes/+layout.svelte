@@ -10,16 +10,19 @@
   applyTheme(DEFAULT_THEME);
 </script>
 
-<!-- The window has no system title bar: every page shows ours above its content. -->
+<!-- The window has no system title bar: every page shows ours above its content, unless
+     it has its own. -->
 <div class="window">
-  <Titlebar
-    title={windowTitle.name}
-    dirty={windowTitle.dirty}
-    menu={windowTitle.menu}
-    end={windowTitle.end}
-    center={windowTitle.center}
-    dimmed={windowTitle.dimmed}
-  />
+  {#if !windowTitle.hidden}
+    <Titlebar
+      title={windowTitle.name}
+      dirty={windowTitle.dirty}
+      menu={windowTitle.menu}
+      end={windowTitle.end}
+      center={windowTitle.center}
+      dimmed={windowTitle.dimmed}
+    />
+  {/if}
   <div class="content">{@render children()}</div>
 </div>
 
