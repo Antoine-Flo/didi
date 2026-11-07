@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readDidi, writeDidi } from "#lib/core/file/didi-file.js";
+import { documentFromEditor, readDidi, writeDidi } from "#lib/core/file/didi-file.js";
+import { newEditor } from "./new-drawing";
 import type { UnsavedChoice } from "./session.svelte";
 
 // Files and app data in memory, and the worker's work done directly.
@@ -7,6 +8,7 @@ const disk = new Map<string, Uint8Array>();
 const data = new Map<string, Uint8Array | string>();
 const dialogs = { open: null as string | null, save: null as string | null };
 const browser = { active: false, cancel: false, written: [] as string[] };
+const writeFails = { active: false };
 
 vi.mock("#lib/platform/storage.js", () => ({
   canUseFiles: () => !browser.active,
@@ -23,7 +25,10 @@ vi.mock("#lib/platform/storage.js", () => ({
   readDataFile: async (name: string) => (data.get(name) as string | undefined) ?? null,
   writeDataFile: async (name: string, text: string) => void data.set(name, text),
   readDataBytes: async (name: string) => (data.get(name) as Uint8Array | undefined) ?? null,
-  writeDataBytes: async (name: string, bytes: Uint8Array) => void data.set(name, bytes),
+  writeDataBytes: async (name: string, bytes: Uint8Array) => {
+    if (writeFails.active) throw new Error("Disk full");
+    data.set(name, bytes);
+  },
   removeDataFile: async (name: string) => void data.delete(name),
 }));
 
@@ -60,12 +65,21 @@ function setup(choice: UnsavedChoice = "cancel") {
 const paint = (session: InstanceType<typeof Session>) =>
   session.editor.commands.execute("layer.add");
 
+/** A document with three layers, as a crash would have left it. */
+function documentWithLayers() {
+  const editor = newEditor(16, 16, "transparent");
+  editor.commands.execute("layer.add");
+  editor.commands.execute("layer.add");
+  return documentFromEditor(editor);
+}
+
 beforeEach(() => {
   disk.clear();
   data.clear();
   dialogs.open = dialogs.save = null;
   browser.active = browser.cancel = false;
   browser.written = [];
+  writeFails.active = false;
   vi.useRealTimers();
 });
 
@@ -297,5 +311,34 @@ describe("Session", () => {
     expect(session.dirty).toBe(true);
     expect(session.recovery).toBeNull();
     expect(data.has("recovery-previous.didi")).toBe(false);
+  });
+
+  it("can still recover a recovered document after another crash, without any change", async () => {
+    data.set("recovery-previous.didi", writeDidi(documentWithLayers(), new Uint8Array([1])));
+    data.set("recovery-previous.json", JSON.stringify({ name: "c", path: "/c.didi", time: 1 }));
+
+    const { session: crashed } = setup();
+    await crashed.start();
+    await crashed.recover();
+
+    const { session } = setup();
+    await session.start();
+    expect(session.recovery).toMatchObject({ name: "c", path: "/c.didi" });
+    await session.recover();
+    expect(session.editor.drawing.layers).toHaveLength(3);
+  });
+
+  it("keeps the copy left by a crash if a new copy cannot be written", async () => {
+    data.set("recovery-previous.didi", writeDidi(documentWithLayers(), new Uint8Array([1])));
+    data.set("recovery-previous.json", JSON.stringify({ name: "c", path: "/c.didi", time: 1 }));
+    writeFails.active = true;
+
+    const { session, host } = setup();
+    await session.start();
+    await session.recover();
+
+    expect(host.notify).toHaveBeenCalled();
+    expect(session.recovery).toMatchObject({ name: "c" });
+    expect(data.has("recovery-previous.didi")).toBe(true);
   });
 });

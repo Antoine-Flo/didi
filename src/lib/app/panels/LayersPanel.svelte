@@ -17,7 +17,7 @@
     /** Tooltip of a command, with its shortcut. */
     tip: (command: string) => string;
     /** Runs a command (unless a stroke is in progress). */
-    run: (command: string) => void;
+    run: (command: string, params?: unknown) => void;
   } = $props();
 
   const BLEND_LABELS: Record<BlendMode, string> = {
@@ -58,7 +58,7 @@
   });
 
   function update(id: string, changes: Partial<LayerProps>) {
-    editor.commands.execute("layer.update", { id, changes });
+    run("layer.update", { id, changes });
   }
 
   // Double-click on a name to rename the layer.
@@ -137,7 +137,7 @@
           <button
             class="name"
             title="Double-click to rename"
-            onclick={() => editor.commands.execute("layer.select", { id: layer.id })}
+            onclick={() => run("layer.select", { id: layer.id })}
             ondblclick={() => (renaming = layer.id)}>{layer.name}</button
           >
         {/if}

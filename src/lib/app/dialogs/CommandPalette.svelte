@@ -6,8 +6,15 @@
   let {
     editor,
     keymap,
+    run,
     open = $bindable(false),
-  }: { editor: Editor; keymap: KeymapIndex; open?: boolean } = $props();
+  }: {
+    editor: Editor;
+    keymap: KeymapIndex;
+    /** Runs a command (unless a stroke is in progress). */
+    run: (command: string) => void;
+    open?: boolean;
+  } = $props();
 
   // Read when the palette opens: commands and their state may have changed since.
   const items = $derived.by(() => {
@@ -24,9 +31,9 @@
       .sort((a, b) => a.title.localeCompare(b.title));
   });
 
-  function run(id: string) {
+  function choose(id: string) {
     open = false;
-    editor.commands.execute(id);
+    run(id);
   }
 </script>
 
@@ -48,7 +55,7 @@
                 value={item.id}
                 keywords={[item.title]}
                 disabled={!item.enabled}
-                onSelect={() => run(item.id)}
+                onSelect={() => choose(item.id)}
               >
                 <span>{item.title}</span>
                 {#if item.keys}<kbd>{item.keys}</kbd>{/if}

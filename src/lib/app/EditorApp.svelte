@@ -17,6 +17,7 @@
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
+  import { runCommand } from "#lib/app/commands/run-command.js";
   import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
   import { decodeImage, importImage } from "#lib/app/files/import-image.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
@@ -306,17 +307,9 @@
     }),
   );
 
-  /** Runs a command from a button or a shortcut. Nothing may run while the pen is down. */
+  /** Runs a command from the interface. */
   function run(id: string, params?: unknown) {
-    if (painter.active) {
-      if (!painter.finishing) return;
-      // The pen is up but the stroke is still being painted: finish it first, so that
-      // undo, for instance, applies to it.
-      painter.drain();
-    }
-    // Floating content belongs to a layer: lay it down before anything changes the layers.
-    if (id.startsWith("layer.")) editor.applySelection();
-    editor.commands.execute(id, params);
+    runCommand(editor, painter, id, params);
   }
 
   /** Tooltip with the command's title and shortcut, e.g. "Undo (Ctrl+Z)". */
@@ -648,7 +641,7 @@
   />
 {/snippet}
 
-<CommandPalette {editor} {keymap} bind:open={paletteOpen} />
+<CommandPalette {editor} {keymap} {run} bind:open={paletteOpen} />
 
 <StartScreen
   bind:open={startOpen}

@@ -86,7 +86,7 @@ export class Session {
   /** The mode at the last save. */
   private savedMode = $state(DEFAULT_MODE);
   /** The layers hidden at the last save. Visibility is saved, but is not in the history. */
-  private savedHidden = $state.raw<ReadonlySet<string>>(new Set());
+  private savedHidden = $state.raw(hiddenLayers(this.editor));
   /** Bumped on every history or visibility change, to recompute `dirty`. */
   private revision = $state(0);
   private extensions: Record<string, unknown> = {};
@@ -261,6 +261,8 @@ export class Session {
       this.extensions = doc.extensions;
       // Not saved yet: the recovered changes are not in any file.
       this.savedMarker = {};
+      // This session's copy first: at no point does a crash lose the document.
+      await this.inOrder(() => this.writeRecovery());
       await this.discardRecovery();
     });
   }
