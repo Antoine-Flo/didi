@@ -34,6 +34,7 @@
   import { consumeDismissal } from "#lib/app/canvas/dismissal.js";
   import { held } from "#lib/app/canvas/modifiers.svelte.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
+  import { themePrefs } from "#lib/app/shell/theme-prefs.svelte.js";
   import type { Painter } from "#lib/app/canvas/painter.js";
   import type { BrushCursor, Sample } from "#lib/app/tools/tool.js";
   import type { RGB } from "#lib/core/color/color.js";
@@ -465,6 +466,11 @@
   $effect(() => {
     const shown = pixelGrid;
     untrack(() => view?.setGridShown(shown, camera, viewSize()));
+  });
+  // The background follows the theme when it changes (Preferences).
+  $effect(() => {
+    const background = themePrefs.theme.tokens["canvas-bg"];
+    if (app) app.renderer.background.color = background;
   });
 
   function onKeyUp(e: KeyboardEvent) {

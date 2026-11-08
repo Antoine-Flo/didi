@@ -103,6 +103,8 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "edit.transform" },
         { command: "edit.flipHorizontal" },
         { command: "edit.flipVertical" },
+        "separator",
+        { command: "app.preferences" },
       ],
     },
     {

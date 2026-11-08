@@ -33,6 +33,7 @@ function setup(withView = true) {
     toggleFullScreen: vi.fn(),
     openShortcuts: vi.fn(),
     openAbout: vi.fn(),
+    openPreferences: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
     notify: vi.fn(),
     openSizeDialog: vi.fn(),

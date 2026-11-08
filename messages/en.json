@@ -393,5 +393,21 @@
   "layout_full_screen": "Full screen",
   "site_title": "Didi — Drawing app for painting and pixel art",
   "site_open": "Open Didi",
-  "site_free": "Free, in your browser. A drawing tablet is recommended."
+  "site_free": "Free, in your browser. A drawing tablet is recommended.",
+  "app_theme_save_failed": "Theme could not be saved: {error}",
+  "cmd_app_preferences": "Preferences…",
+  "preferences_title": "Preferences",
+  "theme_canvas": "Canvas background",
+  "theme_mode": "Theme",
+  "theme_dark": "Dark",
+  "theme_light": "Light",
+  "preferences_tab_interface": "Interface",
+  "preferences_tab_tablet": "Tablet",
+  "theme_tint": "Interface colors",
+  "theme_tint_on_title": "The theme's colors in the interface",
+  "theme_tint_off_title": "Only grays in the interface",
+  "theme_canvas_pick": "Choose the color around the drawing",
+  "theme_canvas_reset": "Back to the theme's color",
+  "theme_color": "Color",
+  "theme_grayscale": "Grayscale"
 }

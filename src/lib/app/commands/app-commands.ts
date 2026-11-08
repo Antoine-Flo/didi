@@ -50,6 +50,7 @@ export interface AppHost {
   toggleFullScreen(): void;
   openShortcuts(): void;
   openAbout(): void;
+  openPreferences(): void;
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
   importImage(): void;
@@ -371,6 +372,11 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       id: "app.shortcuts",
       title: m.cmd_app_shortcuts(),
       run: () => host.openShortcuts(),
+    }),
+    registry.register({
+      id: "app.preferences",
+      title: m.cmd_app_preferences(),
+      run: () => host.openPreferences(),
     }),
     registry.register({ id: "app.about", title: m.cmd_app_about(), run: () => host.openAbout() }),
   ];

@@ -17,6 +17,8 @@ body {
   font-family: var(--font);
   font-size: var(--font-size);
   line-height: 1.4;
+  /* Figures of the same width: sizes, percentages and coordinates don't shift as they change. */
+  font-variant-numeric: tabular-nums;
   user-select: none;
   -webkit-user-select: none;
 }

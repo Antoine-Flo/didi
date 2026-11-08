@@ -1,14 +1,18 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Titlebar from "#lib/app/shell/Titlebar.svelte";
-  import { applyTheme, DEFAULT_THEME } from "#lib/app/shell/theme.js";
+  import { applyTheme } from "#lib/app/shell/theme.js";
+  import { themePrefs } from "#lib/app/shell/theme-prefs.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
   import { getLocale } from "#lib/paraglide/runtime.js";
 
   let { children }: { children: Snippet } = $props();
 
-  // Before any page is mounted: the canvas reads its background from the theme.
-  applyTheme(DEFAULT_THEME);
+  // Before any page is mounted: the canvas reads its background from the theme. Then again
+  // with the saved choices, and whenever they change.
+  applyTheme(themePrefs.theme);
+  void themePrefs.load();
+  $effect(() => applyTheme(themePrefs.theme));
   // For the browser's spelling, hyphenation and screen readers.
   document.documentElement.lang = getLocale();
 </script>

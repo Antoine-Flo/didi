@@ -3,11 +3,12 @@
   // app. The desktop app opens on /app and never shows it.
 
   import { resolve } from "$app/paths";
-  import { DEFAULT_THEME, TOKENS } from "#lib/app/shell/theme.js";
+  import { buildTheme, DEFAULT_CHOICE, TOKENS } from "#lib/app/shell/theme.js";
   import { m } from "#lib/paraglide/messages.js";
 
   // The app's theme, as CSS variables on the page (applyTheme needs the DOM).
-  const tokens = TOKENS.map((t) => `--${t}: ${DEFAULT_THEME.tokens[t]}`).join("; ");
+  const theme = buildTheme(DEFAULT_CHOICE);
+  const tokens = TOKENS.map((t) => `--${t}: ${theme.tokens[t]}`).join("; ");
 </script>
 
 <svelte:head>

@@ -40,6 +40,8 @@
   import ImageSizeDialog, { type SizeKind } from "#lib/app/dialogs/ImageSizeDialog.svelte";
   import ShortcutsDialog from "#lib/app/dialogs/ShortcutsDialog.svelte";
   import AboutDialog from "#lib/app/dialogs/AboutDialog.svelte";
+  import PreferencesDialog from "#lib/app/dialogs/PreferencesDialog.svelte";
+  import { themePrefs } from "#lib/app/shell/theme-prefs.svelte.js";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
   import { runCommand } from "#lib/app/commands/run-command.js";
   import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
@@ -160,6 +162,7 @@
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
   let aboutOpen = $state(false);
+  let preferencesOpen = $state(false);
   /** The window (or the browser's page) is full screen: followed, F11 and Esc change it too. */
   let fullScreen = $state(false);
   $effect(() => watchFullScreen((on) => (fullScreen = on)));
@@ -367,6 +370,7 @@
         ),
       openShortcuts: () => (shortcutsOpen = true),
       openAbout: () => (aboutOpen = true),
+      openPreferences: () => (preferencesOpen = true),
       get tool() {
         return tools.id;
       },
@@ -431,6 +435,7 @@
       paletteOpen ||
       shortcutsOpen ||
       aboutOpen ||
+      preferencesOpen ||
       sizeDialog !== null ||
       unsavedRequest !== null ||
       confirmRequest !== null,
@@ -461,6 +466,7 @@
       .catch((e) => (error = m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
 
     void layout.load(notify);
+    themePrefs.reportErrors(notify);
     loadPalettes(notify).then((library) => {
       palettes = library;
       library.subscribe(() => paletteVersion++);
@@ -475,7 +481,7 @@
     const unlisten = window.onCloseRequested(async (event) => {
       event.preventDefault();
       if (!(await session.confirmDiscard())) return;
-      await Promise.all([session.closing(), flushPalettes(), layout.flush()]);
+      await Promise.all([session.closing(), flushPalettes(), layout.flush(), themePrefs.flush()]);
       previewWindow?.close();
       await window.destroy();
     });
@@ -545,7 +551,8 @@
     else document.title = title;
   });
   $effect(() => {
-    windowTitle.dimmed = dialogOpen;
+    // Not behind the preferences: the whole interface is seen while choosing its look.
+    windowTitle.dimmed = dialogOpen && !preferencesOpen;
   });
   $effect(() => {
     windowTitle.menu = menuBar;
@@ -845,17 +852,9 @@
   <LayoutMenu
     modes={modes.list()}
     mode={mode.id}
-    hand={layout.hand}
-    uiScale={layout.uiScale}
     disabled={dialogOpen}
     {tip}
     {run}
-    onUiScale={(scale) => (layout.uiScale = scale)}
-    compact={layout.compact}
-    onCompact={(mode) => (layout.compact = mode)}
-    fingerDrawing={touchScreen ? layout.fingerDrawing : null}
-    penSeen={layout.penSeen}
-    onFingerDrawing={(mode) => (layout.fingerDrawing = mode)}
     preview={preview !== "off"}
     onPreview={(open) => setPreview(open ? "in" : "off")}
     {fullScreen}
@@ -881,6 +880,7 @@
 <CommandPalette {editor} {keymap} {run} bind:open={paletteOpen} />
 <ShortcutsDialog {editor} {keymap} bind:open={shortcutsOpen} />
 <AboutDialog bind:open={aboutOpen} />
+<PreferencesDialog bind:open={preferencesOpen} {layout} {touchScreen} />
 <ImageSizeDialog
   bind:kind={sizeDialog}
   width={canvasSize.width}
