@@ -2,6 +2,7 @@
   import { Command, Dialog } from "bits-ui";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { formatChord, type KeymapIndex } from "#lib/app/commands/keymap.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     editor,
@@ -43,12 +44,12 @@
          canvas once the palette is gone, or it would start a stroke. -->
     <Dialog.Overlay class="command-palette-overlay" onclick={() => (open = false)} />
     <Dialog.Content class="command-palette" interactOutsideBehavior="ignore">
-      <Dialog.Title class="sr-only">Command palette</Dialog.Title>
+      <Dialog.Title class="sr-only">{m.command_palette_title()}</Dialog.Title>
       <Command.Root>
-        <Command.Input class="command-palette-input" placeholder="Search for a command…" />
+        <Command.Input class="command-palette-input" placeholder={m.command_palette_search()} />
         <Command.List class="command-palette-list">
           <Command.Viewport>
-            <Command.Empty class="command-palette-empty">No command found.</Command.Empty>
+            <Command.Empty class="command-palette-empty">{m.command_palette_empty()}</Command.Empty>
             {#each items as item (item.id)}
               <Command.Item
                 class="command-palette-item"

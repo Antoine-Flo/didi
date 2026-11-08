@@ -3,6 +3,7 @@
 
   import { Dialog } from "bits-ui";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     source,
@@ -17,7 +18,7 @@
 
   let name = $state("");
   $effect(() => {
-    if (source !== null) name = `${source} copy`;
+    if (source !== null) name = m.copy_palette_default_name({ name: source });
   });
 
   // While it is open, a contact on the canvas only closes it.
@@ -40,22 +41,24 @@
     <Dialog.Overlay class="dialog-overlay" />
     <Dialog.Content class="dialog panel">
       <form onsubmit={submit}>
-        <Dialog.Title class="dialog-title">Make an editable copy</Dialog.Title>
+        <Dialog.Title class="dialog-title">{m.copy_palette_title()}</Dialog.Title>
         <Dialog.Description class="dialog-text">
-          Built-in palettes can't be changed. Give your copy a name, then edit it as you like.
+          {m.copy_palette_text()}
         </Dialog.Description>
         <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           bind:value={name}
-          aria-label="Name of the copy"
+          aria-label={m.copy_palette_name_label()}
           autofocus
           onfocus={(e) => e.currentTarget.select()}
         />
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" onclick={onclose}>Cancel</button>
-          <button type="submit" class="primary" disabled={!name.trim()}>Create copy</button>
+          <button type="button" onclick={onclose}>{m.common_cancel()}</button>
+          <button type="submit" class="primary" disabled={!name.trim()}
+            >{m.copy_palette_create()}</button
+          >
         </div>
       </form>
     </Dialog.Content>

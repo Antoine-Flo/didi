@@ -9,6 +9,8 @@ export interface Command<Ctx, P = void> {
   readonly id: string;
   /** Shown in menus and the command palette. */
   readonly title: string;
+  /** Where the context already says it, e.g. "Pencil" for "Tool: Pencil" under Tools. */
+  readonly shortTitle?: string;
   /** The command cannot run without params: it is left out of the command palette. */
   readonly needsParams?: boolean;
   /** Whether the command can run now. Defaults to true. */

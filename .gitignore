@@ -14,3 +14,6 @@ tools/brush-compare/out/
 
 # Documentation, locale uniquement
 /doc/
+
+# Interface texts compiled from messages/ by Paraglide
+/src/lib/paraglide/

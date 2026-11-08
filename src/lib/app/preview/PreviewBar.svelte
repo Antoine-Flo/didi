@@ -6,6 +6,7 @@
   import { GripHorizontal, Maximize, ZoomIn, ZoomOut } from "@lucide/svelte";
   import type { Snippet } from "svelte";
   import type PreviewImage from "./PreviewImage.svelte";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     image,
@@ -28,13 +29,13 @@
 
 <div class="preview-bar" class:fixed>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="handle" title="Move" {onpointerdown} {onmousedown}>
+  <div class="handle" title={m.preview_move()} {onpointerdown} {onmousedown}>
     <GripHorizontal class="icon-small" />
   </div>
   <button
     class="icon"
-    title="Zoom out"
-    aria-label="Zoom out"
+    title={m.preview_zoom_out()}
+    aria-label={m.preview_zoom_out()}
     disabled={!image?.canZoomOut()}
     onclick={() => image?.zoomOut()}
   >
@@ -42,8 +43,8 @@
   </button>
   <button
     class="icon"
-    title="Zoom in"
-    aria-label="Zoom in"
+    title={m.preview_zoom_in()}
+    aria-label={m.preview_zoom_in()}
     disabled={!image?.canZoomIn()}
     onclick={() => image?.zoomIn()}
   >
@@ -51,8 +52,8 @@
   </button>
   <button
     class="icon"
-    title="Fit"
-    aria-label="Fit"
+    title={m.preview_fit()}
+    aria-label={m.preview_fit()}
     disabled={image?.isFitted() ?? true}
     onclick={() => image?.fitView()}
   >

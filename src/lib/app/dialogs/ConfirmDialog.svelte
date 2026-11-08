@@ -3,6 +3,7 @@
 
   import { AlertDialog } from "bits-ui";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     request,
@@ -29,7 +30,7 @@
       <AlertDialog.Description class="dialog-text">{request?.text}</AlertDialog.Description>
       <div class="actions">
         <span class="spacer"></span>
-        <AlertDialog.Cancel onclick={onclose}>Cancel</AlertDialog.Cancel>
+        <AlertDialog.Cancel onclick={onclose}>{m.common_cancel()}</AlertDialog.Cancel>
         <AlertDialog.Action
           class="primary"
           onclick={() => {

@@ -14,6 +14,7 @@
   } from "@lucide/svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { Camera, Point } from "#lib/render/camera.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     editor,
@@ -43,7 +44,7 @@
 
 <footer class="panel statusbar">
   <div class="status-start">
-    <button class="icon" title="Keyboard shortcuts" onclick={onShortcuts}><Keyboard /></button>
+    <button class="icon" title={m.status_shortcuts()} onclick={onShortcuts}><Keyboard /></button>
     {#if busy}<span>{busy}</span>{/if}
     {#if error}<span class="error">{error}</span>{/if}
   </div>
@@ -54,7 +55,7 @@
     >
 
     <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}
-      >{Math.round(camera.zoom * 100)}%</button
+      >{m.toolbar_percent({ percent: Math.round(camera.zoom * 100) })}</button
     >
 
     <button class="icon" title={tip("view.zoomIn")} onclick={() => run("view.zoomIn")}
@@ -75,7 +76,10 @@
 
     <button
       class="icon"
-      title="{tip('view.resetRotation')} · {degrees(camera.rotation)}°"
+      title={m.status_rotation_tip({
+        tip: tip("view.resetRotation"),
+        degrees: degrees(camera.rotation),
+      })}
       onclick={() => run("view.resetRotation")}
     >
       <Compass />
@@ -83,8 +87,13 @@
   </div>
 
   <div class="status-end">
-    <span class="cursor">{cursor ? `${cursor.x}, ${cursor.y}` : ""}</span>
-    <span>{editor.drawing.width} × {editor.drawing.height} px</span>
+    <span class="cursor">{cursor ? m.status_cursor({ x: cursor.x, y: cursor.y }) : ""}</span>
+    <span
+      >{m.status_document_size({
+        width: editor.drawing.width,
+        height: editor.drawing.height,
+      })}</span
+    >
   </div>
 </footer>
 

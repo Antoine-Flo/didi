@@ -8,6 +8,7 @@
 
 import { errorMessage } from "#lib/app/error-message.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
+import { m } from "#lib/paraglide/messages.js";
 
 const FILE = "layout.json";
 const VERSION = 1;
@@ -226,7 +227,7 @@ export class LayoutPrefs {
     try {
       await writeDataFile(FILE, text);
     } catch (e) {
-      this.onError(`Layout could not be saved: ${errorMessage(e)}`);
+      this.onError(m.app_layout_save_failed({ error: errorMessage(e) }));
     }
   }
 }

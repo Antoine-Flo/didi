@@ -4,6 +4,7 @@
 
   import { onMount } from "svelte";
   import { appWindow as ownWindow } from "#lib/platform/window.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let maximized = $state(false);
   // A local const: TypeScript knows it stays non-null in the handlers below.
@@ -20,12 +21,16 @@
 
 {#if appWindow}
   <div class="window-buttons">
-    <button title="Minimize" aria-label="Minimize" onclick={() => appWindow.minimize()}>
+    <button
+      title={m.window_buttons_minimize()}
+      aria-label={m.window_buttons_minimize()}
+      onclick={() => appWindow.minimize()}
+    >
       <svg viewBox="0 0 10 10"><path d="M0 5.5h10" /></svg>
     </button>
     <button
-      title={maximized ? "Restore" : "Maximize"}
-      aria-label={maximized ? "Restore" : "Maximize"}
+      title={maximized ? m.window_buttons_restore() : m.window_buttons_maximize()}
+      aria-label={maximized ? m.window_buttons_restore() : m.window_buttons_maximize()}
       onclick={() => appWindow.toggleMaximize()}
     >
       {#if maximized}
@@ -35,7 +40,12 @@
       {/if}
     </button>
     <!-- Goes through the close request: the editor offers to save unsaved changes. -->
-    <button class="close" title="Close" aria-label="Close" onclick={() => appWindow.close()}>
+    <button
+      class="close"
+      title={m.common_close()}
+      aria-label={m.common_close()}
+      onclick={() => appWindow.close()}
+    >
       <svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" /></svg>
     </button>
   </div>

@@ -3,6 +3,8 @@
   // the arrow keys. A double-click goes back to the default size. It fills the gap between
   // the panels, without adding space. Sizes are usually kept in LayoutPrefs.
 
+  import { m } from "#lib/paraglide/messages.js";
+
   let {
     orientation,
     measure,
@@ -65,7 +67,7 @@
   role="separator"
   aria-orientation={orientation}
   tabindex="0"
-  title="Drag to resize, double-click to reset"
+  title={m.widget_splitter_title()}
   {onpointerdown}
   {onpointermove}
   onpointerup={end}

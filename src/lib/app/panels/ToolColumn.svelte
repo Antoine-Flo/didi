@@ -12,6 +12,7 @@
   import ToolButton from "#lib/app/panels/ToolButton.svelte";
   import type { Tool, ToolSettings } from "#lib/app/tools/tool.js";
   import { shownTool, toolEntries, type ToolEntry } from "#lib/app/tools/tool-groups.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     tools,
@@ -134,8 +135,8 @@
 
   <button
     class="grip"
-    title="Drag to move, double-click to put back at the top"
-    aria-label="Move the tools"
+    title={m.tool_column_grip_tip()}
+    aria-label={m.tool_column_grip()}
     {onpointerdown}
     {onpointermove}
     onpointerup={end}

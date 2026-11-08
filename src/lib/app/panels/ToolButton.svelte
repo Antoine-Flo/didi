@@ -11,6 +11,7 @@
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import type { Tool, ToolSettings } from "#lib/app/tools/tool.js";
   import { brushSet } from "#lib/mypaint/brush-sets.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   /** A group's button: its title, its tools and their settings (changed by its choices). */
   interface ToolGroupButton {
@@ -89,7 +90,7 @@
           }}
         >
           <item.icon fill={item.filledIcon ? "currentColor" : "none"} />
-          {item.value === menu.items[0].value ? t.title : `${item.label} ${t.title.toLowerCase()}`}
+          {item.toolTitle ?? t.title}
         </button>
       {/each}
     {:else}
@@ -113,7 +114,9 @@
   <Popover.Root bind:open>
     <Popover.Trigger
       class={["icon", active && "active", "has-popup"]}
-      title={group ? `${group.title}: ${tip(`tool.${tool.id}`)}` : tip(`tool.${tool.id}`)}
+      title={group
+        ? m.tool_button_group_tip({ group: group.title, tip: tip(`tool.${tool.id}`) })
+        : tip(`tool.${tool.id}`)}
       onclick={() => run(`tool.${tool.id}`)}
     >
       <Icon />

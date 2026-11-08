@@ -7,15 +7,16 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "prepare": "svelte-kit sync || echo ''",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "prepare": "svelte-kit sync && npm run messages || echo ''",
+    "check": "svelte-kit sync && npm run messages && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && npm run messages && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "prettier --check . && eslint . && cargo fmt --check --manifest-path src-tauri/Cargo.toml",
     "format": "prettier --write . && cargo fmt --manifest-path src-tauri/Cargo.toml",
-    "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts"
+    "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts",
+    "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale"
   },
   "license": "MIT",
   "dependencies": {
@@ -31,6 +32,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@inlang/paraglide-js": "^3.2.1",
+    "@inlang/plugin-message-format": "^4.6.0",
     "@sveltejs/adapter-static": "^4.0.0",
     "@sveltejs/kit": "^3.0.0",
     "@sveltejs/load-config": "^0.2.2",

@@ -5,6 +5,7 @@ import { Circle, Eraser, Pencil, Square } from "@lucide/svelte";
 import { PixelPathBuilder } from "#lib/core/brush/pixel-path.js";
 import { StrokeRaster, type StampShape } from "#lib/core/brush/raster.js";
 import { defineTool, type Sample, type Tool, type ToolMenu, type ToolStroke } from "./tool";
+import { m } from "#lib/paraglide/messages.js";
 
 export const MAX_PIXEL_SIZE = 64;
 
@@ -22,8 +23,8 @@ export type PixelSettings = {
 export const TIP_MENU: ToolMenu = {
   key: "shape",
   items: [
-    { value: "round", label: "Round", icon: Circle },
-    { value: "square", label: "Square", icon: Square },
+    { value: "round", label: m.tool_tip_round(), icon: Circle },
+    { value: "square", label: m.tool_tip_square(), icon: Square },
   ],
 };
 
@@ -36,13 +37,20 @@ function pixelTool(id: string, title: string, icon: Tool["icon"], mode: "paint" 
     needsColor: mode === "paint",
     defaults: { size: 1, opacity: 1, pixelPerfect: true, shape: "round" },
     fields: [
-      { kind: "integer", key: "size", label: "Size", min: 1, max: MAX_PIXEL_SIZE, unit: "px" },
-      { kind: "percent", key: "opacity", label: "Opacity" },
+      {
+        kind: "integer",
+        key: "size",
+        label: m.tool_size(),
+        min: 1,
+        max: MAX_PIXEL_SIZE,
+        unit: "px",
+      },
+      { kind: "percent", key: "opacity", label: m.tool_opacity() },
       {
         kind: "toggle",
         key: "pixelPerfect",
-        label: "Pixel-perfect",
-        title: "Removes L-shaped corners (1 px brush)",
+        label: m.tool_pixel_perfect(),
+        title: m.tool_pixel_perfect_title(),
       },
     ],
     cursor: (s) => ({ kind: s.shape === "square" ? "square" : "pixel-round", size: s.size }),
@@ -61,8 +69,8 @@ function pixelTool(id: string, title: string, icon: Tool["icon"], mode: "paint" 
   });
 }
 
-export const pixelBrushTool = pixelTool("pixel", "Pixel brush", Pencil, "paint");
-export const pixelEraserTool = pixelTool("pixelEraser", "Pixel eraser", Eraser, "erase");
+export const pixelBrushTool = pixelTool("pixel", m.tool_pixel_brush(), Pencil, "paint");
+export const pixelEraserTool = pixelTool("pixelEraser", m.tool_pixel_eraser(), Eraser, "erase");
 
 class PixelStroke implements ToolStroke {
   readonly busy = false;

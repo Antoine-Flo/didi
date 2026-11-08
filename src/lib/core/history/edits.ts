@@ -3,6 +3,7 @@
 // An edit is created unapplied. `apply` performs it (and redoes it), `revert` undoes it.
 // `revert` must only be called after `apply`, and calls must alternate.
 
+import { m } from "#lib/paraglide/messages.js";
 import type { Drawing } from "../document/drawing";
 import type { Rect } from "../geometry";
 import type { Layer, LayerProps } from "../document/layer";
@@ -49,7 +50,7 @@ export function group(label: string, edits: readonly Edit[]): Edit {
 export function addLayer(layer: Layer, index?: number): Edit {
   let at = index;
   return {
-    label: "Add layer",
+    label: m.history_add_layer(),
     apply(d) {
       at ??= d.layers.length;
       d.addLayer(layer, at);
@@ -64,7 +65,7 @@ export function addLayer(layer: Layer, index?: number): Edit {
 export function removeLayer(id: string): Edit {
   let removed: ReturnType<Drawing["removeLayer"]>;
   return {
-    label: "Delete layer",
+    label: m.cmd_layer_remove(),
     apply(d) {
       removed = d.removeLayer(id);
     },
@@ -78,7 +79,7 @@ export function removeLayer(id: string): Edit {
 export function moveLayer(id: string, index: number): Edit {
   let from: number;
   return {
-    label: "Move layer",
+    label: m.cmd_layer_move(),
     apply(d) {
       from = d.moveLayer(id, index);
     },
@@ -91,7 +92,7 @@ export function moveLayer(id: string, index: number): Edit {
 export function updateLayer(id: string, changes: Partial<LayerProps>): Edit {
   let previous: Partial<LayerProps>;
   return {
-    label: "Edit layer",
+    label: m.cmd_layer_update(),
     apply(d) {
       previous = d.updateLayer(id, changes);
     },
@@ -109,7 +110,7 @@ export function writePixels(
   id: string,
   rect: Rect,
   data: Uint8ClampedArray,
-  label = "Peindre",
+  label = m.history_paint(),
 ): Edit {
   let pending: Uint8ClampedArray | null = data;
   let before: TileSnapshot;

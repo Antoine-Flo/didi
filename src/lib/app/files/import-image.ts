@@ -1,6 +1,7 @@
 import type { Editor } from "#lib/core/editor/editor.js";
 import { writePixels } from "#lib/core/history/edits.js";
 import { premultiply } from "#lib/core/document/pixels.js";
+import { m } from "#lib/paraglide/messages.js";
 
 export interface DecodedImage {
   width: number;
@@ -31,10 +32,12 @@ export function importImage(editor: Editor, image: DecodedImage, name: string) {
     width: image.width,
     height: image.height,
   };
-  history.begin("Import image");
+  history.begin(m.files_import_image_undo());
   try {
     editor.commands.execute("layer.add", { props: { name } });
-    history.push(writePixels(editor.activeLayer!.id, rect, image.data, "Import image"));
+    history.push(
+      writePixels(editor.activeLayer!.id, rect, image.data, m.files_import_image_undo()),
+    );
   } finally {
     history.end();
   }

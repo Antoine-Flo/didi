@@ -36,6 +36,7 @@ import type { Editor } from "#lib/core/editor/editor.js";
 import { intersect, type Rect } from "#lib/core/geometry.js";
 import type { Edit } from "#lib/core/history/edits.js";
 import { defineTool, type Sample, type Tool, type ToolContext, type ToolStroke } from "./tool";
+import { m } from "#lib/paraglide/messages.js";
 
 const SNAP_ANGLE = Math.PI / 12;
 
@@ -118,7 +119,7 @@ abstract class NewArea extends Gesture {
   private lifted = false;
 
   constructor(context: ToolContext, sample: Sample) {
-    super(context, sample, "Select");
+    super(context, sample, m.tool_undo_select());
     context.editor.selection.set({ rect: null, floating: null });
   }
 
@@ -209,7 +210,7 @@ class MoveEdge extends Gesture {
     sample: Sample,
     private readonly side: Side,
   ) {
-    super(context, sample, "Selection bounds");
+    super(context, sample, m.tool_undo_selection_bounds());
     const { selection, drawing } = context.editor;
     selection.set(appliedState(drawing, selection.state));
     this.start = selection.rect;
@@ -231,7 +232,7 @@ class MovePivot extends Gesture {
   private readonly start: Point;
 
   constructor(context: ToolContext, sample: Sample) {
-    super(context, sample, "Rotation center");
+    super(context, sample, m.tool_undo_rotation_center());
     const { state } = context.editor.selection;
     this.start = state.pivot ?? centerOf(placementOf(state)!);
   }
@@ -301,9 +302,9 @@ class TransformContent extends Gesture {
 function contentLayer(context: ToolContext): string | null {
   const { selection, activeLayer: layer } = context.editor;
   if (selection.floating) return selection.floating.layerId;
-  if (!layer) return context.refuse("No layer: add one to move pixels.");
-  if (layer.locked) return context.refuse(`Layer "${layer.name}" is locked.`);
-  if (!layer.visible) return context.refuse(`Layer "${layer.name}" is hidden.`);
+  if (!layer) return context.refuse(m.tool_no_layer_to_move());
+  if (layer.locked) return context.refuse(m.canvas_layer_locked({ name: layer.name }));
+  if (!layer.visible) return context.refuse(m.canvas_layer_hidden({ name: layer.name }));
   return layer.id;
 }
 
@@ -323,11 +324,11 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
       key: "shape",
       iconFollowsChoice: true,
       items: [
-        { value: "rectangle", label: "Rectangle", icon: SquareDashed },
-        { value: "lasso", label: "Lasso", icon: Lasso },
+        { value: "rectangle", label: m.tool_shape_rectangle(), icon: SquareDashed },
+        { value: "lasso", label: m.tool_shape_lasso(), icon: Lasso },
       ],
     },
-    hint: "Drag to select. Enter applies, Esc cancels.",
+    hint: m.tool_select_hint(),
     needsLayer: false,
     needsColor: false,
     cursor: () => ({ kind: "none" }),
@@ -359,20 +360,20 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
       switch (zone.kind) {
         case "inside":
           return transform(
-            "Move",
+            m.tool_undo_move(),
             (start, pen, grab) =>
               moved(start, Math.round(pen.x - grab.x), Math.round(pen.y - grab.y)),
             true,
           );
         case "content":
-          return transform("Scale", (start, pen, grab) => {
+          return transform(m.tool_undo_scale(), (start, pen, grab) => {
             const delta = boxDelta(start, pen.x - grab.x, pen.y - grab.y);
             const shift = context.modifiers().shift;
             return scaled(start, zone.id, delta.x, delta.y, shift);
           });
         case "rotate": {
           const center = state.pivot ?? centerOf(placement!);
-          return transform("Rotate", (start, pen, grab) => {
+          return transform(m.tool_undo_rotate(), (start, pen, grab) => {
             const from = Math.atan2(grab.y - center.y, grab.x - center.x);
             let angle = Math.atan2(pen.y - center.y, pen.x - center.x) - from;
             if (context.modifiers().shift) angle = Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
@@ -380,7 +381,7 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
           });
         }
         case "skew":
-          return transform("Skew", (start, pen, grab) => {
+          return transform(m.tool_undo_skew(), (start, pen, grab) => {
             const dx = pen.x - grab.x;
             const dy = pen.y - grab.y;
             return dx === 0 && dy === 0 ? start : skewed(start, zone.side, dx, dy);
@@ -390,8 +391,8 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
   });
 }
 
-export const selectTool = selectionTool("select", "Selection", false);
-export const smoothSelectTool = selectionTool("smoothSelect", "Smooth selection", true);
+export const selectTool = selectionTool("select", m.tool_selection(), false);
+export const smoothSelectTool = selectionTool("smoothSelect", m.tool_smooth_selection(), true);
 
 /** Whether it is one of the selection tools: they show the selection's handles. */
 export const isSelectTool = ({ id }: Tool) => id === selectTool.id || id === smoothSelectTool.id;

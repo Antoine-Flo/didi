@@ -15,6 +15,7 @@ import type { Hand } from "#lib/app/shell/layout-prefs.svelte.js";
 import { movable } from "#lib/core/editor/editor-commands.js";
 import { errorMessage } from "#lib/app/error-message.js";
 import { copy, toPaste } from "./clipboard";
+import { m } from "#lib/paraglide/messages.js";
 
 /** The view controls of the canvas, once it is mounted. */
 export interface ViewControls {
@@ -66,6 +67,8 @@ export interface AppHost {
 
 const ROTATION_STEP = Math.PI / 12;
 
+const selectionTitle = { rectangle: m.tool_rectangle_selection, lasso: m.tool_lasso_selection };
+
 /** Registers the interface commands. Returns a function that unregisters them. */
 export function registerAppCommands(registry: CommandRegistry<Editor>, host: AppHost): () => void {
   const view = (title: string, id: string, run: (view: ViewControls) => void) =>
@@ -85,8 +88,8 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
   };
 
   /** Tells the user a clipboard operation failed. */
-  const failed = (what: string) => (e: unknown) =>
-    host.notify(`Cannot ${what}: ${errorMessage(e)}`);
+  const failed = (what: (params: { error: string }) => string) => (e: unknown) =>
+    host.notify(what({ error: errorMessage(e) }));
   /** The mode's selection tool, whose handles move and scale floating content. */
   const selectionTool = () => {
     host.tool = host.modes.get(host.mode).selectTool;
@@ -97,21 +100,23 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     ...host.modes.list().map((mode) =>
       registry.register({
         id: `mode.${mode.id}`,
-        title: `Mode: ${mode.title}`,
+        title: m.cmd_mode({ title: mode.title }),
         run: () => (host.mode = mode.id),
       }),
     ),
     ...host.tools.list().map((tool) =>
       registry.register({
         id: `tool.${tool.id}`,
-        title: `Tool: ${tool.title}`,
+        title: m.cmd_tool({ title: tool.title }),
+        shortTitle: tool.title,
         run: () => (host.tool = tool.id),
       }),
     ),
     ...(["rectangle", "lasso"] as const).map((shape) =>
       registry.register({
         id: `selection.${shape}`,
-        title: `Tool: ${shape === "lasso" ? "Lasso" : "Rectangle"} selection`,
+        title: m.cmd_tool({ title: selectionTitle[shape]() }),
+        shortTitle: selectionTitle[shape](),
         run() {
           const tool = host.modes.get(host.mode).selectTool;
           host.tool = tool;
@@ -121,7 +126,7 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     ),
     registry.register<{ id: string }>({
       id: "brush.select",
-      title: "Select brush",
+      title: m.cmd_brush_select(),
       needsParams: true,
       enabled: (_, { id }) => findBundledBrush(id) !== undefined && setOfBrush(id) !== undefined,
       run(_, { id }) {
@@ -136,28 +141,28 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register({
       id: "brush.grow",
-      title: "Increase brush size",
+      title: m.cmd_brush_grow(),
       enabled: () => current().resize !== undefined,
       run: () => resize(1),
     }),
     registry.register({
       id: "brush.shrink",
-      title: "Decrease brush size",
+      title: m.cmd_brush_shrink(),
       enabled: () => current().resize !== undefined,
       run: () => resize(-1),
     }),
 
-    view("Fit to window", "view.fit", (v) => v.fitView()),
-    view("Actual size (100%)", "view.actualSize", (v) => v.zoomTo(1)),
-    view("Zoom in", "view.zoomIn", (v) => v.zoomBy(1.25)),
-    view("Zoom out", "view.zoomOut", (v) => v.zoomBy(0.8)),
-    view("Rotate left", "view.rotateLeft", (v) => v.rotateBy(-ROTATION_STEP)),
-    view("Rotate right", "view.rotateRight", (v) => v.rotateBy(ROTATION_STEP)),
-    view("Reset rotation", "view.resetRotation", (v) => v.resetRotation()),
+    view(m.cmd_view_fit(), "view.fit", (v) => v.fitView()),
+    view(m.cmd_view_actual_size(), "view.actualSize", (v) => v.zoomTo(1)),
+    view(m.cmd_view_zoom_in(), "view.zoomIn", (v) => v.zoomBy(1.25)),
+    view(m.cmd_view_zoom_out(), "view.zoomOut", (v) => v.zoomBy(0.8)),
+    view(m.cmd_view_rotate_left(), "view.rotateLeft", (v) => v.rotateBy(-ROTATION_STEP)),
+    view(m.cmd_view_rotate_right(), "view.rotateRight", (v) => v.rotateBy(ROTATION_STEP)),
+    view(m.cmd_view_reset_rotation(), "view.resetRotation", (v) => v.resetRotation()),
 
     registry.register<{ color: string }>({
       id: "color.set",
-      title: "Set color",
+      title: m.cmd_color_set(),
       needsParams: true,
       enabled: (_, { color }) => fromHex(color) !== null,
       run: (_, { color }) => (host.options.color = fromHex(color)!),
@@ -165,7 +170,7 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
 
     registry.register({
       id: "palette.addColor",
-      title: "Add color to palette",
+      title: m.cmd_palette_add_color(),
       enabled: () => {
         const color = host.options.color;
         return color !== null && editable()?.colors.some((c) => sameColor(c, color)) === false;
@@ -174,7 +179,7 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register<{ index: number }>({
       id: "palette.removeColor",
-      title: "Remove color from palette",
+      title: m.cmd_palette_remove_color(),
       needsParams: true,
       enabled: (_, { index }) =>
         Number.isInteger(index) && index >= 0 && index < (editable()?.colors.length ?? 0),
@@ -182,13 +187,13 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register({
       id: "palette.toggleLock",
-      title: "Lock or unlock palettes",
+      title: m.cmd_palette_toggle_lock(),
       enabled: () => host.palettes !== null,
       run: () => (host.palettes!.locked = !host.palettes!.locked),
     }),
     registry.register<{ index: number }>({
       id: "palette.select",
-      title: "Show palette",
+      title: m.cmd_palette_select(),
       needsParams: true,
       enabled: (_, { index }) =>
         Number.isInteger(index) && index >= 0 && index < (host.palettes?.palettes.length ?? 0),
@@ -196,13 +201,13 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register({
       id: "palette.new",
-      title: "New palette",
+      title: m.cmd_palette_new(),
       enabled: () => host.palettes !== null,
-      run: () => host.palettes!.add({ name: "Palette", colors: [] }),
+      run: () => host.palettes!.add({ name: m.app_palette_default_name(), colors: [] }),
     }),
     registry.register<{ name: string }>({
       id: "palette.duplicate",
-      title: "Copy palette",
+      title: m.cmd_palette_duplicate(),
       needsParams: true,
       enabled: (_, { name }) =>
         host.palettes?.active != null && typeof name === "string" && name.trim() !== "",
@@ -215,13 +220,13 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register({
       id: "palette.import",
-      title: "Import palette (.hex)…",
+      title: m.cmd_palette_import(),
       enabled: () => host.palettes !== null,
       run: () => host.importPalette(),
     }),
     registry.register<{ name: string }>({
       id: "palette.rename",
-      title: "Rename palette",
+      title: m.cmd_palette_rename(),
       needsParams: true,
       enabled: (_, { name }) =>
         editable() != null && typeof name === "string" && name.trim() !== "",
@@ -229,15 +234,15 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     }),
     registry.register({
       id: "palette.delete",
-      title: "Delete palette",
+      title: m.cmd_palette_delete(),
       enabled: () => editable() != null,
       async run() {
         const palettes = host.palettes!;
         const palette = palettes.active!;
         const confirmed = await host.confirm({
-          title: `Delete “${palette.name}”?`,
-          text: "This palette and its colors will be deleted. This can't be undone.",
-          action: "Delete",
+          title: m.app_palette_delete_title({ name: palette.name }),
+          text: m.app_palette_delete_text(),
+          action: m.common_delete(),
         });
         const index = palettes.indexOf(palette);
         if (confirmed && index >= 0) palettes.remove(index);
@@ -247,89 +252,93 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     // Edit: the clipboard, and transforming the selected pixels (with the selection's tool).
     registry.register({
       id: "edit.copy",
-      title: "Copy",
+      title: m.cmd_edit_copy(),
       enabled: (editor) => editor.selection.floating !== null || editor.activeLayer !== null,
-      run: (editor) => void copy(editor).catch(failed("copy")),
+      run: (editor) => void copy(editor).catch(failed(m.error_copy_failed)),
     }),
     registry.register({
       id: "edit.cut",
-      title: "Cut",
+      title: m.cmd_edit_cut(),
       enabled: (editor) => editor.editableLayer(true) !== null,
       run(editor) {
         const done = copy(editor);
-        editor.clear("Cut");
-        void done.catch(failed("copy"));
+        editor.clear(m.cmd_edit_cut());
+        void done.catch(failed(m.error_copy_failed));
       },
     }),
     registry.register({
       id: "edit.paste",
-      title: "Paste",
+      title: m.cmd_edit_paste(),
       enabled: (editor) => editor.activeLayer !== null && !editor.activeLayer.locked,
       run: (editor) =>
         void toPaste(editor)
           .then((paste) => {
-            if (!paste) return host.notify("Nothing to paste: copy an image first.");
+            if (!paste) return host.notify(m.app_nothing_to_paste());
             if (editor.paste(paste.image, paste.at)) selectionTool();
           })
-          .catch(failed("paste")),
+          .catch(failed(m.error_paste_failed)),
     }),
     registry.register({
       id: "edit.pasteAsLayer",
-      title: "Paste as new layer",
+      title: m.cmd_edit_paste_as_layer(),
       run: (editor) =>
         void toPaste(editor)
           .then((paste) => {
-            if (!paste) return host.notify("Nothing to paste: copy an image first.");
+            if (!paste) return host.notify(m.app_nothing_to_paste());
             editor.pasteAsLayer(paste.image, paste.at);
           })
-          .catch(failed("paste")),
+          .catch(failed(m.error_paste_failed)),
     }),
     registry.register({
       id: "edit.transform",
-      title: "Transform",
+      title: m.cmd_edit_transform(),
       enabled: movable,
       run(editor) {
         if (editor.transform()) selectionTool();
-        else host.notify("Nothing to transform: nothing is drawn there.");
+        else host.notify(m.app_nothing_to_transform());
       },
     }),
 
     registry.register({
       id: "image.canvasSize",
-      title: "Canvas size…",
+      title: m.cmd_image_canvas_size(),
       run: () => host.openSizeDialog("canvas"),
     }),
     registry.register({
       id: "image.imageSize",
-      title: "Image size…",
+      title: m.cmd_image_image_size(),
       run: () => host.openSizeDialog("image"),
     }),
 
-    registry.register({ id: "file.new", title: "New document…", run: () => host.newDocument() }),
-    registry.register({ id: "file.exportPng", title: "Export PNG…", run: () => host.exportPng() }),
+    registry.register({ id: "file.new", title: m.cmd_file_new(), run: () => host.newDocument() }),
+    registry.register({
+      id: "file.exportPng",
+      title: m.cmd_file_export_png(),
+      run: () => host.exportPng(),
+    }),
     registry.register({
       id: "file.importImage",
-      title: "Import image…",
+      title: m.cmd_file_import_image(),
       run: () => host.importImage(),
     }),
     registry.register({
       id: "app.commandPalette",
-      title: "Command palette",
+      title: m.cmd_app_command_palette(),
       run: () => host.openCommandPalette(),
     }),
     registry.register({
       id: "view.rightHanded",
-      title: "Layout: Right-handed (panels on the left)",
+      title: m.cmd_view_right_handed(),
       run: () => (host.hand = "right"),
     }),
     registry.register({
       id: "view.leftHanded",
-      title: "Layout: Left-handed (panels on the right)",
+      title: m.cmd_view_left_handed(),
       run: () => (host.hand = "left"),
     }),
     registry.register({
       id: "view.togglePanels",
-      title: "Show or hide panels",
+      title: m.cmd_view_toggle_panels(),
       run: () => host.togglePanels(),
     }),
   ];
@@ -337,14 +346,23 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     unregister.push(
       registry.register<{ path?: string } | undefined>({
         id: "file.open",
-        title: "Open…",
+        title: m.cmd_file_open(),
         run: (_, params) => host.openDocument(params?.path),
       }),
-      registry.register({ id: "file.save", title: "Save", run: () => host.saveDocument() }),
-      registry.register({ id: "file.saveAs", title: "Save as…", run: () => host.saveDocumentAs() }),
+      registry.register({
+        id: "file.save",
+        title: m.cmd_file_save(),
+        run: () => host.saveDocument(),
+      }),
+      registry.register({
+        id: "file.saveAs",
+        title: m.cmd_file_save_as(),
+        run: () => host.saveDocumentAs(),
+      }),
     );
   }
   const { quit } = host;
-  if (quit) unregister.push(registry.register({ id: "app.quit", title: "Quit", run: quit }));
+  if (quit)
+    unregister.push(registry.register({ id: "app.quit", title: m.cmd_app_quit(), run: quit }));
   return () => unregister.forEach((fn) => fn());
 }

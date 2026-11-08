@@ -19,6 +19,7 @@ import type {
   ToolOptions,
   ToolStroke,
 } from "#lib/app/tools/tool.js";
+import { m } from "#lib/paraglide/messages.js";
 
 export interface PainterHost {
   /** The tool to use. `eraser` is true when the pen's eraser end is down. */
@@ -84,13 +85,13 @@ export class Painter {
     const tool = modifiers().alt ? pickerTool : this.host.tool(eraser);
     const layer = this.editor.activeLayer;
     if (tool.needsLayer !== false) {
-      if (!layer) return this.refuse("No layer: add one to draw.");
-      if (layer.locked) return this.refuse(`Layer "${layer.name}" is locked.`);
-      if (!layer.visible) return this.refuse(`Layer "${layer.name}" is hidden.`);
+      if (!layer) return this.refuse(m.canvas_no_layer_to_draw());
+      if (layer.locked) return this.refuse(m.canvas_layer_locked({ name: layer.name }));
+      if (!layer.visible) return this.refuse(m.canvas_layer_hidden({ name: layer.name }));
     }
     const options = this.host.options();
     if (!options.color && tool.needsColor !== false) {
-      return this.refuse("No color selected: choose one to draw.");
+      return this.refuse(m.canvas_no_color());
     }
     // Drawing or changing a layer lays floating content down first.
     if (tool.needsLayer !== false) this.editor.applySelection();

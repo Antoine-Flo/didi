@@ -1,6 +1,8 @@
 // The menus of the title bar (File, Edit…). Plain data, like the keymap: each item runs a
 // command, shown with its title (unless it has a label) and its shortcut.
 
+import { m } from "#lib/paraglide/messages.js";
+
 /** An item of a menu: a command, a submenu, or a separator line. */
 export type MenuEntry =
   | {
@@ -57,12 +59,12 @@ export function availableMenus(
 export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuDefinition[] {
   return [
     {
-      title: "File",
+      title: m.menu_file(),
       items: [
         { command: "file.new" },
         { command: "file.open" },
         {
-          label: "Open recent",
+          label: m.menu_open_recent(),
           requires: "file.open",
           items: recent.map((f) => ({
             command: "file.open",
@@ -81,10 +83,16 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
       ],
     },
     {
-      title: "Edit",
+      title: m.menu_edit(),
       items: [
-        { command: "history.undo", label: undoLabel ? `Undo ${undoLabel}` : "Undo" },
-        { command: "history.redo", label: redoLabel ? `Redo ${redoLabel}` : "Redo" },
+        {
+          command: "history.undo",
+          label: undoLabel ? m.menu_undo_step({ step: undoLabel }) : m.menu_undo(),
+        },
+        {
+          command: "history.redo",
+          label: redoLabel ? m.menu_redo_step({ step: redoLabel }) : m.menu_redo(),
+        },
         "separator",
         { command: "edit.cut" },
         { command: "edit.copy" },
@@ -98,7 +106,7 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
       ],
     },
     {
-      title: "Select",
+      title: m.menu_select(),
       items: [
         { command: "selection.selectAll" },
         { command: "selection.layerContent" },
@@ -109,7 +117,7 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
       ],
     },
     {
-      title: "Image",
+      title: m.menu_image(),
       items: [
         { command: "image.canvasSize" },
         { command: "image.imageSize" },
@@ -125,7 +133,7 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
       ],
     },
     {
-      title: "Layer",
+      title: m.menu_layer(),
       items: [
         { command: "layer.add" },
         { command: "layer.duplicate" },
@@ -143,7 +151,7 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
       ],
     },
     {
-      title: "View",
+      title: m.menu_view(),
       items: [
         { command: "view.zoomIn" },
         { command: "view.zoomOut" },

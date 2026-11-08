@@ -14,6 +14,7 @@
   import type { Mode } from "#lib/app/modes/mode.js";
   import type { RecentFile } from "#lib/app/files/recent.js";
   import type { RecoveryInfo } from "#lib/app/files/session.svelte.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     open = $bindable(false),
@@ -99,6 +100,17 @@
   const folder = (path: string) => path.replace(/[\\/][^\\/]*$/, "");
   const when = (time: number) =>
     new Date(time).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+  /** The recovery's sentence, in pieces: the file's name in bold. */
+  function recoveryParts(info: RecoveryInfo) {
+    let strong = false;
+    return m.start_recovery.parts({ time: when(info.time), name: info.name }).flatMap((part) => {
+      if (part.type === "markup-start") strong = true;
+      else if (part.type === "markup-end") strong = false;
+      else if (part.type === "text") return [{ text: part.value, strong }];
+      return [];
+    });
+  }
 </script>
 
 <Dialog.Root bind:open>
@@ -118,11 +130,11 @@
         content?.focus({ preventScroll: true });
       }}
     >
-      <Dialog.Title class="sr-only">New document</Dialog.Title>
+      <Dialog.Title class="sr-only">{m.start_new_document()}</Dialog.Title>
 
       <section class="new">
-        <span class="section-title">New document</span>
-        <div class="modes" role="radiogroup" aria-label="Mode">
+        <span class="section-title">{m.start_new_document()}</span>
+        <div class="modes" role="radiogroup" aria-label={m.start_mode()}>
           {#each modes as m (m.id)}
             {@const Icon = m.icon}
             <button
@@ -154,7 +166,7 @@
         {/each}
 
         <div class="group">
-          <span class="label">Custom</span>
+          <span class="label">{m.start_custom()}</span>
           <div class="custom">
             <input
               type="number"
@@ -162,7 +174,7 @@
               max={MAX_SIZE}
               bind:value={width}
               oninput={changed}
-              aria-label="Width"
+              aria-label={m.image_size_width()}
             />
             <span>×</span>
             <input
@@ -171,22 +183,22 @@
               max={MAX_SIZE}
               bind:value={height}
               oninput={changed}
-              aria-label="Height"
+              aria-label={m.image_size_height()}
             />
           </div>
         </div>
 
         <div class="group">
-          <span class="label">Background</span>
+          <span class="label">{m.start_background()}</span>
           <div class="toggle">
             <button class:active={background === "white"} onclick={() => setBackground("white")}>
-              White
+              {m.start_white()}
             </button>
             <button
               class:active={background === "transparent"}
               onclick={() => setBackground("transparent")}
             >
-              Transparent
+              {m.start_transparent()}
             </button>
           </div>
         </div>
@@ -194,12 +206,14 @@
 
       {#if capabilities.userFiles}
         <section class="recent">
-          <span class="section-title">Recent</span>
+          <span class="section-title">{m.start_recent()}</span>
 
           {#if recovery}
             <div class="recovery">
               <span>
-                Unsaved work from {when(recovery.time)}: <strong>{recovery.name}</strong>
+                {#each recoveryParts(recovery) as part, i (i)}
+                  {#if part.strong}<strong>{part.text}</strong>{:else}{part.text}{/if}
+                {/each}
               </span>
               <div class="actions">
                 <button
@@ -207,9 +221,9 @@
                   onclick={() => {
                     open = false;
                     onrecover();
-                  }}>Recover</button
+                  }}>{m.start_recover()}</button
                 >
-                <button onclick={ondiscardrecovery}>Discard</button>
+                <button onclick={ondiscardrecovery}>{m.unsaved_discard()}</button>
               </div>
             </div>
           {/if}
@@ -242,7 +256,7 @@
               {/each}
             </ul>
           {:else}
-            <span class="hint">No recent files.</span>
+            <span class="hint">{m.start_no_recent()}</span>
           {/if}
         </section>
       {/if}
@@ -251,14 +265,14 @@
         <button
           class="primary"
           disabled={!validSize(width) || !validSize(height)}
-          onclick={() => create(width, height)}>New document</button
+          onclick={() => create(width, height)}>{m.start_new_document_action()}</button
         >
         {#if capabilities.userFiles}
           <button
             onclick={() => {
               open = false;
               onopen();
-            }}>Open image</button
+            }}>{m.start_open_image()}</button
           >
         {/if}
       </div>

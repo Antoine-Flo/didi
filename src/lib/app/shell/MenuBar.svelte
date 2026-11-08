@@ -8,6 +8,7 @@
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import type { MenuDefinition, MenuEntry } from "#lib/app/commands/default-menus.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     menus,
@@ -75,7 +76,7 @@
 <Menubar.Root class="menubar" onValueChange={setValue}>
   {#if collapsed}
     <Menubar.Menu>
-      <Menubar.Trigger class="menubar-trigger menubar-icon" title="Menu" {disabled}>
+      <Menubar.Trigger class="menubar-trigger menubar-icon" title={m.menubar_menu()} {disabled}>
         <Menu />
       </Menubar.Trigger>
       <Menubar.Portal>

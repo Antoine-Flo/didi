@@ -18,6 +18,7 @@
   import LayersPanel from "./LayersPanel.svelte";
   import PalettePanel from "./PalettePanel.svelte";
   import { PaletteColorSync } from "./palette-sync.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     layout,
@@ -96,8 +97,8 @@
   }
 
   const TABS = [
-    { value: "color", label: "Color" },
-    { value: "layers", label: "Layers" },
+    { value: "color", label: m.color_tab() },
+    { value: "layers", label: m.layers_panel() },
   ] as const;
 
   /** A saved panel size, as CSS. */
@@ -108,7 +109,12 @@
 <aside class="column" class:tabbed={tab !== null} data-tab={tab}>
   {#if tab && tabBar}
     <div class="panel tab-bar">
-      <Segmented label="Panels" value={tab} choices={TABS} onselect={(t) => ontab(t as PanelTab)} />
+      <Segmented
+        label={m.panel_column_tabs()}
+        value={tab}
+        choices={TABS}
+        onselect={(t) => ontab(t as PanelTab)}
+      />
     </div>
   {/if}
 

@@ -15,6 +15,7 @@
   import LayerThumb from "./LayerThumb.svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     editor,
@@ -43,10 +44,10 @@
     ["selection.layerContent"],
   ];
 
-  const BLEND_LABELS: Record<BlendMode, string> = {
-    normal: "Normal",
-    screen: "Screen",
-    add: "Add",
+  const BLEND_LABELS: Record<BlendMode, () => string> = {
+    normal: m.layers_blend_normal,
+    screen: m.layers_blend_screen,
+    add: m.layers_blend_add,
   };
 
   // Top layer first, like every drawing app.
@@ -131,7 +132,7 @@
   function startOpacity() {
     if (dragging) return;
     dragging = true;
-    editor.history.begin("Layer opacity");
+    editor.history.begin(m.layers_opacity_history());
   }
   function endOpacity() {
     if (!dragging) return;
@@ -192,7 +193,7 @@
     {#each group as entry (entry)}
       {#if entry === "rename"}
         <Item class="menu-item" disabled={!active} onSelect={() => (renaming = active?.id ?? null)}>
-          Rename layer
+          {m.layers_rename()}
         </Item>
       {:else}
         {@const keys = shortcut(entry)}
@@ -209,8 +210,8 @@
   <div class="panel-header">
     {#if active}
       <Select
-        title="Blend mode"
-        items={BLEND_MODES.map((mode) => ({ value: mode, label: BLEND_LABELS[mode] }))}
+        title={m.layers_blend_mode()}
+        items={BLEND_MODES.map((mode) => ({ value: mode, label: BLEND_LABELS[mode]() }))}
         value={active.blendMode}
         onchange={(mode) => update(active.id, { blendMode: mode as BlendMode })}
       />
@@ -220,18 +221,18 @@
     <button class="icon" title={tip("layer.add")} onclick={() => run("layer.add")}>
       <Plus />
     </button>
-    <PanelMenu title="Layer menu" {onCloseAutoFocus}>
+    <PanelMenu title={m.layers_menu()} {onCloseAutoFocus}>
       {@render menuItems(DropdownMenu.Item, DropdownMenu.Separator)}
     </PanelMenu>
   </div>
   {#if active}
     <Slider
-      label="Opacity"
+      label={m.layers_opacity()}
       min={0}
       max={100}
       step={1}
       value={Math.round(active.opacity * 100)}
-      display="{Math.round(active.opacity * 100)}%"
+      display={m.toolbar_percent({ percent: Math.round(active.opacity * 100) })}
       onstart={startOpacity}
       onend={endOpacity}
       oninput={(v) => update(active.id, { opacity: v / 100 })}
@@ -257,14 +258,14 @@
             <button
               class="icon"
               class:off={!layer.visible}
-              title={layer.visible ? "Hide" : "Show"}
+              title={layer.visible ? m.layers_hide() : m.layers_show()}
               onclick={() => update(layer.id, { visible: !layer.visible })}
             >
               {#if layer.visible}<Eye />{:else}<EyeOff />{/if}
             </button>
             <button
               class="thumb-button"
-              title="Double-click to select its content"
+              title={m.layers_thumb_tip()}
               onclick={() => run("layer.select", { id: layer.id })}
               ondblclick={() => run("selection.layerContent", { id: layer.id })}
             >
@@ -286,7 +287,7 @@
             {:else}
               <button
                 class="name"
-                title="Double-click to rename"
+                title={m.layers_name_tip()}
                 onclick={() => run("layer.select", { id: layer.id })}
                 ondblclick={() => (renaming = layer.id)}>{layer.name}</button
               >
@@ -294,7 +295,7 @@
             <button
               class="icon"
               class:off={!layer.alphaLocked}
-              title={layer.alphaLocked ? "Unlock transparency" : "Lock transparency"}
+              title={layer.alphaLocked ? m.layers_unlock_alpha() : m.layers_lock_alpha()}
               onclick={() => update(layer.id, { alphaLocked: !layer.alphaLocked })}
             >
               <AlphaLockIcon locked={layer.alphaLocked} />
@@ -302,7 +303,7 @@
             <button
               class="icon"
               class:off={!layer.locked}
-              title={layer.locked ? "Unlock" : "Lock"}
+              title={layer.locked ? m.layers_unlock() : m.layers_lock()}
               onclick={() => update(layer.id, { locked: !layer.locked })}
             >
               {#if layer.locked}<Lock />{:else}<LockOpen />{/if}

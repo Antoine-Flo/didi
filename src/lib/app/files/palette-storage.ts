@@ -3,6 +3,7 @@
 import { PaletteLibrary, parsePaletteFile } from "#lib/core/color/palette.js";
 import { errorMessage } from "#lib/app/error-message.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
+import { m } from "#lib/paraglide/messages.js";
 
 const FILE = "palettes.json";
 /** A file that could not be read is kept under this name instead of being overwritten. */
@@ -31,11 +32,11 @@ export async function loadPalettes(onError: (message: string) => void): Promise<
         library = new PaletteLibrary(palettes, active);
       } catch (e) {
         await writeDataFile(BACKUP, text);
-        onError(`Palettes could not be read (${errorMessage(e)}), a copy was kept in ${BACKUP}.`);
+        onError(m.files_palettes_unreadable({ error: errorMessage(e), backup: BACKUP }));
       }
     }
   } catch (e) {
-    onError(`Palettes could not be loaded: ${errorMessage(e)}`);
+    onError(m.files_palettes_load_failed({ error: errorMessage(e) }));
   }
   autosave(library, onError);
   return library;
@@ -47,7 +48,7 @@ function autosave(library: PaletteLibrary, onError: (message: string) => void) {
     timer = null;
     const text = JSON.stringify(library.toFile(), null, 2) + "\n";
     return writeDataFile(FILE, text).catch((e) =>
-      onError(`Palettes could not be saved: ${errorMessage(e)}`),
+      onError(m.files_palettes_save_failed({ error: errorMessage(e) })),
     );
   };
   library.subscribe(() => {

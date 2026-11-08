@@ -6,6 +6,7 @@
   import { asset } from "$app/paths";
   import type { AssetPath } from "$app/types";
   import { setBrushes, type BrushSet } from "#lib/mypaint/brush-sets.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     set,
@@ -48,7 +49,7 @@
       {#if showMore}<ChevronDown class="icon-small" />{:else}<ChevronRight
           class="icon-small"
         />{/if}
-      More brushes
+      {m.brushes_more()}
     </button>
 
     {#if showMore}{@render list(brushes.more)}{/if}

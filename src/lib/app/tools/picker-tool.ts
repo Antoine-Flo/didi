@@ -7,6 +7,7 @@ import { unpremultiply } from "#lib/core/document/pixels.js";
 import type { Rect } from "#lib/core/geometry.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { defineTool, type Picked, type ToolOptions } from "./tool";
+import { m } from "#lib/paraglide/messages.js";
 
 interface Source {
   label: string;
@@ -17,13 +18,13 @@ interface Source {
 
 const SOURCES: Record<string, Source> = {
   canvas: {
-    label: "Canvas",
-    title: "Pick what is visible on the canvas",
+    label: m.tool_source_canvas(),
+    title: m.tool_source_canvas_title(),
     read: (editor, rect) => composite(editor.drawing, rect),
   },
   layer: {
-    label: "Layer",
-    title: "Pick from the active layer only",
+    label: m.tool_source_layer(),
+    title: m.tool_source_layer_title(),
     read: (editor, rect) => editor.activeLayer?.tiles.readRegion(rect) ?? null,
   },
 };
@@ -37,15 +38,20 @@ interface Channels {
 
 const CHANNELS: Record<string, Channels> = {
   both: {
-    label: "Color + Opacity",
-    title: "Take the color, and the opacity for your tool",
+    label: m.tool_take_both(),
+    title: m.tool_take_both_title(),
     color: true,
     opacity: true,
   },
-  color: { label: "Color", title: "Take the color only", color: true, opacity: false },
+  color: {
+    label: m.tool_take_color(),
+    title: m.tool_take_color_title(),
+    color: true,
+    opacity: false,
+  },
   opacity: {
-    label: "Opacity",
-    title: "Take the opacity only, for your tool",
+    label: m.tool_take_opacity(),
+    title: m.tool_take_opacity_title(),
     color: false,
     opacity: true,
   },
@@ -88,13 +94,13 @@ function pickAt(
 /** Picks under the pen. The tool bar's swatch shows the result of a click there. */
 export const pickerTool = defineTool<PickerSettings>({
   id: "picker",
-  title: "Color picker",
+  title: m.tool_picker(),
   icon: Pipette,
   section: "pick",
   defaults: { source: "canvas", channels: "both" },
   fields: [
-    { kind: "choice", key: "source", label: "Pick from", choices: choices(SOURCES) },
-    { kind: "choice", key: "channels", label: "Take", choices: choices(CHANNELS) },
+    { kind: "choice", key: "source", label: m.tool_pick_from(), choices: choices(SOURCES) },
+    { kind: "choice", key: "channels", label: m.tool_take(), choices: choices(CHANNELS) },
   ],
   needsLayer: false,
   needsColor: false,

@@ -2,6 +2,7 @@
 // Floating content is laid first (in the same step): it belongs to a layer these may change
 // or remove.
 
+import { m } from "#lib/paraglide/messages.js";
 import { composite } from "../document/compositing";
 import { Drawing } from "../document/drawing";
 import type { Layer, ReadonlyLayer } from "../document/layer";
@@ -39,8 +40,8 @@ const canvasOf = (drawing: Drawing) => ({
 export function duplicateLayer(editor: Editor, id: string) {
   const { drawing } = editor;
   const source = drawing.getLayer(id);
-  const copy = copyOf(drawing, source, `${source.name} copy`);
-  step(editor, "Duplicate layer", () => {
+  const copy = copyOf(drawing, source, m.layer_default_copy({ name: source.name }));
+  step(editor, m.cmd_layer_duplicate(), () => {
     editor.history.push(addLayer(copy, drawing.indexOf(id) + 1));
   });
   editor.setActiveLayer(copy.id);
@@ -63,7 +64,7 @@ export function mergeDown(editor: Editor, id: string) {
   const { drawing } = editor;
   const below = mergeTarget(editor, id);
   if (!below) return;
-  step(editor, "Merge down", () => {
+  step(editor, m.cmd_layer_merge_down(), () => {
     // The two layers alone, the one below at full opacity: what it holds once merged.
     const pair = new Drawing(drawing.width, drawing.height);
     const base = copyOf(pair, below, below.name);
@@ -71,8 +72,8 @@ export function mergeDown(editor: Editor, id: string) {
     pair.addLayer(copyOf(pair, drawing.getLayer(id), "Top"));
     const canvas = canvasOf(drawing);
     editor.history.push(
-      group("Merge down", [
-        writePixels(below.id, canvas, composite(pair, canvas), "Merge down"),
+      group(m.cmd_layer_merge_down(), [
+        writePixels(below.id, canvas, composite(pair, canvas), m.cmd_layer_merge_down()),
         removeLayer(id),
       ]),
     );
@@ -84,15 +85,17 @@ export function mergeDown(editor: Editor, id: string) {
 export function flatten(editor: Editor) {
   const { drawing } = editor;
   const canvas = canvasOf(drawing);
-  step(editor, "Flatten image", () => {
+  step(editor, m.cmd_layer_flatten(), () => {
     const pixels = composite(drawing, canvas);
-    const layer = drawing.createLayer({ name: drawing.layers[0]?.name ?? "Layer 1" });
+    const layer = drawing.createLayer({
+      name: drawing.layers[0]?.name ?? m.layer_default_numbered({ number: 1 }),
+    });
     const removed = drawing.layers.map((l) => removeLayer(l.id));
     editor.history.push(
-      group("Flatten image", [
+      group(m.cmd_layer_flatten(), [
         ...removed,
         addLayer(layer, 0),
-        writePixels(layer.id, canvas, pixels, "Flatten image"),
+        writePixels(layer.id, canvas, pixels, m.cmd_layer_flatten()),
       ]),
     );
     editor.setActiveLayer(layer.id);
@@ -102,10 +105,10 @@ export function flatten(editor: Editor) {
 /** Makes a whole layer transparent, whatever is selected. */
 export function clearLayer(editor: Editor, id: string) {
   const { drawing } = editor;
-  step(editor, "Clear layer", () => {
+  step(editor, m.cmd_layer_clear(), () => {
     const before = layerTiles(drawing, id);
     const after = new Map([...before.keys()].map((key) => [key, undefined]));
-    editor.history.push(replaceTiles(id, before, after, "Clear layer"));
+    editor.history.push(replaceTiles(id, before, after, m.cmd_layer_clear()));
   });
 }
 
@@ -114,7 +117,7 @@ export function flipLayer(editor: Editor, id: string, axis: "horizontal" | "vert
   const { drawing } = editor;
   const canvas = canvasOf(drawing);
   const { width, height } = canvas;
-  const label = axis === "horizontal" ? "Flip layer horizontally" : "Flip layer vertically";
+  const label = axis === "horizontal" ? m.cmd_layer_flip_horizontal() : m.cmd_layer_flip_vertical();
   step(editor, label, () => {
     const pixels = drawing.getLayer(id).tiles.readRegion(canvas);
     const flipped = new Uint8ClampedArray(pixels.length);

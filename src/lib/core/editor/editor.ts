@@ -3,6 +3,7 @@
 // The active layer is editor state, not part of the drawing, and is not undoable. It is
 // kept valid after every history change.
 
+import { m } from "#lib/paraglide/messages.js";
 import { CommandRegistry } from "./commands";
 import type { Drawing } from "../document/drawing";
 import { Emitter } from "../emitter";
@@ -79,7 +80,7 @@ export class Editor {
     const before = this.selection.state;
     if (!before.floating) return;
     const after = appliedState(this.drawing, before);
-    this.history.push(selectionEdit(this.selection, "Apply selection", before, after));
+    this.history.push(selectionEdit(this.selection, m.cmd_selection_apply(), before, after));
   }
 
   /** Puts floating content back where it was, or else removes the selection. */
@@ -95,21 +96,30 @@ export class Editor {
       layerTiles(this.drawing, floating.layerId),
       floating.original,
     );
-    this.history.push(selectionEdit(this.selection, "Cancel selection", before, after, pixels));
+    this.history.push(
+      selectionEdit(this.selection, m.cmd_selection_cancel(), before, after, pixels),
+    );
   }
 
   /** Removes the selection. Floating content stays where it is shown. */
   deselect() {
     const before = this.selection.state;
     if (!before.rect) return;
-    this.history.push(selectionEdit(this.selection, "Deselect", before, NO_SELECTION));
+    this.history.push(
+      selectionEdit(this.selection, m.cmd_selection_deselect(), before, NO_SELECTION),
+    );
   }
 
   /** Selects the whole canvas. Floating content stays where it is shown. */
   selectAll() {
     const before = this.selection.state;
     this.history.push(
-      selectionEdit(this.selection, "Select all", before, allSelected(this.drawing)),
+      selectionEdit(
+        this.selection,
+        m.cmd_selection_select_all(),
+        before,
+        allSelected(this.drawing),
+      ),
     );
   }
 
@@ -117,7 +127,7 @@ export class Editor {
   invertSelection() {
     const before = this.selection.state;
     const after = invertedState(this.drawing, before);
-    this.history.push(selectionEdit(this.selection, "Invert selection", before, after));
+    this.history.push(selectionEdit(this.selection, m.cmd_selection_invert(), before, after));
   }
 
   /**
@@ -134,7 +144,7 @@ export class Editor {
   }
 
   /** Makes the selected pixels transparent: the whole layer if nothing is selected. */
-  clear(label = "Delete") {
+  clear(label = m.cmd_edit_clear()) {
     const before = this.selection.state;
     const { floating } = before;
     if (floating) {
@@ -191,7 +201,9 @@ export class Editor {
     const after = selectionOfMask(this.canvas, mask);
     if (!after.rect) return false;
     const before = this.selection.state;
-    this.history.push(selectionEdit(this.selection, "Select layer content", before, after));
+    this.history.push(
+      selectionEdit(this.selection, m.cmd_selection_layer_content(), before, after),
+    );
     return true;
   }
 
@@ -209,7 +221,7 @@ export class Editor {
     const lifted = this.lifted(area);
     if (!lifted) return false;
     const { state, pixels } = lifted;
-    this.history.push(selectionEdit(this.selection, "Transform", before, state, pixels));
+    this.history.push(selectionEdit(this.selection, m.cmd_edit_transform(), before, state, pixels));
     return true;
   }
 
@@ -236,7 +248,7 @@ export class Editor {
     state = { ...state, rect: { x, y, width, height }, transform };
     const after = before.rect ? state : NO_SELECTION;
     const pixels = changedTiles(layerId, start, layerTiles(this.drawing, layerId));
-    const label = axis === "horizontal" ? "Flip horizontally" : "Flip vertically";
+    const label = axis === "horizontal" ? m.cmd_edit_flip_horizontal() : m.cmd_edit_flip_vertical();
     this.history.push(selectionEdit(this.selection, label, before, after, pixels));
   }
 
@@ -262,7 +274,7 @@ export class Editor {
     showFloating(this.drawing, floating, rect, rect);
     const after: SelectionState = { rect, floating };
     const pixels = changedTiles(layer.id, start, layerTiles(this.drawing, layer.id));
-    this.history.push(selectionEdit(this.selection, "Paste", before, after, pixels));
+    this.history.push(selectionEdit(this.selection, m.cmd_edit_paste(), before, after, pixels));
     return true;
   }
 
@@ -271,12 +283,14 @@ export class Editor {
     const { drawing } = this;
     const active = this.activeLayer;
     const index = active ? drawing.indexOf(active.id) + 1 : drawing.layers.length;
-    const layer = drawing.createLayer({ name: `Layer ${drawing.layers.length + 1}` });
+    const layer = drawing.createLayer({
+      name: m.layer_default_numbered({ number: drawing.layers.length + 1 }),
+    });
     const edits = [addLayer(layer, index)];
     const from = { x: at.x, y: at.y, width: image.width, height: image.height };
     const rect = intersect(from, this.canvas);
     if (rect) edits.push(writePixels(layer.id, rect, cropped(image, from, rect)));
-    this.history.push(group("Paste as new layer", edits));
+    this.history.push(group(m.cmd_edit_paste_as_layer(), edits));
     this.setActiveLayer(layer.id);
   }
 

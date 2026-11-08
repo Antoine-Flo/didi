@@ -3,11 +3,14 @@
   import Titlebar from "#lib/app/shell/Titlebar.svelte";
   import { applyTheme, DEFAULT_THEME } from "#lib/app/shell/theme.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
+  import { getLocale } from "#lib/paraglide/runtime.js";
 
   let { children }: { children: Snippet } = $props();
 
   // Before any page is mounted: the canvas reads its background from the theme.
   applyTheme(DEFAULT_THEME);
+  // For the browser's spelling, hyphenation and screen readers.
+  document.documentElement.lang = getLocale();
 </script>
 
 <!-- The window has no system title bar: every page shows ours above its content, unless

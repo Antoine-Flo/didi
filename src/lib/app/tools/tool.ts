@@ -82,6 +82,8 @@ export interface ToolMenu {
   items: {
     value: string;
     label: string;
+    /** The tool's name with this choice, in its group's list, e.g. "Filled rectangle". */
+    toolTitle?: string;
     icon: Component<{ fill?: string }>;
     /** The icon drawn filled, e.g. for a filled shape. */
     filledIcon?: boolean;
@@ -137,14 +139,14 @@ export type ToolSection = "draw" | "pick";
 /** Tools sharing one button of the tool column (see tool-groups.ts). */
 export interface ToolGroup {
   readonly id: string;
-  /** In English, e.g. "Shapes". */
+  /** Shown to the user (a message), e.g. "Shapes". */
   readonly title: string;
 }
 
 export interface Tool<S extends ToolSettings = ToolSettings> {
   /** Unique, e.g. "pixel". Its command is `tool.<id>`. */
   readonly id: string;
-  /** In English, e.g. "Pixel brush". Also the label of its undo steps. */
+  /** Shown to the user (a message), e.g. "Pixel brush". Also the label of its undo steps. */
   readonly title: string;
   readonly icon: Component;
   readonly defaults: S;

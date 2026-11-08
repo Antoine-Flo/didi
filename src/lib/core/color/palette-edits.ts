@@ -4,6 +4,7 @@
 // Undoing or redoing one shows its palette, to see the change. A palette deleted since is
 // left alone.
 
+import { m } from "#lib/paraglide/messages.js";
 import type { Edit } from "../history/edits";
 import type { RGB } from "./color";
 import type { Palette, PaletteLibrary } from "./palette";
@@ -29,7 +30,7 @@ export function addPaletteColor(library: PaletteLibrary, color: RGB): Edit {
   const palette = library.active!;
   const index = palette.colors.length;
   return paletteEdit(
-    "Add palette color",
+    m.history_add_palette_color(),
     library,
     palette,
     () => library.insertColor(index, color, palette),
@@ -42,7 +43,7 @@ export function removePaletteColor(library: PaletteLibrary, index: number): Edit
   const palette = library.active!;
   const color = [...palette.colors[index]] as RGB;
   return paletteEdit(
-    "Remove palette color",
+    m.history_remove_palette_color(),
     library,
     palette,
     () => library.removeColor(index, palette),
@@ -59,7 +60,7 @@ export function changePaletteColor(
   after: RGB,
 ): Edit {
   return paletteEdit(
-    "Change palette color",
+    m.history_change_palette_color(),
     library,
     palette,
     () => library.setColor(index, after, palette),

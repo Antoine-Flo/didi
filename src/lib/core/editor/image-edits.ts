@@ -2,6 +2,7 @@
 // layer, often the canvas size with them, as one undo step. The selection is laid and
 // removed first, in the same step: its place would no longer mean anything.
 
+import { m } from "#lib/paraglide/messages.js";
 import type { CanvasContent, Drawing } from "../document/drawing";
 import { contentBounds } from "../document/layer-thumbnail";
 import { TileStore, type TileSnapshot } from "../document/tiles";
@@ -84,7 +85,7 @@ export function resizeCanvas(
   height: number,
   dx: number,
   dy: number,
-  label = "Canvas size",
+  label = m.history_canvas_size(),
 ) {
   if (!validSize(width) || !validSize(height)) throw new RangeError("Invalid canvas size");
   transformImage(editor, label, width, height, (from) => {
@@ -101,7 +102,7 @@ export function resizeCanvas(
 }
 
 /** Cuts the canvas to `rect`, which may reach past it (the new parts are transparent). */
-export function crop(editor: Editor, rect: Rect, label = "Crop") {
+export function crop(editor: Editor, rect: Rect, label = m.history_crop()) {
   resizeCanvas(editor, rect.width, rect.height, -rect.x, -rect.y, label);
 }
 
@@ -139,7 +140,7 @@ export function trim(editor: Editor): boolean {
   if (!bounds || (bounds.width === drawing.width && bounds.height === drawing.height)) {
     return false;
   }
-  crop(editor, bounds, "Trim");
+  crop(editor, bounds, m.cmd_image_trim());
   return true;
 }
 
@@ -147,7 +148,12 @@ export function trim(editor: Editor): boolean {
 export function rotateImage(editor: Editor, quarters: 1 | 2 | 3) {
   const { width: w, height: h } = editor.drawing;
   const [width, height] = quarters === 2 ? [w, h] : [h, w];
-  const label = quarters === 1 ? "Rotate right" : quarters === 3 ? "Rotate left" : "Rotate 180°";
+  const label =
+    quarters === 1
+      ? m.cmd_image_rotate_right()
+      : quarters === 3
+        ? m.cmd_image_rotate_left()
+        : m.cmd_image_rotate180();
   transformImage(editor, label, width, height, (from) => {
     const out = new Uint8ClampedArray(width * height * 4);
     for (let y = 0; y < h; y++) {
@@ -169,7 +175,7 @@ export function rotateImage(editor: Editor, quarters: 1 | 2 | 3) {
 /** Mirrors the whole image: every layer, across the middle of the canvas. */
 export function flipImage(editor: Editor, axis: "horizontal" | "vertical") {
   const { width, height } = editor.drawing;
-  const label = axis === "horizontal" ? "Flip canvas horizontally" : "Flip canvas vertically";
+  const label = axis === "horizontal" ? m.cmd_image_flip_horizontal() : m.cmd_image_flip_vertical();
   transformImage(editor, label, width, height, (from) => {
     const out = new Uint8ClampedArray(width * height * 4);
     for (let y = 0; y < height; y++) {
@@ -191,7 +197,7 @@ export function flipImage(editor: Editor, axis: "horizontal" | "vertical") {
  */
 export function scaleImage(editor: Editor, width: number, height: number, smooth: boolean) {
   if (!validSize(width) || !validSize(height)) throw new RangeError("Invalid image size");
-  transformImage(editor, "Image size", width, height, (from) =>
+  transformImage(editor, m.history_image_size(), width, height, (from) =>
     smooth ? resampleSmooth(from, width, height) : resampleNearest(from, width, height),
   );
 }

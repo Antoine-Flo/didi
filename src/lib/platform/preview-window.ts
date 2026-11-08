@@ -3,6 +3,7 @@
 
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { capabilities } from "./capabilities";
+import { m } from "#lib/paraglide/messages.js";
 
 const LABEL = "preview";
 const URL = "/preview";
@@ -17,7 +18,7 @@ export interface OpenWindow {
 export function openPreviewWindow(onClosed: () => void): OpenWindow {
   const preview = new WebviewWindow(LABEL, {
     url: URL,
-    title: "Preview",
+    title: m.window_preview(),
     width: SIZE,
     height: SIZE,
     minWidth: 120,

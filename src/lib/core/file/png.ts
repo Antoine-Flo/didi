@@ -6,6 +6,7 @@
 // a layer edited in another program can be read back. Interlaced images are not supported.
 // Pixels are straight (not premultiplied) RGBA, as in every PNG.
 
+import { m } from "#lib/paraglide/messages.js";
 import { unzlibSync, zlibSync } from "fflate";
 
 export interface PngImage {
@@ -136,7 +137,7 @@ function concat(parts: Uint8Array[]): Uint8Array {
 /** Decodes a PNG into straight RGBA. Throws a readable error if it is not a valid PNG. */
 export function decodePng(bytes: Uint8Array): PngImage {
   if (bytes.length < 8 || SIGNATURE.some((b, i) => bytes[i] !== b)) {
-    throw new Error("Not a PNG image");
+    throw new Error(m.png_error_not_png());
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let width = 0;
@@ -152,9 +153,9 @@ export function decodePng(bytes: Uint8Array): PngImage {
     const length = view.getUint32(pos);
     const type = String.fromCharCode(...bytes.subarray(pos + 4, pos + 8));
     const end = pos + 8 + length;
-    if (end + 4 > bytes.length) throw new Error("Truncated PNG image");
+    if (end + 4 > bytes.length) throw new Error(m.png_error_truncated());
     if (crc32(bytes, pos + 4, end) !== view.getUint32(end)) {
-      throw new Error(`Corrupted PNG image (chunk ${type})`);
+      throw new Error(m.png_error_corrupted_chunk({ chunk: type }));
     }
     const body = bytes.subarray(pos + 8, end);
     if (type === "IHDR") {
@@ -162,7 +163,7 @@ export function decodePng(bytes: Uint8Array): PngImage {
       height = view.getUint32(pos + 12);
       depth = body[8];
       colorType = body[9];
-      if (body[12] !== 0) throw new Error("Interlaced PNG images are not supported");
+      if (body[12] !== 0) throw new Error(m.png_error_interlaced());
     } else if (type === "PLTE") palette = body;
     else if (type === "tRNS") transparency = body;
     else if (type === "IDAT") idat.push(body);
@@ -173,32 +174,32 @@ export function decodePng(bytes: Uint8Array): PngImage {
     pos = end + 4;
   }
   if (!ended || width === 0 || height === 0 || idat.length === 0) {
-    throw new Error("Truncated PNG image");
+    throw new Error(m.png_error_truncated());
   }
 
   const channels = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[colorType];
   const validDepths = colorType === 3 ? [1, 2, 4, 8] : colorType === 0 ? [1, 2, 4, 8, 16] : [8, 16];
   if (channels === undefined || !validDepths.includes(depth)) {
-    throw new Error(`Unsupported PNG format (color type ${colorType}, ${depth} bits)`);
+    throw new Error(m.png_error_unsupported_format({ colorType, depth }));
   }
-  if (colorType === 3 && !palette) throw new Error("PNG palette missing");
+  if (colorType === 3 && !palette) throw new Error(m.png_error_palette_missing());
 
   let raw: Uint8Array;
   try {
     raw = unzlibSync(concat(idat));
   } catch {
-    throw new Error("Corrupted PNG image data");
+    throw new Error(m.png_error_corrupted_data());
   }
   const bitsPerPixel = channels * depth;
   const stride = Math.ceil((width * bitsPerPixel) / 8);
   const bpp = Math.max(1, bitsPerPixel >> 3);
-  if (raw.length < (stride + 1) * height) throw new Error("Truncated PNG image data");
+  if (raw.length < (stride + 1) * height) throw new Error(m.png_error_truncated_data());
 
   // Unfilter in place, row by row.
   const rows = new Uint8Array(stride * height);
   for (let y = 0; y < height; y++) {
     const filter = raw[y * (stride + 1)];
-    if (filter > 4) throw new Error("Corrupted PNG image data");
+    if (filter > 4) throw new Error(m.png_error_corrupted_data());
     const src = y * (stride + 1) + 1;
     const row = y * stride;
     for (let i = 0; i < stride; i++) {
@@ -242,7 +243,7 @@ export function decodePng(bytes: Uint8Array): PngImage {
       const o = (y * width + x) * 4;
       if (colorType === 3) {
         const i = sample(row, x);
-        if (i * 3 + 2 >= palette!.length) throw new Error("PNG palette index out of range");
+        if (i * 3 + 2 >= palette!.length) throw new Error(m.png_error_palette_index());
         out[o] = palette![i * 3];
         out[o + 1] = palette![i * 3 + 1];
         out[o + 2] = palette![i * 3 + 2];

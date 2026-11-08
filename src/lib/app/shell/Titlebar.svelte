@@ -6,6 +6,7 @@
 
   import type { Snippet } from "svelte";
   import { appWindow } from "#lib/platform/window.js";
+  import { m } from "#lib/paraglide/messages.js";
   import WindowButtons from "./WindowButtons.svelte";
 
   let {
@@ -45,7 +46,7 @@
       <div class="center">{@render center()}</div>
     {:else}
       <span class="title">
-        {#if dirty}<span class="dirty" title="Unsaved changes">●</span>{/if}
+        {#if dirty}<span class="dirty" title={m.titlebar_unsaved()}>●</span>{/if}
         {title}
       </span>
     {/if}

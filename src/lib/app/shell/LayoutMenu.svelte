@@ -10,6 +10,7 @@
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import type { Mode } from "#lib/app/modes/mode.js";
+  import { m } from "#lib/paraglide/messages.js";
   import {
     type CompactMode,
     type Hand,
@@ -50,20 +51,20 @@
     onPreview: (open: boolean) => void;
   } = $props();
 
-  const COMPACT: { mode: CompactMode; label: string; title: string }[] = [
-    { mode: "auto", label: "Auto", title: "Compact on small screens" },
-    { mode: "on", label: "On", title: "Always compact" },
-    { mode: "off", label: "Off", title: "Never compact" },
+  const COMPACT: { mode: CompactMode; label: () => string; title: () => string }[] = [
+    { mode: "auto", label: m.layout_compact_auto, title: m.layout_compact_auto_title },
+    { mode: "on", label: m.layout_on, title: m.layout_compact_on_title },
+    { mode: "off", label: m.layout_off, title: m.layout_compact_off_title },
   ];
 
-  const PREVIEW: { open: boolean; label: string; title: string }[] = [
-    { open: true, label: "On", title: "Show the drawing in a window of its own" },
-    { open: false, label: "Off", title: "Close the preview window" },
+  const PREVIEW: { open: boolean; label: () => string; title: () => string }[] = [
+    { open: true, label: m.layout_on, title: m.layout_preview_on_title },
+    { open: false, label: m.layout_off, title: m.layout_preview_off_title },
   ];
 
-  const LAYOUTS: { hand: Hand; label: string; command: string }[] = [
-    { hand: "right", label: "Right-handed", command: "view.rightHanded" },
-    { hand: "left", label: "Left-handed", command: "view.leftHanded" },
+  const LAYOUTS: { hand: Hand; label: () => string; command: string }[] = [
+    { hand: "right", label: m.layout_right_handed, command: "view.rightHanded" },
+    { hand: "left", label: m.layout_left_handed, command: "view.leftHanded" },
   ];
 
   // Changing the interface size moves the trigger: the menu stays where it opened, so that
@@ -85,7 +86,7 @@
 </script>
 
 <DropdownMenu.Root onOpenChange={setOpen}>
-  <DropdownMenu.Trigger bind:ref={trigger} class="title-button" title="Layout" {disabled}>
+  <DropdownMenu.Trigger bind:ref={trigger} class="title-button" title={m.layout_title()} {disabled}>
     <PanelsTopLeft />
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
@@ -97,7 +98,9 @@
       collisionPadding={8}
     >
       <DropdownMenu.Group class="layout-option">
-        <DropdownMenu.GroupHeading class="layout-option-label">Mode</DropdownMenu.GroupHeading>
+        <DropdownMenu.GroupHeading class="layout-option-label"
+          >{m.start_mode()}</DropdownMenu.GroupHeading
+        >
         <div class="controls side">
           {#each modes as m (m.id)}
             <DropdownMenu.Item
@@ -114,7 +117,7 @@
       </DropdownMenu.Group>
       <DropdownMenu.Group class="layout-option">
         <DropdownMenu.GroupHeading class="layout-option-label">
-          Interface side
+          {m.layout_interface_side()}
         </DropdownMenu.GroupHeading>
         <div class="controls side">
           {#each LAYOUTS as layout (layout.hand)}
@@ -122,7 +125,7 @@
               class="menu-item layout-icon-item"
               data-active={layout.hand === hand ? "" : undefined}
               title={tip(layout.command)}
-              aria-label={layout.label}
+              aria-label={layout.label()}
               closeOnSelect={false}
               onSelect={() => run(layout.command)}
             >
@@ -141,30 +144,32 @@
         </div>
       </DropdownMenu.Group>
       <DropdownMenu.Group class="layout-option">
-        <DropdownMenu.GroupHeading class="layout-option-label">Compact</DropdownMenu.GroupHeading>
+        <DropdownMenu.GroupHeading class="layout-option-label"
+          >{m.layout_compact()}</DropdownMenu.GroupHeading
+        >
         <div class="controls side">
           {#each COMPACT as option (option.mode)}
             <DropdownMenu.Item
               class="menu-item layout-text-item"
               data-active={option.mode === compact ? "" : undefined}
-              title={option.title}
+              title={option.title()}
               closeOnSelect={false}
               onSelect={() => onCompact(option.mode)}
             >
-              {option.label}
+              {option.label()}
             </DropdownMenu.Item>
           {/each}
         </div>
       </DropdownMenu.Group>
       <DropdownMenu.Group class="layout-option">
         <DropdownMenu.GroupHeading class="layout-option-label">
-          Interface size
+          {m.layout_interface_size()}
         </DropdownMenu.GroupHeading>
         <div class="controls">
           <DropdownMenu.Item
             class="menu-item layout-icon-item"
-            title="Smaller"
-            aria-label="Smaller"
+            title={m.layout_smaller()}
+            aria-label={m.layout_smaller()}
             disabled={uiScale <= UI_SCALE_MIN}
             closeOnSelect={false}
             onSelect={() => onUiScale(uiScale - UI_SCALE_STEP)}
@@ -174,8 +179,8 @@
           <span class="value">{uiScale}%</span>
           <DropdownMenu.Item
             class="menu-item layout-icon-item"
-            title="Larger"
-            aria-label="Larger"
+            title={m.layout_larger()}
+            aria-label={m.layout_larger()}
             disabled={uiScale >= UI_SCALE_MAX}
             closeOnSelect={false}
             onSelect={() => onUiScale(uiScale + UI_SCALE_STEP)}
@@ -185,17 +190,19 @@
         </div>
       </DropdownMenu.Group>
       <DropdownMenu.Group class="layout-option">
-        <DropdownMenu.GroupHeading class="layout-option-label">Preview</DropdownMenu.GroupHeading>
+        <DropdownMenu.GroupHeading class="layout-option-label"
+          >{m.preview_title()}</DropdownMenu.GroupHeading
+        >
         <div class="controls side">
           {#each PREVIEW as option (option.open)}
             <DropdownMenu.Item
               class="menu-item layout-text-item"
               data-active={option.open === preview ? "" : undefined}
-              title={option.title}
+              title={option.title()}
               closeOnSelect={false}
               onSelect={() => onPreview(option.open)}
             >
-              {option.label}
+              {option.label()}
             </DropdownMenu.Item>
           {/each}
         </div>

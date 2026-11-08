@@ -13,6 +13,7 @@
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import Segmented from "#lib/app/widgets/Segmented.svelte";
   import { MAX_CANVAS_SIZE } from "#lib/core/editor/image-edits.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     kind = $bindable(),
@@ -123,7 +124,7 @@
     <!-- No dimming: the canvas shows the result. On the canvas's side, away from the panels. -->
     <Dialog.Content class={["dialog panel size-dialog", side === "left" && "on-left"]}>
       <Dialog.Title class="dialog-title">
-        {kind === "canvas" ? "Canvas size" : "Image size"}
+        {kind === "canvas" ? m.image_size_canvas_title() : m.image_size_image_title()}
       </Dialog.Title>
       <form
         onsubmit={(e) => {
@@ -132,7 +133,7 @@
         }}
       >
         <div class="row">
-          <span class="label">Size</span>
+          <span class="label">{m.image_size_size()}</span>
           <div class="fields">
             <input
               type="number"
@@ -140,14 +141,14 @@
               max={MAX_CANVAS_SIZE}
               bind:value={width}
               oninput={() => changed("width")}
-              aria-label="Width"
+              aria-label={m.image_size_width()}
             />
             {#if kind === "image"}
               <button
                 type="button"
                 class="icon"
                 class:active={linked}
-                title={linked ? "Unlink width and height" : "Keep proportions"}
+                title={linked ? m.image_size_unlink() : m.image_size_keep_proportions()}
                 onclick={() => {
                   linked = !linked;
                   changed("width");
@@ -164,25 +165,25 @@
               max={MAX_CANVAS_SIZE}
               bind:value={height}
               oninput={() => changed("height")}
-              aria-label="Height"
+              aria-label={m.image_size_height()}
             />
-            <span class="unit">px</span>
+            <span class="unit">{m.image_size_unit()}</span>
           </div>
         </div>
-        <p class="hint">Now {currentWidth} × {currentHeight} px</p>
+        <p class="hint">{m.image_size_now({ width: currentWidth, height: currentHeight })}</p>
 
         {#if kind === "canvas"}
           <div class="row">
-            <span class="label">Anchor</span>
-            <div class="anchor" role="radiogroup" aria-label="Anchor">
+            <span class="label">{m.image_size_anchor()}</span>
+            <div class="anchor" role="radiogroup" aria-label={m.image_size_anchor()}>
               {#each { length: 9 }, i (i)}
                 <button
                   type="button"
                   role="radio"
                   aria-checked={anchor === i}
                   class:active={anchor === i}
-                  title="Keep the pixels here"
-                  aria-label="Anchor {i + 1}"
+                  title={m.image_size_anchor_here()}
+                  aria-label={m.image_size_anchor_cell({ number: i + 1 })}
                   onclick={() => (anchor = i)}
                 ></button>
               {/each}
@@ -190,13 +191,21 @@
           </div>
         {:else}
           <div class="row">
-            <span class="label">Pixels</span>
+            <span class="label">{m.image_size_pixels()}</span>
             <Segmented
-              label="Scaling"
+              label={m.image_size_scaling()}
               value={method}
               choices={[
-                { value: "pixels", label: "Whole", title: "Each pixel taken whole: pixel art" },
-                { value: "smooth", label: "Smooth", title: "Pixels mixed: painting" },
+                {
+                  value: "pixels",
+                  label: m.image_size_whole(),
+                  title: m.image_size_whole_title(),
+                },
+                {
+                  value: "smooth",
+                  label: m.image_size_smooth(),
+                  title: m.image_size_smooth_title(),
+                },
               ]}
               onselect={(v) => (method = v)}
             />
@@ -205,8 +214,8 @@
 
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" onclick={() => (kind = null)}>Cancel</button>
-          <button type="submit" class="primary" disabled={!canApply}>Apply</button>
+          <button type="button" onclick={() => (kind = null)}>{m.common_cancel()}</button>
+          <button type="submit" class="primary" disabled={!canApply}>{m.common_apply()}</button>
         </div>
       </form>
     </Dialog.Content>

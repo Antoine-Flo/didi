@@ -22,7 +22,7 @@ export interface NewDocumentOptions {
 export interface Mode {
   /** Unique, e.g. "pixel". Saved in documents; its command is `mode.<id>`. */
   readonly id: string;
-  /** In English, e.g. "Pixel art". */
+  /** Shown to the user (a message), e.g. "Pixel art". */
   readonly title: string;
   readonly icon: Component<{ class?: string }>;
   /** One line for the start screen, e.g. "Sprites, tiles, animation". */

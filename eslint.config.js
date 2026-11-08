@@ -15,6 +15,7 @@ export default ts.config(
       "src-tauri/",
       "node_modules/",
       "src/lib/mypaint/libmypaint.mjs",
+      "src/lib/paraglide/",
     ],
   },
   js.configs.recommended,
@@ -65,7 +66,19 @@ export default ts.config(
         {
           patterns: [
             {
-              group: ["pixi.js", "svelte", "svelte/*", "@tauri-apps/*", "$app/*", "#lib/*"],
+              group: [
+                "pixi.js",
+                "svelte",
+                "svelte/*",
+                "@tauri-apps/*",
+                "$app/*",
+                // Escaped: a leading # starts a comment in these patterns.
+                "\\#lib/*",
+                // Its texts are messages, like everywhere else.
+                "!\\#lib/paraglide",
+                "\\#lib/paraglide/*",
+                "!\\#lib/paraglide/messages.js",
+              ],
               message: "src/lib/core must not depend on UI, rendering or platform code.",
             },
           ],

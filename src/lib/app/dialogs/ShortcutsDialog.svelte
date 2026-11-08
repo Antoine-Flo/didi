@@ -6,6 +6,7 @@
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import { formatChord, type KeymapIndex } from "#lib/app/commands/keymap.js";
   import type { Editor } from "#lib/core/editor/editor.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     editor,
@@ -17,20 +18,22 @@
     open?: boolean;
   } = $props();
 
-  /** Categories in display order, with the command prefixes they hold. */
-  const CATEGORIES: { title: string; prefixes: string[] }[] = [
-    { title: "Tools", prefixes: ["tool", "brush"] },
-    { title: "Selection", prefixes: ["selection"] },
-    { title: "Edit", prefixes: ["history", "edit"] },
-    { title: "View", prefixes: ["view"] },
-    { title: "Image", prefixes: ["image"] },
-    { title: "Layers", prefixes: ["layer"] },
-    { title: "File", prefixes: ["file", "app", "mode"] },
+  /** Categories in display order, with the command prefixes they hold; the last one holds
+   *  the others. */
+  const CATEGORIES: { id: string; title: () => string; prefixes: string[] }[] = [
+    { id: "tools", title: m.shortcuts_tools, prefixes: ["tool", "brush"] },
+    { id: "selection", title: m.shortcuts_selection, prefixes: ["selection"] },
+    { id: "edit", title: m.shortcuts_edit, prefixes: ["history", "edit"] },
+    { id: "view", title: m.shortcuts_view, prefixes: ["view"] },
+    { id: "image", title: m.shortcuts_image, prefixes: ["image"] },
+    { id: "layers", title: m.shortcuts_layers, prefixes: ["layer"] },
+    { id: "file", title: m.shortcuts_file, prefixes: ["file", "app", "mode"] },
+    { id: "other", title: m.shortcuts_other, prefixes: [] },
   ];
 
   function categoryOf(command: string): string {
     const prefix = command.split(".")[0];
-    return CATEGORIES.find((c) => c.prefixes.includes(prefix))?.title ?? "Other";
+    return CATEGORIES.find((c) => c.prefixes.includes(prefix))?.id ?? "other";
   }
 
   const groups = $derived.by(() => {
@@ -41,14 +44,16 @@
       return {
         command: s.command,
         category: categoryOf(s.command),
-        // "Tool: Pixel brush" → "Pixel brush": the category already says it.
-        title: command.title.replace(/^Tool: /, ""),
+        // "Pixel brush" rather than "Tool: Pixel brush": the category already says it.
+        title: command.shortTitle ?? command.title,
         keys: s.chords.map(formatChord),
       };
     });
-    return [...CATEGORIES.map((c) => c.title), "Other"]
-      .map((title) => ({ title, items: items.filter((i) => i.category === title) }))
-      .filter((group) => group.items.length > 0);
+    return CATEGORIES.map((c) => ({
+      id: c.id,
+      title: c.title(),
+      items: items.filter((i) => i.category === c.id),
+    })).filter((group) => group.items.length > 0);
   });
 
   // While it is open, a contact on the canvas only closes it.
@@ -65,9 +70,9 @@
          canvas once the dialog is gone. -->
     <Dialog.Overlay class="dialog-overlay" onclick={() => (open = false)} />
     <Dialog.Content class="dialog panel shortcuts" interactOutsideBehavior="ignore">
-      <Dialog.Title class="dialog-title">Keyboard shortcuts</Dialog.Title>
+      <Dialog.Title class="dialog-title">{m.shortcuts_title()}</Dialog.Title>
       <div class="columns">
-        {#each groups as group (group.title)}
+        {#each groups as group (group.id)}
           <section>
             <h3>{group.title}</h3>
             <ul>
@@ -84,7 +89,7 @@
         {/each}
       </div>
       <div class="actions">
-        <Dialog.Close>Close</Dialog.Close>
+        <Dialog.Close>{m.common_close()}</Dialog.Close>
       </div>
     </Dialog.Content>
   </Dialog.Portal>

@@ -2,17 +2,18 @@
 
 import { Grid3x3, Paintbrush } from "@lucide/svelte";
 import { ModeRegistry, type Mode } from "./mode";
+import { m } from "#lib/paraglide/messages.js";
 
 export const PIXEL_MODE: Mode = {
   id: "pixel",
-  title: "Pixel art",
+  title: m.mode_pixel_title(),
   icon: Grid3x3,
-  description: "Sprites, tiles and animation, pixel by pixel.",
+  description: m.mode_pixel_description(),
   newDocument: {
     presets: [
-      { group: "Sprites and tiles", sizes: [16, 32, 64, 128, 256].map((s) => [s, s]) },
+      { group: m.mode_sizes_sprites_tiles(), sizes: [16, 32, 64, 128, 256].map((s) => [s, s]) },
       {
-        group: "Screen",
+        group: m.mode_sizes_screen(),
         sizes: [
           [160, 144],
           [320, 180],
@@ -44,14 +45,14 @@ export const PIXEL_MODE: Mode = {
 
 export const PAINTING_MODE: Mode = {
   id: "painting",
-  title: "Painting",
+  title: m.mode_painting_title(),
   icon: Paintbrush,
-  description: "Illustrations, concept art and textures, with soft brushes.",
+  description: m.mode_painting_description(),
   newDocument: {
     presets: [
-      { group: "Textures", sizes: [512, 1024, 2048, 4096].map((s) => [s, s]) },
+      { group: m.mode_sizes_textures(), sizes: [512, 1024, 2048, 4096].map((s) => [s, s]) },
       {
-        group: "Screen",
+        group: m.mode_sizes_screen(),
         sizes: [
           [1280, 720],
           [1920, 1080],

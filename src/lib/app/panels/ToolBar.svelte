@@ -11,6 +11,7 @@
     type Tool,
     type ToolSettings,
   } from "#lib/app/tools/tool.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     tool,
@@ -64,7 +65,7 @@
       max={1}
       step={0.001}
       value={sliderFromSize(value)}
-      display="{value} px"
+      display={m.toolbar_size_px({ size: value })}
       oninput={(v) => (settings[field.key] = sizeFromSlider(v))}
     />
   {:else if field.kind === "integer" && typeof value === "number"}
@@ -74,14 +75,14 @@
       max={field.max}
       step={1}
       {value}
-      display={field.unit ? `${value} ${field.unit}` : `${value}`}
+      display={field.unit ? m.toolbar_value_unit({ value, unit: field.unit }) : `${value}`}
       oninput={(v) => (settings[field.key] = v)}
     />
   {:else if field.kind === "percent" && typeof value === "number"}
     <Slider
       label={field.label}
       {value}
-      display="{Math.round(value * 100)}%"
+      display={m.toolbar_percent({ percent: Math.round(value * 100) })}
       oninput={(v) => (settings[field.key] = v)}
     />
   {:else if field.kind === "toggle" && typeof value === "boolean"}

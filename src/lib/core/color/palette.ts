@@ -5,6 +5,7 @@
 // The library lists the user's palettes first, then the built-in ones. It notifies every change,
 // so the interface can refresh and save it.
 
+import { m } from "#lib/paraglide/messages.js";
 import { fromHex, sameColor, toHex, type RGB } from "./color";
 import { Emitter } from "../emitter";
 import { BUILTIN_PALETTES } from "./builtin-palettes";
@@ -33,10 +34,13 @@ export function parseHexPalette(text: string, name: string): Palette {
   text.split(/\r?\n/).forEach((line, i) => {
     if (!line.trim()) return;
     const color = fromHex(line);
-    if (!color) throw new Error(`Line ${i + 1} is not a color: "${line.trim().slice(0, 20)}"`);
+    if (!color)
+      throw new Error(
+        m.palette_error_line_not_color({ number: i + 1, text: line.trim().slice(0, 20) }),
+      );
     colors.push(color);
   });
-  if (colors.length === 0) throw new Error("The file has no colors");
+  if (colors.length === 0) throw new Error(m.palette_error_no_colors());
   return { name, colors };
 }
 
@@ -52,18 +56,20 @@ export function parsePaletteFile(text: string): { palettes: Palette[]; active: s
     version?: unknown;
     active?: unknown;
   };
-  if (typeof data !== "object" || data === null) throw new Error("Not a palette file");
+  if (typeof data !== "object" || data === null)
+    throw new Error(m.palette_error_not_palette_file());
   if (data.version !== 1 && data.version !== PALETTE_FILE_VERSION) {
-    throw new Error(`Unsupported palette file version: ${data.version}`);
+    throw new Error(m.palette_error_unsupported_version({ version: String(data.version) }));
   }
-  if (!Array.isArray(data.palettes)) throw new Error("Missing palettes");
+  if (!Array.isArray(data.palettes)) throw new Error(m.palette_error_missing_palettes());
   let palettes = data.palettes.map((p, i) => {
     if (typeof p?.name !== "string" || !Array.isArray(p.colors)) {
-      throw new Error(`Invalid palette #${i + 1}`);
+      throw new Error(m.palette_error_invalid_palette({ number: i + 1 }));
     }
     const colors = p.colors.map((hex) => {
       const color = typeof hex === "string" ? fromHex(hex) : null;
-      if (!color) throw new Error(`Invalid color in "${p.name}": ${hex}`);
+      if (!color)
+        throw new Error(m.palette_error_invalid_color({ name: p.name, color: String(hex) }));
       return color;
     });
     return { name: p.name, colors };

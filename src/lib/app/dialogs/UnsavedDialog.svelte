@@ -6,6 +6,7 @@
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
   import type { UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { capabilities } from "#lib/platform/capabilities.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     request,
@@ -38,29 +39,35 @@
     <AlertDialog.Content class="dialog panel">
       {#if capabilities.userFiles}
         <AlertDialog.Title class="dialog-title">
-          Save changes to “{request?.name}”?
+          {m.unsaved_save_title({ name: request?.name ?? "" })}
         </AlertDialog.Title>
         <AlertDialog.Description class="dialog-text">
-          Your changes will be lost if you don't save them.
+          {m.unsaved_save_text()}
         </AlertDialog.Description>
         <div class="dialog-actions">
-          <button onclick={() => answer("discard")}>Don't save</button>
+          <button onclick={() => answer("discard")}>{m.unsaved_dont_save()}</button>
           <span class="spacer"></span>
-          <AlertDialog.Cancel onclick={() => answer("cancel")}>Cancel</AlertDialog.Cancel>
+          <AlertDialog.Cancel onclick={() => answer("cancel")}
+            >{m.common_cancel()}</AlertDialog.Cancel
+          >
           <AlertDialog.Action class="primary" onclick={() => answer("save")}>
-            Save
+            {m.unsaved_save()}
           </AlertDialog.Action>
         </div>
       {:else}
-        <AlertDialog.Title class="dialog-title">Discard “{request?.name}”?</AlertDialog.Title>
+        <AlertDialog.Title class="dialog-title"
+          >{m.unsaved_discard_title({ name: request?.name ?? "" })}</AlertDialog.Title
+        >
         <AlertDialog.Description class="dialog-text">
-          It will be lost. To keep the image, cancel and export it as a PNG first.
+          {m.unsaved_discard_text()}
         </AlertDialog.Description>
         <div class="dialog-actions">
           <span class="spacer"></span>
-          <AlertDialog.Cancel onclick={() => answer("cancel")}>Cancel</AlertDialog.Cancel>
+          <AlertDialog.Cancel onclick={() => answer("cancel")}
+            >{m.common_cancel()}</AlertDialog.Cancel
+          >
           <AlertDialog.Action class="primary" onclick={() => answer("discard")}>
-            Discard
+            {m.unsaved_discard()}
           </AlertDialog.Action>
         </div>
       {/if}

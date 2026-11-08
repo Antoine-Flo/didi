@@ -16,8 +16,9 @@
     type FromPreview,
     type ToPreview,
   } from "#lib/app/preview/preview-link.js";
+  import { m } from "#lib/paraglide/messages.js";
 
-  windowTitle.name = "Preview";
+  windowTitle.name = m.preview_title();
   windowTitle.hidden = true;
 
   let image = $state<PreviewImage>();

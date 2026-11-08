@@ -15,6 +15,7 @@ import {
   writeDataFile,
 } from "#lib/platform/storage.js";
 import { decodeDocument, encodeDocument } from "./files";
+import { m } from "#lib/paraglide/messages.js";
 
 export interface RecoveryInfo {
   name: string;
@@ -62,7 +63,7 @@ export async function setAsideLeftCopy(): Promise<RecoveryInfo | null> {
 /** The document set aside by `setAsideLeftCopy`. Throws if it is missing. */
 export async function readSetAsideCopy(): Promise<DocumentData> {
   const bytes = await readDataBytes(PREVIOUS.file);
-  if (!bytes) throw new Error("the copy is missing");
+  if (!bytes) throw new Error(m.files_recovery_copy_missing());
   return (await decodeDocument(bytes)).doc;
 }
 

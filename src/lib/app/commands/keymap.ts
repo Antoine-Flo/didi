@@ -9,6 +9,8 @@
 // are part of how the character is typed, not modifiers: "0" works on AZERTY, where it
 // needs Shift, and "[" where it needs AltGr.
 
+import { m } from "#lib/paraglide/messages.js";
+
 export interface Binding {
   /** Key chord, e.g. "ctrl+z". */
   keys: string;
@@ -96,14 +98,15 @@ export function chordOf(e: KeyInput): string | null {
 /** Shows a chord to the user: "ctrl+shift+z" → "Ctrl+Shift+Z". */
 export function formatChord(chord: string): string {
   const LABELS: Record<string, string> = {
-    ctrl: "Ctrl",
-    alt: "Alt",
-    shift: "Shift",
+    ctrl: m.key_ctrl(),
+    alt: m.key_alt(),
+    shift: m.key_shift(),
     plus: "+",
-    space: "Space",
-    escape: "Esc",
-    delete: "Del",
-    enter: "Enter",
+    space: m.key_space(),
+    escape: m.key_esc(),
+    delete: m.key_del(),
+    enter: m.key_enter(),
+    backspace: m.key_backspace(),
     left: "←",
     right: "→",
     up: "↑",

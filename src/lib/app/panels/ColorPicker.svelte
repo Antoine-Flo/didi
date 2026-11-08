@@ -10,6 +10,7 @@
     type HSV,
     type RGB,
   } from "#lib/core/color/color.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     color,
@@ -84,7 +85,7 @@
     class="square"
     style:--hue="hsl({hsv.h} 100% 50%)"
     role="slider"
-    aria-label="Saturation and value"
+    aria-label={m.color_saturation_value()}
     aria-valuenow={Math.round(hsv.s * 100)}
     tabindex="-1"
     {...square}
@@ -102,7 +103,7 @@
   <div
     class="hue"
     role="slider"
-    aria-label="Hue"
+    aria-label={m.color_hue()}
     aria-valuenow={Math.round(hsv.h)}
     tabindex="-1"
     {...hue}
@@ -122,7 +123,7 @@
       type="text"
       value={hex}
       spellcheck="false"
-      aria-label="Hex color"
+      aria-label={m.color_hex()}
       onchange={(e) => {
         const rgb = fromHex(e.currentTarget.value);
         if (rgb) onchange(rgb);

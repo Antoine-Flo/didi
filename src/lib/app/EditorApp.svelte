@@ -58,6 +58,7 @@
   import { parseHexPalette, type PaletteLibrary } from "#lib/core/color/palette.js";
   import { loadMyPaint } from "#lib/mypaint/engine.js";
   import type { Camera, Point } from "#lib/render/camera.js";
+  import { m } from "#lib/paraglide/messages.js";
 
   /** A document to start with (e.g. the stress test); a new one by default. */
   let { initial }: { initial?: Editor } = $props();
@@ -386,7 +387,7 @@
   function tip(id: string): string {
     const title = editor.commands.get(id)?.title ?? id;
     const keys = shortcut(id);
-    return keys ? `${title} (${keys})` : title;
+    return keys ? m.editor_command_tip({ title, keys }) : title;
   }
 
   /** A dialog is open: the menus do nothing, and the title bar is dimmed. */
@@ -421,7 +422,7 @@
     heldModifiers();
     loadMyPaint()
       .then((engine) => painter.setEngine(engine))
-      .catch((e) => (error = `Brush engine unavailable: ${errorMessage(e)}`));
+      .catch((e) => (error = m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
 
     void layout.load(notify);
     loadPalettes(notify).then((library) => {
@@ -501,7 +502,9 @@
   $effect(() => {
     windowTitle.name = session.name;
     windowTitle.dirty = session.unsaved;
-    const title = `${session.unsaved ? "● " : ""}${session.name} — Didi`;
+    const title = session.unsaved
+      ? m.editor_window_title_unsaved({ name: session.name })
+      : m.editor_window_title({ name: session.name });
     if (appWindow) appWindow.setTitle(title);
     else document.title = title;
   });
@@ -533,7 +536,7 @@
       try {
         importImage(editor, await decodeImage(file), file.name.replace(/\.[^.]+$/, ""));
       } catch (e) {
-        error = `Cannot import ${file.name}: ${errorMessage(e)}`;
+        error = m.editor_cannot_import({ name: file.name, error: errorMessage(e) });
       }
     }
   }
@@ -543,7 +546,7 @@
     try {
       palettes.add(parseHexPalette(await file.text(), file.name.replace(/\.[^.]+$/, "")));
     } catch (e) {
-      notify(`Cannot import ${file.name}: ${errorMessage(e)}`);
+      notify(m.editor_cannot_import({ name: file.name, error: errorMessage(e) }));
     }
   }
 
@@ -642,7 +645,7 @@
       <button
         class="icon"
         class:active={panelsOpen && panelTab === "color"}
-        title="Color and palette"
+        title={m.editor_color_tab()}
         onclick={() => openTab("color")}
       >
         <span
@@ -656,7 +659,7 @@
       <button
         class="icon"
         class:active={panelsOpen && panelTab === "layers"}
-        title="Layers"
+        title={m.layers_panel()}
         onclick={() => openTab("layers")}
       >
         <Layers />
@@ -770,7 +773,7 @@
     {#snippet actions()}
       {#if enabled("selection.deselect")}
         <button title={tip("selection.deselect")} onclick={() => run("selection.deselect")}>
-          Deselect
+          {m.editor_deselect()}
         </button>
       {/if}
     {/snippet}

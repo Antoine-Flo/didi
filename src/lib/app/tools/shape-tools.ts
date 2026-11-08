@@ -30,6 +30,7 @@ import {
   type ToolMenu,
   type ToolStroke,
 } from "./tool";
+import { m } from "#lib/paraglide/messages.js";
 
 type ShapeSettings = {
   /** Outline thickness, in whole pixels. */
@@ -45,27 +46,40 @@ type ShapeKind = "line" | "rectangle" | "ellipse";
 const SIZE: ToolField = {
   kind: "integer",
   key: "size",
-  label: "Size",
+  label: m.tool_size(),
   min: 1,
   max: MAX_PIXEL_SIZE,
   unit: "px",
 };
-const OPACITY: ToolField = { kind: "percent", key: "opacity", label: "Opacity" };
+const OPACITY: ToolField = { kind: "percent", key: "opacity", label: m.tool_opacity() };
 /** Outline or filled, in the popup under the tool's button (like the pencil's tip). */
-const styleMenu = (icon: Tool["icon"]): ToolMenu => ({
+const styleMenu = (icon: Tool["icon"], filledTitle: string): ToolMenu => ({
   key: "style",
   items: [
-    { value: "outline", label: "Outline", icon },
-    { value: "filled", label: "Filled", icon, filledIcon: true },
+    { value: "outline", label: m.tool_style_outline(), icon },
+    {
+      value: "filled",
+      label: m.tool_style_filled(),
+      toolTitle: filledTitle,
+      icon,
+      filledIcon: true,
+    },
   ],
 });
 
-function shapeTool(id: string, title: string, icon: Tool["icon"], kind: ShapeKind): Tool {
+/** `filledTitle`: the tool's name once filled, e.g. "Filled rectangle" (not for the line). */
+function shapeTool(
+  id: string,
+  title: string,
+  icon: Tool["icon"],
+  kind: ShapeKind,
+  filledTitle = "",
+): Tool {
   return defineTool<ShapeSettings>({
     id,
     title,
     icon,
-    menu: kind === "line" ? undefined : styleMenu(icon),
+    menu: kind === "line" ? undefined : styleMenu(icon, filledTitle),
     defaults: { size: 1, opacity: 1, style: "outline" },
     fields: [SIZE, OPACITY],
     cursor: (s) => ({ kind: "square", size: s.size }),
@@ -83,18 +97,18 @@ function shapeTool(id: string, title: string, icon: Tool["icon"], kind: ShapeKin
 }
 
 /** Rectangles and ellipses share a button; the line joins them when room is short. */
-export const SHAPES: ToolGroup = { id: "shapes", title: "Shapes" };
+export const SHAPES: ToolGroup = { id: "shapes", title: m.tool_group_shapes() };
 
 export const lineTool: Tool = {
-  ...shapeTool("line", "Line", Slash, "line"),
+  ...shapeTool("line", m.tool_line(), Slash, "line"),
   group: { group: SHAPES, whenShort: true },
 };
 export const rectangleTool: Tool = {
-  ...shapeTool("rectangle", "Rectangle", Square, "rectangle"),
+  ...shapeTool("rectangle", m.tool_rectangle(), Square, "rectangle", m.tool_rectangle_filled()),
   group: { group: SHAPES },
 };
 export const ellipseTool: Tool = {
-  ...shapeTool("ellipse", "Ellipse", Circle, "ellipse"),
+  ...shapeTool("ellipse", m.tool_ellipse(), Circle, "ellipse", m.tool_ellipse_filled()),
   group: { group: SHAPES },
 };
 

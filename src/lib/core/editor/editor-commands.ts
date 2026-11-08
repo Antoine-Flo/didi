@@ -1,6 +1,7 @@
 // Editor commands: layers, selection, edits of pixels and history. Without an explicit `id`, layer commands target the
 // active layer, so they can be bound to shortcuts or the quick wheel without params.
 
+import { m } from "#lib/paraglide/messages.js";
 import type { CommandRegistry } from "./commands";
 import type { Drawing } from "../document/drawing";
 import { addLayer, moveLayer, removeLayer, updateLayer } from "../history/edits";
@@ -38,50 +39,50 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
   const unregister = [
     registry.register({
       id: "selection.apply",
-      title: "Apply selection",
+      title: m.cmd_selection_apply(),
       enabled: (editor) => editor.selection.floating !== null,
       run: (editor) => editor.applySelection(),
     }),
     registry.register({
       id: "selection.cancel",
-      title: "Cancel selection",
+      title: m.cmd_selection_cancel(),
       enabled: (editor) => editor.selection.rect !== null,
       run: (editor) => editor.cancelSelection(),
     }),
     registry.register({
       id: "selection.deselect",
-      title: "Deselect",
+      title: m.cmd_selection_deselect(),
       enabled: (editor) => editor.selection.rect !== null,
       run: (editor) => editor.deselect(),
     }),
 
     registry.register({
       id: "selection.selectAll",
-      title: "Select all",
+      title: m.cmd_selection_select_all(),
       run: (editor) => editor.selectAll(),
     }),
     registry.register<{ id?: string } | undefined>({
       id: "selection.layerContent",
-      title: "Select layer content",
+      title: m.cmd_selection_layer_content(),
       enabled: (editor, params) => exists(editor.drawing, target(editor, params?.id)),
       run: (editor, params) => void editor.selectLayerContent(target(editor, params?.id)),
     }),
     registry.register({
       id: "selection.invert",
-      title: "Invert selection",
+      title: m.cmd_selection_invert(),
       run: (editor) => editor.invertSelection(),
     }),
 
     registry.register({
       id: "edit.clear",
-      title: "Delete",
+      title: m.cmd_edit_clear(),
       enabled: (editor) => editor.editableLayer(true) !== null,
       run: (editor) => editor.clear(),
     }),
     ...(
       [
-        ["edit.flipHorizontal", "Flip horizontally", "horizontal"],
-        ["edit.flipVertical", "Flip vertically", "vertical"],
+        ["edit.flipHorizontal", m.cmd_edit_flip_horizontal(), "horizontal"],
+        ["edit.flipVertical", m.cmd_edit_flip_vertical(), "vertical"],
       ] as const
     ).map(([commandId, title, axis]) =>
       registry.register({
@@ -94,7 +95,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ index?: number; props?: Partial<LayerProps> } | undefined>({
       id: "layer.add",
-      title: "New layer",
+      title: m.cmd_layer_add(),
       run(editor, params) {
         const { drawing } = editor;
         const active = editor.activeLayer;
@@ -102,7 +103,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
         const index =
           params?.index ?? (active ? drawing.indexOf(active.id) + 1 : drawing.layers.length);
         const layer = drawing.createLayer({
-          name: `Layer ${drawing.layers.length + 1}`,
+          name: m.layer_default_numbered({ number: drawing.layers.length + 1 }),
           ...params?.props,
         });
         editor.history.push(addLayer(layer, index));
@@ -112,7 +113,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id?: string } | undefined>({
       id: "layer.remove",
-      title: "Delete layer",
+      title: m.cmd_layer_remove(),
       enabled: (editor, params) => exists(editor.drawing, target(editor, params?.id)),
       run(editor, params) {
         const { drawing } = editor;
@@ -129,7 +130,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id?: string; index: number }>({
       id: "layer.move",
-      title: "Move layer",
+      title: m.cmd_layer_move(),
       needsParams: true,
       enabled(editor, { id, index }) {
         const { drawing } = editor;
@@ -147,8 +148,8 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     ...(
       [
-        ["layer.moveUp", "Move layer up", 1],
-        ["layer.moveDown", "Move layer down", -1],
+        ["layer.moveUp", m.cmd_layer_move_up(), 1],
+        ["layer.moveDown", m.cmd_layer_move_down(), -1],
       ] as const
     ).map(([commandId, title, step]) =>
       registry.register<{ id?: string } | undefined>({
@@ -170,7 +171,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id?: string; changes: Partial<LayerProps> }>({
       id: "layer.update",
-      title: "Edit layer",
+      title: m.cmd_layer_update(),
       needsParams: true,
       enabled: (editor, { id }) => exists(editor.drawing, target(editor, id)),
       run(editor, { id, changes }) {
@@ -186,13 +187,13 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id?: string } | undefined>({
       id: "layer.duplicate",
-      title: "Duplicate layer",
+      title: m.cmd_layer_duplicate(),
       enabled: (editor, params) => exists(editor.drawing, target(editor, params?.id)),
       run: (editor, params) => duplicateLayer(editor, target(editor, params?.id)!),
     }),
     registry.register<{ id?: string } | undefined>({
       id: "layer.mergeDown",
-      title: "Merge down",
+      title: m.cmd_layer_merge_down(),
       enabled(editor, params) {
         const id = target(editor, params?.id);
         return exists(editor.drawing, id) && mergeTarget(editor, id) !== null;
@@ -201,13 +202,13 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
     }),
     registry.register({
       id: "layer.flatten",
-      title: "Flatten image",
+      title: m.cmd_layer_flatten(),
       enabled: (editor) => editor.drawing.layers.length > 1,
       run: (editor) => flatten(editor),
     }),
     registry.register<{ id?: string } | undefined>({
       id: "layer.clear",
-      title: "Clear layer",
+      title: m.cmd_layer_clear(),
       enabled: (editor, params) => {
         const id = target(editor, params?.id);
         if (!exists(editor.drawing, id)) return false;
@@ -218,8 +219,8 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
     }),
     ...(
       [
-        ["layer.flipHorizontal", "Flip layer horizontally", "horizontal"],
-        ["layer.flipVertical", "Flip layer vertically", "vertical"],
+        ["layer.flipHorizontal", m.cmd_layer_flip_horizontal(), "horizontal"],
+        ["layer.flipVertical", m.cmd_layer_flip_vertical(), "vertical"],
       ] as const
     ).map(([commandId, title, axis]) =>
       registry.register<{ id?: string } | undefined>({
@@ -235,7 +236,7 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ id: string }>({
       id: "layer.select",
-      title: "Select layer",
+      title: m.cmd_layer_select(),
       needsParams: true,
       enabled: (editor, { id }) => exists(editor.drawing, id),
       run: (editor, { id }) => editor.setActiveLayer(id),
@@ -243,8 +244,8 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     ...(
       [
-        ["layer.selectAbove", "Select layer above", 1],
-        ["layer.selectBelow", "Select layer below", -1],
+        ["layer.selectAbove", m.cmd_layer_select_above(), 1],
+        ["layer.selectBelow", m.cmd_layer_select_below(), -1],
       ] as const
     ).map(([commandId, title, step]) =>
       registry.register({
@@ -265,44 +266,44 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register<{ width: number; height: number; dx: number; dy: number }>({
       id: "image.resizeCanvas",
-      title: "Resize canvas",
+      title: m.cmd_image_resize_canvas(),
       needsParams: true,
       run: (editor, { width, height, dx, dy }) => resizeCanvas(editor, width, height, dx, dy),
     }),
     registry.register<{ width: number; height: number; smooth: boolean }>({
       id: "image.scale",
-      title: "Scale image",
+      title: m.cmd_image_scale(),
       needsParams: true,
       run: (editor, { width, height, smooth }) => scaleImage(editor, width, height, smooth),
     }),
     registry.register({
       id: "image.cropToSelection",
-      title: "Crop to selection",
+      title: m.cmd_image_crop_to_selection(),
       enabled: (editor) => editor.selection.rect !== null,
       run(editor) {
         const rect = selectionBounds(editor);
-        if (rect) crop(editor, rect, "Crop to selection");
+        if (rect) crop(editor, rect, m.cmd_image_crop_to_selection());
       },
     }),
     registry.register({
       id: "image.trim",
-      title: "Trim",
+      title: m.cmd_image_trim(),
       enabled: (editor) => editor.drawing.layers.some((l) => l.tiles.tileCount > 0),
       run: (editor) => void trim(editor),
     }),
     ...(
       [
-        ["image.rotateLeft", "Rotate left", 3],
-        ["image.rotateRight", "Rotate right", 1],
-        ["image.rotate180", "Rotate 180°", 2],
+        ["image.rotateLeft", m.cmd_image_rotate_left(), 3],
+        ["image.rotateRight", m.cmd_image_rotate_right(), 1],
+        ["image.rotate180", m.cmd_image_rotate180(), 2],
       ] as const
     ).map(([commandId, title, quarters]) =>
       registry.register({ id: commandId, title, run: (editor) => rotateImage(editor, quarters) }),
     ),
     ...(
       [
-        ["image.flipHorizontal", "Flip canvas horizontally", "horizontal"],
-        ["image.flipVertical", "Flip canvas vertically", "vertical"],
+        ["image.flipHorizontal", m.cmd_image_flip_horizontal(), "horizontal"],
+        ["image.flipVertical", m.cmd_image_flip_vertical(), "vertical"],
       ] as const
     ).map(([commandId, title, axis]) =>
       registry.register({ id: commandId, title, run: (editor) => flipImage(editor, axis) }),
@@ -310,14 +311,14 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
 
     registry.register({
       id: "history.undo",
-      title: "Undo",
+      title: m.cmd_history_undo(),
       enabled: (editor) => editor.history.canUndo,
       run: (editor) => editor.history.undo(),
     }),
 
     registry.register({
       id: "history.redo",
-      title: "Redo",
+      title: m.cmd_history_redo(),
       enabled: (editor) => editor.history.canRedo,
       run: (editor) => editor.history.redo(),
     }),

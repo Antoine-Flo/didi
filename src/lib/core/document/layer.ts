@@ -1,3 +1,4 @@
+import { m } from "#lib/paraglide/messages.js";
 import type { TileStore } from "./tiles";
 
 // Only the modes the GPU renders exactly like the CPU reference. Others (multiply,
@@ -58,7 +59,7 @@ export const LAYER_PROP_KEYS: readonly (keyof LayerProps)[] = [
 ];
 
 export const DEFAULT_LAYER_PROPS: LayerProps = {
-  name: "Layer",
+  name: m.layer_default_name(),
   visible: true,
   opacity: 1,
   blendMode: "normal",

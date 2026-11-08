@@ -17,6 +17,7 @@
 // it may be missing (files from before modes). `extensions` holds data of other modules (e.g. the Godot link): kept as is, even when
 // not understood. Older versions are migrated when read; newer ones are refused.
 
+import { m } from "#lib/paraglide/messages.js";
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
 import { composite } from "../document/compositing";
 import { Drawing } from "../document/drawing";
@@ -207,7 +208,7 @@ function unzip(bytes: Uint8Array, filter?: (name: string) => boolean): Record<st
   try {
     return unzipSync(bytes, filter ? { filter: (f) => filter(f.name) } : undefined);
   } catch {
-    throw new DidiFileError("This is not a Didi file, or it is damaged (invalid zip).");
+    throw new DidiFileError(m.file_error_invalid_zip());
   }
 }
 
@@ -220,15 +221,15 @@ export function readDidiThumbnail(bytes: Uint8Array): Uint8Array | null {
 export function readDidi(bytes: Uint8Array): DocumentData {
   const files = unzip(bytes);
   const jsonBytes = files["document.json"];
-  if (!jsonBytes) throw new DidiFileError("This is not a Didi file (document.json is missing).");
+  if (!jsonBytes) throw new DidiFileError(m.file_error_no_document_json());
   let raw: Record<string, unknown>;
   try {
     raw = JSON.parse(strFromU8(jsonBytes));
   } catch {
-    throw new DidiFileError("The file is damaged (document.json is not valid JSON).");
+    throw new DidiFileError(m.file_error_invalid_json());
   }
   if (typeof raw !== "object" || raw === null || raw.format !== "didi") {
-    throw new DidiFileError("This is not a Didi file.");
+    throw new DidiFileError(m.file_error_not_didi());
   }
   const doc = migrate(raw);
 
@@ -237,23 +238,31 @@ export function readDidi(bytes: Uint8Array): DocumentData {
   try {
     assertCanvasSize(width, height);
   } catch {
-    throw new DidiFileError(`The file is damaged (invalid size ${width} × ${height}).`);
+    throw new DidiFileError(m.file_error_invalid_size({ width, height }));
   }
-  if (!Array.isArray(doc.layers)) throw new DidiFileError("The file is damaged (no layer list).");
+  if (!Array.isArray(doc.layers)) throw new DidiFileError(m.file_error_no_layer_list());
 
   const layers = doc.layers.map((entry: unknown, i: number) => {
     const { props, file } = readLayerEntry(entry, i);
     const png = files[file];
-    if (!png) throw new DidiFileError(`The file is damaged (${file} is missing).`);
+    if (!png) throw new DidiFileError(m.file_error_missing_layer_file({ file }));
     let image;
     try {
       image = decodePng(png);
     } catch (e) {
-      throw new DidiFileError(`The file is damaged (${file}: ${(e as Error).message}).`);
+      throw new DidiFileError(
+        m.file_error_bad_layer_image({ file, problem: (e as Error).message }),
+      );
     }
     if (image.width !== width || image.height !== height) {
       throw new DidiFileError(
-        `${file} is ${image.width} × ${image.height}, the document is ${width} × ${height}.`,
+        m.file_error_layer_size_mismatch({
+          file,
+          imageWidth: image.width,
+          imageHeight: image.height,
+          width,
+          height,
+        }),
       );
     }
     const store = new TileStore(width, height);
@@ -279,12 +288,10 @@ export function readDidi(bytes: Uint8Array): DocumentData {
 function migrate(raw: Record<string, unknown>): Record<string, unknown> {
   let version = raw.version;
   if (!Number.isInteger(version) || (version as number) < 1) {
-    throw new DidiFileError("The file is damaged (invalid version).");
+    throw new DidiFileError(m.file_error_invalid_version());
   }
   if ((version as number) > DIDI_VERSION) {
-    throw new DidiFileError(
-      `This file was made with a newer version of Didi (format ${version}). Update Didi to open it.`,
-    );
+    throw new DidiFileError(m.file_error_newer_version({ version: version as number }));
   }
   let doc = raw;
   while ((version as number) < DIDI_VERSION) {
@@ -296,30 +303,31 @@ function migrate(raw: Record<string, unknown>): Record<string, unknown> {
 
 /** A layer of document.json. Missing settings take their default value. */
 function readLayerEntry(entry: unknown, index: number): { props: LayerProps; file: string } {
-  const fail = (what: string): never => {
-    throw new DidiFileError(`The file is damaged (layer ${index + 1}: ${what}).`);
+  const fail = (problem: string): never => {
+    throw new DidiFileError(m.file_error_bad_layer({ number: index + 1, problem }));
   };
-  if (typeof entry !== "object" || entry === null) fail("not an object");
+  if (typeof entry !== "object" || entry === null) fail(m.file_error_layer_not_object());
   const e = entry as Record<string, unknown>;
-  if (typeof e.file !== "string") fail("no file");
+  if (typeof e.file !== "string") fail(m.file_error_layer_no_file());
   const props: LayerProps = { ...DEFAULT_LAYER_PROPS };
   if (e.name !== undefined) {
-    if (typeof e.name !== "string" || !e.name.trim()) fail("invalid name");
+    if (typeof e.name !== "string" || !e.name.trim()) fail(m.file_error_layer_invalid_name());
     props.name = e.name as string;
   }
   for (const key of ["visible", "locked", "alphaLocked"] as const) {
     if (e[key] !== undefined) {
-      if (typeof e[key] !== "boolean") fail(`invalid ${key}`);
+      if (typeof e[key] !== "boolean") fail(m.file_error_layer_invalid_setting({ setting: key }));
       props[key] = e[key] as boolean;
     }
   }
   if (e.opacity !== undefined) {
     if (typeof e.opacity !== "number" || !(e.opacity >= 0 && e.opacity <= 1))
-      fail("invalid opacity");
+      fail(m.file_error_layer_invalid_opacity());
     props.opacity = e.opacity as number;
   }
   if (e.blendMode !== undefined) {
-    if (!BLEND_MODES.includes(e.blendMode as never)) fail(`unknown blend mode ${e.blendMode}`);
+    if (!BLEND_MODES.includes(e.blendMode as never))
+      fail(m.file_error_layer_unknown_blend_mode({ mode: String(e.blendMode) }));
     props.blendMode = e.blendMode as LayerProps["blendMode"];
   }
   return { props, file: e.file as string };

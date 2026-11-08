@@ -34,6 +34,7 @@ import {
   setAsideLeftCopy,
   type RecoveryInfo,
 } from "./recovery-copy.svelte";
+import { m } from "#lib/paraglide/messages.js";
 
 export type { RecoveryInfo } from "./recovery-copy.svelte";
 
@@ -46,8 +47,8 @@ export interface SessionHost {
   askUnsaved(name: string): Promise<UnsavedChoice>;
 }
 
-const DIDI_FILTER = [{ name: "Didi drawing", extensions: ["didi"] }];
-const PNG_FILTER = [{ name: "PNG image", extensions: ["png"] }];
+const didiFilter = () => [{ name: m.files_didi_filter(), extensions: ["didi"] }];
+const pngFilter = () => [{ name: m.files_png_filter(), extensions: ["png"] }];
 
 /** The document as last saved, to tell whether it has changed since. */
 interface SavedState {
@@ -81,7 +82,7 @@ export class Session {
   editor: Editor = $state.raw(newEditor());
   /** The document's file, null until it is saved. */
   path = $state<string | null>(null);
-  name = $state("Untitled");
+  name = $state<string>(m.files_untitled());
   /** Id of the document's mode (see $lib/app/modes), saved with it. */
   mode = $state(DEFAULT_MODE);
   /** A file action in progress ("Saving…"), shown to the user. */
@@ -101,7 +102,7 @@ export class Session {
       doc: documentFromEditor(this.editor, this.extensions, this.mode),
       info: { name: this.name, path: this.path, time: Date.now() },
     }),
-    onError: (e) => this.host.notify(`Could not write the recovery copy: ${errorMessage(e)}`),
+    onError: (e) => this.host.notify(m.files_recovery_write_failed({ error: errorMessage(e) })),
   });
 
   /** `editor`: the document to start with, a new one by default, in `mode`. */
@@ -152,7 +153,7 @@ export class Session {
       await this.copy.remove();
       if (info) this.recovery = info;
     } catch (e) {
-      this.host.notify(`Could not read the app data: ${errorMessage(e)}`);
+      this.host.notify(m.files_app_data_read_failed({ error: errorMessage(e) }));
     }
     return false;
   }
@@ -181,7 +182,11 @@ export class Session {
     mode: string = DEFAULT_MODE,
   ) {
     if (!(await this.confirmDiscard())) return;
-    this.replace(newEditor(width, height, background), { path: null, name: "Untitled", mode });
+    this.replace(newEditor(width, height, background), {
+      path: null,
+      name: m.files_untitled(),
+      mode,
+    });
   }
 
   /** Changes the document's mode: an unsaved change, but not an undo step. */
@@ -194,13 +199,18 @@ export class Session {
   /** Opens a .didi file: the given one, or one chosen by the user. */
   async open(path?: string) {
     if (!this.checkFiles() || !(await this.confirmDiscard())) return;
-    path ??= (await chooseFileToOpen(DIDI_FILTER)) ?? undefined;
+    path ??= (await chooseFileToOpen(didiFilter())) ?? undefined;
     if (!path) return;
-    await this.run(`Opening ${fileName(path)}…`, `Cannot open ${fileName(path)}`, async () => {
-      const { doc, thumbnail } = await openDocument(path);
-      this.load(doc, { path, name: documentName(path) });
-      if (thumbnail) await this.addRecent(path, thumbnail);
-    });
+    const name = fileName(path);
+    await this.run(
+      m.files_opening({ name }),
+      (error) => m.files_open_failed({ name, error }),
+      async () => {
+        const { doc, thumbnail } = await openDocument(path);
+        this.load(doc, { path, name: documentName(path) });
+        if (thumbnail) await this.addRecent(path, thumbnail);
+      },
+    );
   }
 
   /** Saves to the document's file, or asks for one. Returns false if not saved. */
@@ -211,7 +221,7 @@ export class Session {
 
   async saveAs(): Promise<boolean> {
     if (!this.checkFiles()) return false;
-    let path = await chooseFileToSave(this.path ?? `${this.name}.didi`, DIDI_FILTER);
+    let path = await chooseFileToSave(this.path ?? `${this.name}.didi`, didiFilter());
     if (!path) return false;
     if (!/\.didi$/i.test(path)) path += ".didi";
     return this.saveTo(path);
@@ -219,12 +229,15 @@ export class Session {
 
   async exportPng() {
     if (!canUseFiles()) return this.downloadPng();
-    let path = await chooseFileToSave(`${this.name}.png`, PNG_FILTER);
+    let path = await chooseFileToSave(`${this.name}.png`, pngFilter());
     if (!path) return;
     if (!/\.png$/i.test(path)) path += ".png";
     const doc = documentFromEditor(this.editor);
-    await this.run(`Exporting ${fileName(path)}…`, `Cannot export ${fileName(path)}`, () =>
-      exportPng(path, doc),
+    const name = fileName(path);
+    await this.run(
+      m.files_exporting({ name }),
+      (error) => m.files_export_failed({ name, error }),
+      () => exportPng(path, doc),
     );
   }
 
@@ -234,8 +247,10 @@ export class Session {
     const write = await chooseBrowserFile(name, "image/png", ".png");
     if (!write) return;
     const doc = documentFromEditor(this.editor);
-    await this.run(`Exporting ${name}…`, `Cannot export ${name}`, async () =>
-      write(await renderPng(doc)),
+    await this.run(
+      m.files_exporting({ name }),
+      (error) => m.files_export_failed({ name, error }),
+      async () => write(await renderPng(doc)),
     );
   }
 
@@ -243,13 +258,17 @@ export class Session {
   async recover() {
     const info = this.recovery;
     if (!info || !(await this.confirmDiscard())) return;
-    await this.run("Recovering…", "Cannot recover the document", async () => {
-      const doc = await readSetAsideCopy();
-      this.load(doc, { path: info.path, name: info.name, inNoFile: true });
-      // This session's copy first: at no point does a crash lose the document.
-      await this.copy.writeNow();
-      await this.discardRecovery();
-    });
+    await this.run(
+      m.files_recovering(),
+      (error) => m.files_recover_failed({ error }),
+      async () => {
+        const doc = await readSetAsideCopy();
+        this.load(doc, { path: info.path, name: info.name, inNoFile: true });
+        // This session's copy first: at no point does a crash lose the document.
+        await this.copy.writeNow();
+        await this.discardRecovery();
+      },
+    );
   }
 
   async discardRecovery() {
@@ -266,24 +285,36 @@ export class Session {
     // The state being saved: later changes, during the save, stay unsaved.
     const doc = documentFromEditor(this.editor, this.extensions, this.mode);
     const saved = savedStateOf(this.editor, this.mode);
-    return this.run(`Saving ${fileName(path)}…`, `Cannot save ${fileName(path)}`, async () => {
-      const thumbnail = await saveDocument(path, doc);
-      this.path = path;
-      this.name = documentName(path);
-      this.saved = saved;
-      await this.copy.remove();
-      await this.addRecent(path, thumbnail);
-    });
+    const name = fileName(path);
+    return this.run(
+      m.files_saving({ name }),
+      (error) => m.files_save_failed({ name, error }),
+      async () => {
+        const thumbnail = await saveDocument(path, doc);
+        this.path = path;
+        this.name = documentName(path);
+        this.saved = saved;
+        await this.copy.remove();
+        await this.addRecent(path, thumbnail);
+      },
+    );
   }
 
-  /** Runs a file action, showing `label` meanwhile. Returns false (and tells) if it fails. */
-  private async run(label: string, failure: string, action: () => Promise<void>): Promise<boolean> {
+  /**
+   * Runs a file action, showing `label` meanwhile. Returns false (and tells, with `failure`
+   * given the error) if it fails.
+   */
+  private async run(
+    label: string,
+    failure: (error: string) => string,
+    action: () => Promise<void>,
+  ): Promise<boolean> {
     this.busy = label;
     try {
       await action();
       return true;
     } catch (e) {
-      this.host.notify(`${failure}: ${errorMessage(e)}`);
+      this.host.notify(failure(errorMessage(e)));
       return false;
     } finally {
       this.busy = null;
@@ -292,7 +323,7 @@ export class Session {
 
   private checkFiles(): boolean {
     if (canUseFiles()) return true;
-    this.host.notify("Files can only be opened and saved in the desktop app.");
+    this.host.notify(m.files_desktop_only());
     return false;
   }
 

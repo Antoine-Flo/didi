@@ -6,6 +6,7 @@ import { PaintBucket } from "@lucide/svelte";
 import { fillArea } from "#lib/core/brush/flood-fill.js";
 import { StrokeRaster } from "#lib/core/brush/raster.js";
 import { defineTool, type ToolStroke } from "./tool";
+import { m } from "#lib/paraglide/messages.js";
 
 type FillSettings = {
   opacity: number;
@@ -17,17 +18,17 @@ type FillSettings = {
 
 export const fillTool = defineTool<FillSettings>({
   id: "fill",
-  title: "Paint bucket",
+  title: m.tool_fill(),
   icon: PaintBucket,
   defaults: { opacity: 1, tolerance: 0, contiguous: true },
   fields: [
-    { kind: "percent", key: "opacity", label: "Opacity" },
-    { kind: "integer", key: "tolerance", label: "Tolerance", min: 0, max: 255 },
+    { kind: "percent", key: "opacity", label: m.tool_opacity() },
+    { kind: "integer", key: "tolerance", label: m.tool_tolerance(), min: 0, max: 255 },
     {
       kind: "toggle",
       key: "contiguous",
-      label: "Contiguous",
-      title: "Only the connected area, not every pixel of that color",
+      label: m.tool_contiguous(),
+      title: m.tool_contiguous_title(),
     },
   ],
   cursor: () => ({ kind: "none" }),
@@ -47,7 +48,7 @@ export const fillTool = defineTool<FillSettings>({
       ...selectionClip(context.editor.selection.state),
     });
     raster.setArea(area.bounds, true, (px, py) => area.mask[py * width + px] === 1);
-    return paintedStroke(raster, "Paint bucket");
+    return paintedStroke(raster, m.tool_fill());
   },
 });
 

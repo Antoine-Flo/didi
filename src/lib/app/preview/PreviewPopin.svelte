@@ -10,6 +10,7 @@
   import PreviewBar from "./PreviewBar.svelte";
   import PreviewImage from "./PreviewImage.svelte";
   import { PreviewSender } from "./preview-link";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     drawing,
@@ -116,7 +117,7 @@
 <div
   class="panel popin"
   role="figure"
-  aria-label="Preview"
+  aria-label={m.preview_title()}
   bind:this={element}
   style:left="{box.x}px"
   style:top="{box.y}px"
@@ -129,14 +130,14 @@
       {#if onPopOut}
         <button
           class="icon"
-          title="Open in a window"
-          aria-label="Open in a window"
+          title={m.preview_open_window()}
+          aria-label={m.preview_open_window()}
           onclick={onPopOut}
         >
           <SquareArrowOutUpRight class="icon-small" />
         </button>
       {/if}
-      <button class="icon" title="Close" aria-label="Close" onclick={onClose}>
+      <button class="icon" title={m.common_close()} aria-label={m.common_close()} onclick={onClose}>
         <X class="icon-small" />
       </button>
     {/snippet}

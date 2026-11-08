@@ -30,6 +30,7 @@ import {
   type ToolGroup,
   type ToolStroke,
 } from "./tool";
+import { m } from "#lib/paraglide/messages.js";
 
 export type MyPaintSettings = {
   /** Bundled MyPaint brush id (see $lib/mypaint/brushes). */
@@ -61,33 +62,33 @@ function mypaintTool(id: string, title: string, icon: Tool["icon"], pigment = tr
     brushSet: id,
     defaults: { preset, size: bundledBrush(preset).nativeSize, opacity: 1 },
     fields: [
-      { kind: "size", key: "size", label: "Size" },
-      { kind: "percent", key: "opacity", label: "Opacity" },
+      { kind: "size", key: "size", label: m.tool_size() },
+      { kind: "percent", key: "opacity", label: m.tool_opacity() },
     ],
     cursor: (s) => ({ kind: "circle", size: s.size }),
     resize: (s, direction) => (s.size = stepSize(s.size, direction)),
     begin(context, settings, sample) {
-      if (!context.engine) return context.refuse("The brush engine is loading, try again.");
+      if (!context.engine) return context.refuse(m.tool_engine_loading());
       return new QueuedStroke(context, settings, sample, title, pigment);
     },
   });
 }
 
 /** The painting brushes share a button when the tool column does not fit. */
-export const BRUSHES: ToolGroup = { id: "brushes", title: "Brushes" };
+export const BRUSHES: ToolGroup = { id: "brushes", title: m.tool_group_brushes() };
 const brushes = { group: BRUSHES, whenShort: true };
 
 export const MYPAINT_TOOLS = [
-  { ...mypaintTool("pencil", "Pencil", PencilLine), group: brushes },
-  { ...mypaintTool("ink", "Ink", PenTool), group: brushes },
-  { ...mypaintTool("brush", "Brush", BrushIcon), group: brushes },
-  { ...mypaintTool("watercolor", "Watercolor", Droplet), group: brushes },
+  { ...mypaintTool("pencil", m.tool_pencil(), PencilLine), group: brushes },
+  { ...mypaintTool("ink", m.tool_ink(), PenTool), group: brushes },
+  { ...mypaintTool("brush", m.tool_brush(), BrushIcon), group: brushes },
+  { ...mypaintTool("watercolor", m.tool_watercolor(), Droplet), group: brushes },
   // Normal mixing: an airbrush lays many light, large dabs over existing color, where
   // pigment mode costs the most, and the difference in look is slight.
-  { ...mypaintTool("airbrush", "Airbrush", SprayCan, false), group: brushes },
-  { ...mypaintTool("blend", "Blend", Blend), group: brushes },
-  { ...mypaintTool("texture", "Texture", Sparkles), group: brushes },
-  { ...mypaintTool("eraser", "Eraser", EraserIcon), needsColor: false },
+  { ...mypaintTool("airbrush", m.tool_airbrush(), SprayCan, false), group: brushes },
+  { ...mypaintTool("blend", m.tool_blend(), Blend), group: brushes },
+  { ...mypaintTool("texture", m.tool_texture(), Sparkles), group: brushes },
+  { ...mypaintTool("eraser", m.tool_eraser(), EraserIcon), needsColor: false },
 ];
 
 class QueuedStroke implements ToolStroke {

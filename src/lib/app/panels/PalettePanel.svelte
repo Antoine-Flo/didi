@@ -6,6 +6,7 @@
   import CopyPaletteDialog from "#lib/app/dialogs/CopyPaletteDialog.svelte";
   import PanelMenu from "#lib/app/widgets/PanelMenu.svelte";
   import Select from "#lib/app/widgets/Select.svelte";
+  import { m } from "#lib/paraglide/messages.js";
 
   let {
     library,
@@ -82,11 +83,11 @@
         />
       {:else}
         <Select
-          title="Palette"
+          title={m.palette_select()}
           items={info.names.map((name, i) => ({
             value: String(i),
             label: name,
-            group: info.builtin[i] ? "Built-in" : "My palettes",
+            group: info.builtin[i] ? m.palette_group_builtin() : m.palette_group_mine(),
           }))}
           value={String(info.index)}
           onchange={(v) => run("palette.select", { index: Number(v) })}
@@ -110,7 +111,7 @@
     {#if builtinShown && info}
       <button
         class="icon"
-        title="Make an editable copy"
+        title={m.palette_copy()}
         onclick={() => (copying = info.names[info.index])}
       >
         <CopyPlus />
@@ -118,7 +119,7 @@
     {:else}
       <button
         class="icon"
-        title={info?.locked ? "Unlock palettes" : "Lock palettes"}
+        title={info?.locked ? m.palette_unlock() : m.palette_lock()}
         aria-pressed={info?.locked ?? false}
         disabled={!info}
         onclick={() => run("palette.toggleLock")}
@@ -127,7 +128,7 @@
       </button>
     {/if}
     <PanelMenu
-      title="Palette menu"
+      title={m.palette_menu()}
       disabled={!info}
       onCloseAutoFocus={(e) => {
         // "Rename": the name's field keeps the focus, instead of the menu's button.
@@ -135,20 +136,20 @@
       }}
     >
       <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.new")}>
-        New palette
+        {m.cmd_palette_new()}
       </DropdownMenu.Item>
       <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.import")}>
-        Import palette (.hex)…
+        {m.cmd_palette_import()}
       </DropdownMenu.Item>
       <DropdownMenu.Item class="menu-item" disabled={!editable} onSelect={() => (renaming = true)}>
-        Rename palette
+        {m.cmd_palette_rename()}
       </DropdownMenu.Item>
       <DropdownMenu.Item
         class="menu-item"
         disabled={!editable}
         onSelect={() => run("palette.delete")}
       >
-        Delete palette
+        {m.cmd_palette_delete()}
       </DropdownMenu.Item>
     </PanelMenu>
   </div>
@@ -168,7 +169,7 @@
           class="swatch"
           class:current={color && sameColor(c, color)}
           style:background={toHex(c)}
-          title={editable ? `${toHex(c)} · Right-click to remove` : toHex(c)}
+          title={editable ? m.palette_swatch_tip({ hex: toHex(c) }) : toHex(c)}
           aria-label={toHex(c)}
           onclick={() => run("color.set", { color: toHex(c) })}
           oncontextmenu={(e) => {
@@ -181,7 +182,7 @@
         <button
           class="swatch add"
           title={tip("palette.addColor")}
-          aria-label="Add the current color"
+          aria-label={m.palette_add_color()}
           disabled={!color}
           onclick={() => run("palette.addColor")}
         >
@@ -190,7 +191,7 @@
       {/if}
     </div>
   {:else if info}
-    <span class="hint">No palette. Create or import one (.hex, e.g. from Lospec).</span>
+    <span class="hint">{m.palette_empty()}</span>
   {/if}
 </section>
 
