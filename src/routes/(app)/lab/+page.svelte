@@ -4,7 +4,7 @@
 
 <main>
   <h1>Didi — Lab</h1>
-  <p><a href={resolve("/")}>← Back to the editor</a></p>
+  <p><a href={resolve("/(app)/app")}>← Back to the editor</a></p>
   <ul>
     <li><a href={resolve("lab/tablet")}>Tablet: pressure, tilt, rate, latency</a></li>
     <li><a href={resolve("lab/stress")}>Stress: 4096 × 4096 canvas, 10 half-filled layers</a></li>

@@ -17,3 +17,6 @@ tools/brush-compare/out/
 
 # Interface texts compiled from messages/ by Paraglide
 /src/lib/paraglide/
+
+# Wrangler (Cloudflare) local state
+.wrangler/

@@ -1,0 +1,4 @@
+# HTTP headers of the website (Cloudflare). Files under _app/immutable have a hash in their
+# name: they never change, so browsers keep them. Everything else is checked at each visit.
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable

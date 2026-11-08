@@ -1,0 +1,14 @@
+// The website (didipaint.com): the static build of the app, served by Cloudflare without a
+// Worker script. Build with `npm run build`, deploy with `npm run deploy`.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "didi",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./build",
+    // /app serves app.html (the pages are written by adapter-static).
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+  },
+  "routes": [{ "pattern": "didipaint.com", "custom_domain": true }],
+}

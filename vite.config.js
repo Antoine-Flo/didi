@@ -2,8 +2,8 @@
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
-// Tauri has no Node.js server for SSR: adapter-static with a fallback to index.html puts
-// the app in SPA mode. See https://v2.tauri.app/start/frontend/sveltekit/
+// No server, neither in Tauri nor on the website: adapter-static writes every page as a
+// file (see src/routes/+layout.ts). See https://v2.tauri.app/start/frontend/sveltekit/
 import adapter from "@sveltejs/adapter-static";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import process from "node:process";
@@ -28,7 +28,7 @@ export default defineConfig(() => ({
   plugins: [
     sveltekit({
       preprocess: vitePreprocess(),
-      adapter: adapter({ fallback: "index.html" }),
+      adapter: adapter(),
     }),
     paraglide(),
   ],

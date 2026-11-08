@@ -17,7 +17,8 @@
     "format": "prettier --write . && cargo fmt --manifest-path src-tauri/Cargo.toml",
     "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts",
     "measure:brushes": "DIDI_MEASURE=1 vitest run src/lib/mypaint/brush-sizes.test.ts",
-    "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale"
+    "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
+    "deploy": "npm run build && wrangler deploy"
   },
   "license": "MIT",
   "dependencies": {
@@ -53,7 +54,8 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.0.16",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.158.0"
   },
   "imports": {
     "#lib": "./src/lib/index.js",

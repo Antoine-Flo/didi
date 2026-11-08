@@ -43,7 +43,7 @@ export default ts.config(
   {
     // Tauri only through src/lib/platform: the interface asks it what it can do.
     files: ["src/**"],
-    ignores: ["src/lib/platform/**", "src/routes/lab/**"],
+    ignores: ["src/lib/platform/**", "src/routes/(app)/lab/**"],
     rules: {
       "no-restricted-imports": [
         "error",

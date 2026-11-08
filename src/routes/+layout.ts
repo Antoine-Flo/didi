@@ -1,5 +1,5 @@
-// Tauri doesn't have a Node.js server to do proper SSR
-// so we use adapter-static with a fallback to index.html to put the site in SPA mode
-// See: https://svelte.dev/docs/kit/single-page-apps
-// See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
-export const ssr = false;
+// Every page is built ahead as a static file (adapter-static), for the desktop app and for
+// the website alike: no server. The app's pages are rendered in the browser only (see
+// (app)/+layout.ts); the landing page is rendered at build time, so it shows without
+// JavaScript and search engines read it.
+export const prerender = true;

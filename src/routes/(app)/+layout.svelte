@@ -13,6 +13,9 @@
   document.documentElement.lang = getLocale();
 </script>
 
+<!-- Until a page names itself (the editor does with the document's name). -->
+<svelte:head><title>Didi</title></svelte:head>
+
 <!-- The window has no system title bar: every page shows ours above its content, unless
      it has its own. -->
 <div class="window">

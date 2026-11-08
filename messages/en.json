@@ -385,5 +385,8 @@
   "about_version": "Version {version}",
   "about_description": "A drawing app for painting and pixel art, with free lessons.",
   "about_brushes": "Brushes: MyPaint (libmypaint).",
-  "layout_full_screen": "Full screen"
+  "layout_full_screen": "Full screen",
+  "site_title": "Didi — Drawing app for painting and pixel art",
+  "site_open": "Open Didi",
+  "site_free": "Free, in your browser. A drawing tablet is recommended."
 }
