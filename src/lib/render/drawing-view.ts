@@ -23,7 +23,7 @@ import { union, type Rect } from "#lib/core/geometry.js";
 import { selectionHandles } from "#lib/core/selection/handles.js";
 import { corners, toCanvas, type Placement, type Point } from "#lib/core/selection/placement.js";
 import type { OutlineRun } from "#lib/core/selection/shape.js";
-import { visibleRect, type Camera } from "./camera";
+import { toScreen, visibleRect, type Camera } from "./camera";
 import { CONTRAST_BLEND } from "./contrast-blend";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {
@@ -118,10 +118,18 @@ class LayerView {
 
 /**
  * Brush outline at a canvas position: a circle (soft brushes), or the exact pixels of a
- * pixel-art tip, square or round.
+ * pixel-art tip, square or round: filled with `fill` (the color it would draw, 0xRRGGBB, and
+ * its opacity), or outlined.
  */
 export type BrushCursorState =
-  | { kind: "circle" | "square" | "pixel-round"; size: number; x: number; y: number }
+  | { kind: "circle"; size: number; x: number; y: number }
+  | {
+      kind: "square" | "pixel-round";
+      size: number;
+      x: number;
+      y: number;
+      fill?: { color: number; alpha: number };
+    }
   | { kind: "picker"; x: number; y: number }
   | { kind: "none"; x: number; y: number };
 
@@ -131,9 +139,11 @@ export class DrawingView {
   /** Holds everything in canvas coordinates; the camera transform is applied to it. */
   private canvasRoot = new Container();
   private layersRoot = new Container();
-  /** Checkerboard in screen space (no moiré when zoomed or rotated), cut to the canvas. */
+  /**
+   * Checkerboard under the transparent areas, on the canvas: its squares are whole pixels of
+   * the drawing, aligned on its grid (like Aseprite's). See CHECKER_SIZE.
+   */
   private checker: TilingSprite;
-  private checkerMask = new Graphics();
   /** Cuts the layers to the canvas a resize would make, while it is previewed. */
   private previewMask = new Graphics();
   private grid = new Graphics();
@@ -147,8 +157,16 @@ export class DrawingView {
   private selectionHasHandles = false;
   /** Which dashes of the moving outline are drawn: changes a few times per second. */
   private dashPhase = 0;
+  /** A pixel-art tip's pixels under the pen, on the canvas. */
   private cursor = new Graphics();
+  /** The pointer, on the screen: a soft brush's circle, in contrast with what is under it. */
+  private pointerRing = new Graphics();
+  /** The pointer, on the screen: a small cross. */
+  private pointerCross = new Graphics();
+  /** The pointer, on the screen: a pipette, its tip on the pixel picked. */
+  private pointerPicker = new Graphics().svg(PIPETTE_SVG);
   private cursorState: BrushCursorState | null = null;
+  private camera: Camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
   private zoom = 1;
   private views = new Map<string, LayerView>();
   /** Changed tiles by layer, with their changed area (null: the whole tile). */
@@ -156,14 +174,14 @@ export class DrawingView {
   private dirtyProps = new Set<string>();
   private orderDirty = false;
   private scaleMode: SCALE_MODE = "linear";
+  private gridShown = false;
   private unsubscribe: () => void;
 
   constructor(private readonly drawing: Drawing) {
     this.checker = new TilingSprite({ texture: checkerTexture(), width: 1, height: 1 });
-    this.checkerMask.rect(0, 0, drawing.width, drawing.height).fill(0xffffff);
-    this.checker.mask = this.checkerMask;
+    this.setCheckerArea({ x: 0, y: 0, width: drawing.width, height: drawing.height });
     this.canvasRoot.addChild(
-      this.checkerMask,
+      this.checker,
       this.previewMask,
       this.layersRoot,
       this.grid,
@@ -173,7 +191,11 @@ export class DrawingView {
     );
     this.selectionDraft.blendMode = CONTRAST_BLEND;
     this.selectionDraft.visible = false;
-    this.root.addChild(this.checker, this.canvasRoot);
+    this.pointerRing.blendMode = CONTRAST_BLEND;
+    this.pointerPicker.pivot.set(PIPETTE_TIP.x, PIPETTE_TIP.y);
+    this.pointerPicker.scale.set(PIPETTE_SIZE / 24);
+    this.pointerPicker.visible = false;
+    this.root.addChild(this.canvasRoot, this.pointerRing, this.pointerCross, this.pointerPicker);
     for (const layer of drawing.layers) this.addView(layer.id);
     this.orderDirty = true;
     this.unsubscribe = drawing.subscribe((change) => this.onChange(change));
@@ -189,11 +211,14 @@ export class DrawingView {
   /** Applies the camera, for a view of the given size in screen pixels. */
   setCamera(camera: Camera, view: { width: number; height: number }) {
     this.canvasRoot.position.set(camera.x, camera.y);
-    this.canvasRoot.scale.set(camera.zoom);
+    this.canvasRoot.scale.set(camera.mirrored ? -camera.zoom : camera.zoom, camera.zoom);
     this.canvasRoot.rotation = camera.rotation;
+    this.camera = camera;
     this.zoom = camera.zoom;
-    this.checker.width = view.width;
-    this.checker.height = view.height;
+    // Squares at least a few screen pixels wide: smaller, they would shimmer (moiré).
+    let square = CHECKER_SIZE;
+    while (square * camera.zoom < CHECKER_MIN_ON_SCREEN) square *= 2;
+    this.checker.tileScale.set(square);
     const mode: SCALE_MODE = camera.zoom >= NEAREST_FROM_ZOOM ? "nearest" : "linear";
     if (mode !== this.scaleMode) {
       this.scaleMode = mode;
@@ -212,7 +237,7 @@ export class DrawingView {
   setResizePreview(preview: { rect: Rect; scaleX: number; scaleY: number } | null) {
     const { width, height } = this.drawing;
     const rect = preview?.rect ?? { x: 0, y: 0, width, height };
-    this.checkerMask.clear().rect(rect.x, rect.y, rect.width, rect.height).fill(0xffffff);
+    this.setCheckerArea(rect);
     this.previewMask.clear();
     if (preview) this.previewMask.rect(rect.x, rect.y, rect.width, rect.height).fill(0xffffff);
     this.layersRoot.mask = preview ? this.previewMask : null;
@@ -220,6 +245,14 @@ export class DrawingView {
     // The grid and the selection belong to the drawing as it is.
     this.grid.visible = !preview;
     this.selection.visible = !preview;
+  }
+
+  /** The checkerboard over `rect` of the canvas, its squares still aligned on the canvas. */
+  private setCheckerArea(rect: Rect) {
+    this.checker.position.set(rect.x, rect.y);
+    this.checker.width = rect.width;
+    this.checker.height = rect.height;
+    this.checker.tilePosition.set(-rect.x, -rect.y);
   }
 
   /** Shows the brush outline at a canvas position, or hides it. */
@@ -357,52 +390,95 @@ export class DrawingView {
     g.stroke({ ...line, color: 0x000000 });
   }
 
+  /**
+   * The pointer, drawn rather than the system's (whose custom images are misplaced on scaled
+   * screens): a soft brush's circle as large as it paints at most, in a thin line that
+   * contrasts with what is under it (a small cross when tiny); a pixel-art tip's pixels in
+   * the color they would get (outlined for erasers), under the system pointer.
+   */
   private drawCursor() {
     const g = this.cursor;
     g.clear();
+    this.pointerRing.clear();
+    this.pointerCross.clear();
+    this.pointerPicker.visible = false;
     const c = this.cursorState;
-    if (!c || c.kind === "none" || c.kind === "picker") return;
-    // Two tones, one screen pixel apart, to stay visible on any background.
-    const px = 1 / this.zoom;
-    if (c.size * this.zoom < 6) {
-      const arm = 6 * px;
-      for (const [color, offset] of [
-        [0xffffff, px],
-        [0x000000, 0],
-      ] as const) {
-        g.moveTo(c.x - arm + offset, c.y + offset).lineTo(c.x + arm + offset, c.y + offset);
-        g.moveTo(c.x + offset, c.y - arm + offset).lineTo(c.x + offset, c.y + arm + offset);
-        g.stroke({ width: 1, color, alpha: 0.8, pixelLine: true });
-      }
-      if (c.kind === "circle") return;
+    if (!c || c.kind === "none") return;
+    const screen = toScreen(this.camera, c);
+    if (c.kind === "picker") {
+      this.pointerPicker.position.set(screen.x, screen.y);
+      this.pointerPicker.visible = true;
+      return;
     }
     if (c.kind === "circle") {
-      g.circle(c.x, c.y, c.size / 2 + px).stroke({
-        width: 1,
-        color: 0xffffff,
-        alpha: 0.8,
-        pixelLine: true,
-      });
-      g.circle(c.x, c.y, c.size / 2).stroke({
-        width: 1,
-        color: 0x000000,
-        alpha: 0.8,
-        pixelLine: true,
-      });
-    } else if (c.kind === "pixel-round") {
-      this.drawStampOutline(Math.floor(c.x), Math.floor(c.y), c.size, px);
-    } else {
-      const n = Math.max(1, Math.round(c.size));
-      const x = Math.floor(c.x) - Math.floor(n / 2);
-      const y = Math.floor(c.y) - Math.floor(n / 2);
-      g.rect(x - px, y - px, n + 2 * px, n + 2 * px).stroke({
-        width: 1,
-        color: 0xffffff,
-        alpha: 0.8,
-        pixelLine: true,
-      });
-      g.rect(x, y, n, n).stroke({ width: 1, color: 0x000000, alpha: 0.8, pixelLine: true });
+      const radius = (c.size / 2) * this.zoom;
+      if (radius * 2 < MIN_RING) return this.drawCross(screen);
+      this.pointerRing
+        .circle(screen.x, screen.y, radius)
+        .stroke({ width: 1, color: 0xffffff, pixelLine: true });
+      return;
     }
+    // Pixel-art tips: the system pointer shows where the pen is (see CanvasView).
+    const n = Math.max(1, Math.round(c.size));
+    const x = Math.floor(c.x);
+    const y = Math.floor(c.y);
+    if (c.fill) {
+      if (c.kind === "square") {
+        g.rect(x - Math.floor(n / 2), y - Math.floor(n / 2), n, n);
+      } else {
+        // One rectangle per row: the stamp's pixels come row by row, left to right.
+        const stamp = pixelStamp(n, "round");
+        for (let i = 0; i < stamp.length;) {
+          let j = i + 1;
+          while (j < stamp.length && stamp[j].y === stamp[i].y) j++;
+          g.rect(x + stamp[i].x, y + stamp[i].y, stamp[j - 1].x - stamp[i].x + 1, 1);
+          i = j;
+        }
+      }
+      g.fill({ color: c.fill.color, alpha: c.fill.alpha });
+      return;
+    }
+    // Two tones, one screen pixel apart, to stay visible on any background.
+    const px = 1 / this.zoom;
+    if (c.kind === "pixel-round") {
+      this.drawStampOutline(x, y, c.size, px);
+    } else {
+      const left = x - Math.floor(n / 2);
+      const top = y - Math.floor(n / 2);
+      g.rect(left - px, top - px, n + 2 * px, n + 2 * px).stroke({
+        width: 1,
+        color: 0xffffff,
+        alpha: 0.8,
+        pixelLine: true,
+      });
+      g.rect(left, top, n, n).stroke({ width: 1, color: 0x000000, alpha: 0.8, pixelLine: true });
+    }
+  }
+
+  /**
+   * A small cross at a screen point, open at its center: black, edged with white, each line
+   * one device pixel wide.
+   */
+  private drawCross(at: Point) {
+    const g = this.pointerCross;
+    const d = 1 / devicePixelRatio;
+    // The center of the device pixel under the point.
+    const cx = (Math.floor(at.x * devicePixelRatio) + 0.5) * d;
+    const cy = (Math.floor(at.y * devicePixelRatio) + 0.5) * d;
+    const arms = (grow: number) => {
+      for (const sign of [-1, 1]) {
+        const from = CROSS_GAP * sign;
+        const to = CROSS_ARM * sign;
+        const x0 = Math.min(cx + from, cx + to) - grow;
+        const length = Math.abs(to - from) + 2 * grow;
+        g.rect(x0, cy - d / 2 - grow, length, d + 2 * grow);
+        g.rect(cx - d / 2 - grow, Math.min(cy + from, cy + to) - grow, d + 2 * grow, length);
+      }
+    };
+    arms(d);
+    g.fill({ color: 0xffffff, alpha: 0.9 });
+    arms(0);
+    g.fill({ color: 0x000000 });
   }
 
   /** The outline of a round pixel-art tip at pixel (x, y): its pixels' outer edges. */
@@ -431,9 +507,15 @@ export class DrawingView {
     }
   }
 
+  /** Shows the pixels' grid when zoomed in enough, or never. */
+  setGridShown(shown: boolean, camera: Camera, view: { width: number; height: number }) {
+    this.gridShown = shown;
+    this.drawGrid(camera, view);
+  }
+
   private drawGrid(camera: Camera, view: { width: number; height: number }) {
     this.grid.clear();
-    if (camera.zoom < GRID_FROM_ZOOM) return;
+    if (!this.gridShown || camera.zoom < GRID_FROM_ZOOM) return;
     const area = visibleRect(camera, view, this.drawing);
     if (!area) return;
     const right = area.x + area.width;
@@ -515,17 +597,44 @@ export class DrawingView {
   }
 }
 
-/** Light gray checkerboard, shown under transparent areas. */
+/** The side of the checkerboard's squares, in pixels of the drawing (Aseprite's default). */
+/**
+ * A pipette (Lucide's), with a white halo to show on dark colors: 24 units wide, its tip at
+ * `PIPETTE_TIP`, shown `PIPETTE_SIZE` screen pixels wide.
+ */
+const PIPETTE_PATH =
+  "m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12M18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414";
+const PIPETTE_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">` +
+  `<path d="${PIPETTE_PATH}" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` +
+  `<path d="${PIPETTE_PATH}" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
+  `</svg>`;
+const PIPETTE_TIP = { x: 2, y: 22 };
+const PIPETTE_SIZE = 18;
+
+/** Below this diameter on screen, a soft brush shows as the small cross. */
+const MIN_RING = 6;
+/** The small cross: its arms, from the center, in screen pixels. */
+const CROSS_GAP = 2;
+const CROSS_ARM = 7;
+
+const CHECKER_SIZE = 16;
+/** Below this many screen pixels, the squares double in size. */
+const CHECKER_MIN_ON_SCREEN = 6;
+
+/**
+ * Gray checkerboard, one texel per square: scaled to the squares' size. Aseprite's colors,
+ * the dark one at the top left.
+ */
 function checkerTexture(): Texture {
-  const size = 16;
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size * 2;
+  canvas.width = canvas.height = 2;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#cfcfcf";
-  ctx.fillRect(0, 0, size * 2, size * 2);
-  ctx.fillStyle = "#f2f2f2";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillRect(size, size, size, size);
+  ctx.fillStyle = "#c0c0c0";
+  ctx.fillRect(0, 0, 2, 2);
+  ctx.fillStyle = "#808080";
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.fillRect(1, 1, 1, 1);
   const texture = Texture.from(canvas);
   texture.source.scaleMode = "nearest";
   return texture;

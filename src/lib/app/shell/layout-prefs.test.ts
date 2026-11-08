@@ -9,6 +9,7 @@ describe("layout preferences", () => {
       toolsPosition: 0.25,
       uiScale: 125,
       panelsOpen: false,
+      pixelGrid: false,
       compact: "on",
       sizes: { palette: 240 },
     });
@@ -17,6 +18,7 @@ describe("layout preferences", () => {
       toolsPosition: 0.25,
       uiScale: 125,
       panelsOpen: false,
+      pixelGrid: false,
       compact: "on",
       sizes: { palette: 240 },
     });
@@ -27,6 +29,7 @@ describe("layout preferences", () => {
       hand: "both",
       toolsPosition: 2,
       panelsOpen: "no",
+      pixelGrid: 1,
       compact: "maybe",
       sizes: { a: "big", b: -5, c: null, d: 120 },
     });

@@ -57,18 +57,18 @@ describe("libmypaint engine", () => {
     const all = { x: 0, y: 0, width: 300, height: 300 };
     drawing.writePixels(id, all, fill(all, [0, 0, 255, 255]));
     const eraser = bundledBrush("deevad/large_hard_eraser");
-    expect(eraser.pressureSizeFactor).toBeCloseTo(Math.exp(1.17), 3);
+    expect(eraser.sizeFactor).toBeCloseTo(Math.exp(1.17), 1);
     const stroke = new MyPaintStroke(mp, brush(eraser.id, 20), drawing, id);
     stroke.moveTo(50, 150);
     draw(stroke, 50, 250, 150);
     stroke.finish("Erase");
     let erased = 0;
     for (let y = 0; y < 300; y++) if (pixel(drawing, id, 150, y)[3] < 128) erased++;
-    const expected = 20 * eraser.pressureSizeFactor;
+    const expected = 20 * eraser.sizeFactor;
     expect(erased).toBeGreaterThan(expected * 0.85);
     expect(erased).toBeLessThan(expected * 1.15);
     // Without a pressure curve, the size is the diameter.
-    expect(bundledBrush("deevad/liner").pressureSizeFactor).toBe(1);
+    expect(bundledBrush("deevad/liner").sizeFactor).toBe(1);
   });
 
   it("sets size and color", () => {

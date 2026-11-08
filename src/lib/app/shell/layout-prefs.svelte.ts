@@ -32,6 +32,8 @@ export interface LayoutPrefsData {
   uiScale: number;
   /** The panels' column is shown. */
   panelsOpen: boolean;
+  /** The pixels' grid shows when zoomed in. */
+  pixelGrid: boolean;
   compact: CompactMode;
   sizes: Record<string, number>;
 }
@@ -62,6 +64,9 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   if ("panelsOpen" in data && typeof data.panelsOpen === "boolean") {
     prefs.panelsOpen = data.panelsOpen;
   }
+  if ("pixelGrid" in data && typeof data.pixelGrid === "boolean") {
+    prefs.pixelGrid = data.pixelGrid;
+  }
   if ("compact" in data && COMPACT_MODES.includes(data.compact as CompactMode)) {
     prefs.compact = data.compact as CompactMode;
   }
@@ -81,6 +86,7 @@ export class LayoutPrefs {
     toolsPosition: DEFAULT_TOOLS_POSITION,
     uiScale: 100,
     panelsOpen: true,
+    pixelGrid: false,
     compact: "auto",
     sizes: {},
   });
@@ -90,6 +96,7 @@ export class LayoutPrefs {
     toolsPosition?: true;
     uiScale?: true;
     panelsOpen?: true;
+    pixelGrid?: true;
     compact?: true;
     sizes: string[];
   } = { sizes: [] };
@@ -147,6 +154,17 @@ export class LayoutPrefs {
     this.scheduleSave();
   }
 
+  get pixelGrid(): boolean {
+    return this.data.pixelGrid;
+  }
+
+  set pixelGrid(shown: boolean) {
+    if (shown === this.data.pixelGrid) return;
+    this.data.pixelGrid = shown;
+    if (!this.loaded) this.changed.pixelGrid = true;
+    this.scheduleSave();
+  }
+
   get compact(): CompactMode {
     return this.data.compact;
   }
@@ -193,6 +211,9 @@ export class LayoutPrefs {
         }
         if (saved.panelsOpen !== undefined && !this.changed.panelsOpen) {
           this.data.panelsOpen = saved.panelsOpen;
+        }
+        if (saved.pixelGrid !== undefined && !this.changed.pixelGrid) {
+          this.data.pixelGrid = saved.pixelGrid;
         }
         if (saved.compact !== undefined && !this.changed.compact) {
           this.data.compact = saved.compact;

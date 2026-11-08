@@ -4,6 +4,7 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   fit,
+  mirrorAt,
   rotateAt,
   setRotationAt,
   toCanvas,
@@ -137,5 +138,23 @@ describe("camera", () => {
       ),
       { numRuns: 500 },
     );
+  });
+
+  it("mirrors around a screen point, and back, round-tripping points", () => {
+    const c: Camera = { x: 10, y: 20, zoom: 2, rotation: 0.5 };
+    const at = { x: 100, y: 80 };
+    const m = mirrorAt(c, at);
+    expect(toCanvas(m, at).x).toBeCloseTo(toCanvas(c, at).x);
+    const p = { x: 3, y: 7 };
+    const back = toCanvas(m, toScreen(m, p));
+    expect(back.x).toBeCloseTo(3);
+    expect(back.y).toBeCloseTo(7);
+    // Left and right swap on the screen.
+    expect(toScreen(m, { x: 1, y: 0 }).x - toScreen(m, { x: 0, y: 0 }).x).toBeCloseTo(
+      -(toScreen(c, { x: 1, y: 0 }).x - toScreen(c, { x: 0, y: 0 }).x),
+    );
+    const twice = mirrorAt(m, at);
+    expect(twice.mirrored).toBe(false);
+    expect(twice.x).toBeCloseTo(c.x);
   });
 });

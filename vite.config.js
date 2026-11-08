@@ -7,6 +7,10 @@ import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import adapter from "@sveltejs/adapter-static";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import process from "node:process";
+import { readFileSync } from "node:fs";
+
+/** The app's version, shown in About (package.json, kept equal to tauri.conf.json's). */
+const version = JSON.parse(readFileSync("./package.json", "utf8")).version;
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -28,6 +32,7 @@ export default defineConfig(() => ({
     }),
     paraglide(),
   ],
+  define: { __APP_VERSION__: JSON.stringify(version) },
   // The file worker shows messages too (errors in a damaged file).
   worker: { plugins: () => [paraglide()] },
   test: {

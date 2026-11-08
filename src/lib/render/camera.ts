@@ -1,6 +1,7 @@
-// View transform between canvas pixels and screen pixels: pan, zoom and rotation.
+// View transform between canvas pixels and screen pixels: pan, zoom, rotation and mirror.
 //
-// screen = translate(x, y) · rotate(rotation) · scale(zoom) · canvas
+// screen = translate(x, y) · rotate(rotation) · scale(zoom) · mirror · canvas
+// (the mirror flips the canvas's x: the drawing is seen reversed, not changed).
 // Pure math, no rendering, so it can be tested on its own.
 
 import type { Point } from "#lib/core/geometry.js";
@@ -14,6 +15,8 @@ export interface Camera {
   zoom: number;
   /** Radians. */
   rotation: number;
+  /** Seen reversed, left to right: to check proportions with a fresh eye. */
+  mirrored?: boolean;
 }
 
 export const MIN_ZOOM = 1 / 64;
@@ -22,7 +25,8 @@ export const MAX_ZOOM = 64;
 export function toScreen(c: Camera, p: Point): Point {
   const cos = Math.cos(c.rotation) * c.zoom;
   const sin = Math.sin(c.rotation) * c.zoom;
-  return { x: c.x + p.x * cos - p.y * sin, y: c.y + p.x * sin + p.y * cos };
+  const x = c.mirrored ? -p.x : p.x;
+  return { x: c.x + x * cos - p.y * sin, y: c.y + x * sin + p.y * cos };
 }
 
 export function toCanvas(c: Camera, p: Point): Point {
@@ -30,7 +34,13 @@ export function toCanvas(c: Camera, p: Point): Point {
   const dy = p.y - c.y;
   const cos = Math.cos(c.rotation) / c.zoom;
   const sin = Math.sin(c.rotation) / c.zoom;
-  return { x: dx * cos + dy * sin, y: -dx * sin + dy * cos };
+  const x = dx * cos + dy * sin;
+  return { x: c.mirrored ? -x : x, y: -dx * sin + dy * cos };
+}
+
+/** Mirrors the view, or back, keeping the canvas point under `screen` in place. */
+export function mirrorAt(c: Camera, screen: Point): Camera {
+  return keepAt({ ...c, mirrored: !c.mirrored }, toCanvas(c, screen), screen);
 }
 
 export function pan(c: Camera, dx: number, dy: number): Camera {

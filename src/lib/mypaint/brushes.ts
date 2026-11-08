@@ -2,6 +2,7 @@
 // brushes/LICENSE-mypaint-brushes), one folder per pack. Previews are in static/brushes/.
 
 import { parseMyb, type MybBrush } from "./myb";
+import MEASURED_SIZES from "./brush-sizes.json";
 
 export interface BundledBrush {
   /** "pack/name", e.g. "deevad/2B_pencil". */
@@ -12,15 +13,16 @@ export interface BundledBrush {
   eraser: boolean;
   /**
    * The diameter the brush was designed for, in pixels, at the pressure that makes it
-   * largest (see `pressureSizeFactor`).
+   * largest (see `sizeFactor`).
    */
   nativeSize: number;
   /**
    * The brush's largest diameter over the pressure range, relative to its base diameter
-   * (libmypaint's radius): many brushes grow (or shrink) with pressure. Like Krita, the size
-   * shown to the user is that largest diameter.
+   * (libmypaint's radius): many brushes grow (or shrink) with pressure, others scatter their
+   * dabs. Like Krita, the size shown to the user is that largest diameter. Measured by
+   * painting (see brush-size.ts), or estimated from the curves for a brush not measured.
    */
-  pressureSizeFactor: number;
+  sizeFactor: number;
   myb: MybBrush;
 }
 
@@ -43,20 +45,27 @@ export const BUNDLED_BRUSHES: BundledBrush[] = Object.entries(files)
     const id = `${pack}/${name}`;
     const myb = parseMyb(text);
     const radius = Math.exp(myb.settings.radius_logarithmic?.base_value ?? Math.log(2));
-    // libmypaint adds each input's curve to the log of the radius.
-    const curve = myb.settings.radius_logarithmic?.inputs.pressure;
-    const factor = curve?.length ? Math.exp(Math.max(...curve.map(([, y]) => y))) : 1;
+    const factor = (MEASURED_SIZES as Record<string, number>)[id] ?? curvesSizeFactor(myb);
     return {
       id,
       name: prettify(name),
       pack,
       eraser: (myb.settings.eraser?.base_value ?? 0) > 0.5,
       nativeSize: Math.round(radius * 2 * factor * 10) / 10,
-      pressureSizeFactor: factor,
+      sizeFactor: factor,
       myb,
     };
   })
   .sort((a, b) => a.pack.localeCompare(b.pack) || a.name.localeCompare(b.name));
+
+/**
+ * The largest diameter over the pressure range relative to the base one, from the radius'
+ * pressure curve only: libmypaint adds each input's curve to the log of the radius.
+ */
+export function curvesSizeFactor(myb: MybBrush): number {
+  const curve = myb.settings.radius_logarithmic?.inputs.pressure;
+  return curve?.length ? Math.exp(Math.max(...curve.map(([, y]) => y))) : 1;
+}
 
 const byId = new Map(BUNDLED_BRUSHES.map((b) => [b.id, b]));
 

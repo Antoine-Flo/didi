@@ -25,6 +25,13 @@ if [ ! -d "$SRC" ]; then
   tar -xf "$CACHE/libmypaint.tar.xz" -C "$CACHE"
 fi
 
+# Build from a fresh copy with Didi's patches (patches/, e.g. faster pigment mixing).
+WORK="$CACHE/build"
+rm -rf "$WORK"
+cp -r "$SRC" "$WORK"
+for p in "$HERE"/patches/*.patch; do patch -s -d "$WORK" -p1 < "$p"; done
+SRC="$WORK"
+
 # Quoted includes look next to the source first: replace the autotools config.h there.
 cp "$HERE/shim/config.h" "$SRC/config.h"
 

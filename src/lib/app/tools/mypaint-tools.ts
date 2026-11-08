@@ -119,8 +119,9 @@ class QueuedStroke implements ToolStroke {
     // default is full pigment mode.
     const own = bundledBrush(settings.preset).myb.settings.paint_mode?.base_value ?? 1;
     brush.set("paint_mode", pigment ? own : 0);
-    // libmypaint's size is the base diameter, which pressure then changes.
-    brush.size = settings.size / bundledBrush(settings.preset).pressureSizeFactor;
+    // libmypaint's size is the base diameter, which pressure and other inputs then change:
+    // the size set is the diameter painted at full pressure.
+    brush.size = settings.size / bundledBrush(settings.preset).sizeFactor;
     brush.setColor(context.color);
     this.size = settings.size;
     this.now = context.now;

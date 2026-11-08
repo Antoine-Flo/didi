@@ -16,6 +16,7 @@
     "lint": "prettier --check . && eslint . && cargo fmt --check --manifest-path src-tauri/Cargo.toml",
     "format": "prettier --write . && cargo fmt --manifest-path src-tauri/Cargo.toml",
     "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts",
+    "measure:brushes": "DIDI_MEASURE=1 vitest run src/lib/mypaint/brush-sizes.test.ts",
     "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale"
   },
   "license": "MIT",

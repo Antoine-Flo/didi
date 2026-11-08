@@ -17,6 +17,7 @@ function setup(withView = true) {
     zoomTo: vi.fn(),
     rotateBy: vi.fn(),
     resetRotation: vi.fn(),
+    mirrorView: vi.fn(),
   };
   const host: AppHost = {
     mode: "painting",
@@ -27,6 +28,11 @@ function setup(withView = true) {
     view: withView ? view : null,
     hand: "right",
     togglePanels: vi.fn(),
+    togglePixelGrid: vi.fn(),
+    toggleInterface: vi.fn(),
+    toggleFullScreen: vi.fn(),
+    openShortcuts: vi.fn(),
+    openAbout: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
     notify: vi.fn(),
     openSizeDialog: vi.fn(),

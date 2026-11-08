@@ -10,7 +10,12 @@
     Undo2,
   } from "@lucide/svelte";
   import { capabilities } from "#lib/platform/capabilities.js";
-  import { appWindow } from "#lib/platform/window.js";
+  import {
+    appWindow,
+    setFullScreen,
+    toggleFullScreen,
+    watchFullScreen,
+  } from "#lib/platform/window.js";
   import {
     closeStalePreview,
     openPreviewWindow,
@@ -34,6 +39,7 @@
   import ConfirmDialog from "#lib/app/dialogs/ConfirmDialog.svelte";
   import ImageSizeDialog, { type SizeKind } from "#lib/app/dialogs/ImageSizeDialog.svelte";
   import ShortcutsDialog from "#lib/app/dialogs/ShortcutsDialog.svelte";
+  import AboutDialog from "#lib/app/dialogs/AboutDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
   import { runCommand } from "#lib/app/commands/run-command.js";
   import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
@@ -153,6 +159,12 @@
   );
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
+  let aboutOpen = $state(false);
+  /** The window (or the browser's page) is full screen: followed, F11 and Esc change it too. */
+  let fullScreen = $state(false);
+  $effect(() => watchFullScreen((on) => (fullScreen = on)));
+  /** Only the canvas shows: every panel and bar is hidden (Tab). */
+  let interfaceHidden = $state(false);
   let sizeDialog = $state<SizeKind | null>(null);
 
   /** The pending confirmation (see ConfirmDialog), answered once. */
@@ -332,6 +344,14 @@
         layout.hand = hand;
       },
       togglePanels,
+      togglePixelGrid: () => (layout.pixelGrid = !layout.pixelGrid),
+      toggleInterface: () => (interfaceHidden = !interfaceHidden),
+      toggleFullScreen: () =>
+        void toggleFullScreen().catch((e) =>
+          notify(m.app_full_screen_failed({ error: errorMessage(e) })),
+        ),
+      openShortcuts: () => (shortcutsOpen = true),
+      openAbout: () => (aboutOpen = true),
       get tool() {
         return tools.id;
       },
@@ -395,6 +415,7 @@
     startOpen ||
       paletteOpen ||
       shortcutsOpen ||
+      aboutOpen ||
       sizeDialog !== null ||
       unsavedRequest !== null ||
       confirmRequest !== null,
@@ -514,7 +535,7 @@
   $effect(() => {
     windowTitle.menu = menuBar;
     windowTitle.end = titleEnd;
-    windowTitle.center = optionsInTitle ? toolBar : null;
+    windowTitle.center = optionsInTitle && !interfaceHidden ? toolBar : null;
     return () => {
       windowTitle.center = null;
       windowTitle.dimmed = false;
@@ -585,6 +606,7 @@
   class:panels-closed={!panelsOpen}
   class:sliding
   class:compact
+  class:interface-hidden={interfaceHidden}
   class:options-below={optionsLine}
   bind:clientWidth={appWidth}
   bind:clientHeight={appHeight}
@@ -605,8 +627,10 @@
         {editor}
         {painter}
         brushCursor={(eraser) => tools.cursor(eraser)}
+        brushColor={options.color}
         hoverCursor={(p, zoom) => activeTool.hover?.(editor, p, zoom) ?? null}
         selectionHandles={isSelectTool(activeTool)}
+        pixelGrid={layout.pixelGrid}
         {insets}
         oncamera={(c) => (camera = c)}
         oncursor={(p) => (cursor = p)}
@@ -727,6 +751,7 @@
         busy={session.busy}
         {error}
         {camera}
+        pixelGrid={layout.pixelGrid}
         {tip}
         {run}
         onShortcuts={() => (shortcutsOpen = true)}
@@ -811,6 +836,11 @@
     onCompact={(mode) => (layout.compact = mode)}
     preview={preview !== "off"}
     onPreview={(open) => setPreview(open ? "in" : "off")}
+    {fullScreen}
+    onFullScreen={(on) =>
+      void setFullScreen(on).catch((e) =>
+        notify(m.app_full_screen_failed({ error: errorMessage(e) })),
+      )}
   />
 {/snippet}
 
@@ -828,6 +858,7 @@
 
 <CommandPalette {editor} {keymap} {run} bind:open={paletteOpen} />
 <ShortcutsDialog {editor} {keymap} bind:open={shortcutsOpen} />
+<AboutDialog bind:open={aboutOpen} />
 <ImageSizeDialog
   bind:kind={sizeDialog}
   width={canvasSize.width}
@@ -1094,6 +1125,11 @@
 
   .message.error {
     color: var(--danger);
+  }
+
+  /* Only the canvas (Tab): the panels, the tools and the bars go. */
+  .interface-hidden :is(.panel-column, .panels-tab, .column-edge, .tool-track, .top, .bottom) {
+    visibility: hidden;
   }
 
   /* Opening or closing: everything beside the column follows it. */

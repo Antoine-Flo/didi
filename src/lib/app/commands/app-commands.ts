@@ -24,6 +24,8 @@ export interface ViewControls {
   zoomTo(zoom: number): void;
   rotateBy(angle: number): void;
   resetRotation(): void;
+  /** Shows the drawing reversed, left to right, or back. */
+  mirrorView(): void;
 }
 
 /** What the commands act on, provided by the editor interface. */
@@ -40,6 +42,14 @@ export interface AppHost {
   hand: Hand;
   /** Shows or hides the panels' column. */
   togglePanels(): void;
+  /** Shows or hides the pixels' grid. */
+  togglePixelGrid(): void;
+  /** Hides every panel and bar, or shows them again: only the canvas. */
+  toggleInterface(): void;
+  /** Full screen, or back. */
+  toggleFullScreen(): void;
+  openShortcuts(): void;
+  openAbout(): void;
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
   importImage(): void;
@@ -159,6 +169,7 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     view(m.cmd_view_rotate_left(), "view.rotateLeft", (v) => v.rotateBy(-ROTATION_STEP)),
     view(m.cmd_view_rotate_right(), "view.rotateRight", (v) => v.rotateBy(ROTATION_STEP)),
     view(m.cmd_view_reset_rotation(), "view.resetRotation", (v) => v.resetRotation()),
+    view(m.cmd_view_mirror(), "view.mirror", (v) => v.mirrorView()),
 
     registry.register<{ color: string }>({
       id: "color.set",
@@ -341,6 +352,27 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       title: m.cmd_view_toggle_panels(),
       run: () => host.togglePanels(),
     }),
+    registry.register({
+      id: "view.pixelGrid",
+      title: m.cmd_view_pixel_grid(),
+      run: () => host.togglePixelGrid(),
+    }),
+    registry.register({
+      id: "view.hideInterface",
+      title: m.cmd_view_hide_interface(),
+      run: () => host.toggleInterface(),
+    }),
+    registry.register({
+      id: "view.fullScreen",
+      title: m.cmd_view_full_screen(),
+      run: () => host.toggleFullScreen(),
+    }),
+    registry.register({
+      id: "app.shortcuts",
+      title: m.cmd_app_shortcuts(),
+      run: () => host.openShortcuts(),
+    }),
+    registry.register({ id: "app.about", title: m.cmd_app_about(), run: () => host.openAbout() }),
   ];
   if (host.canUseFiles) {
     unregister.push(

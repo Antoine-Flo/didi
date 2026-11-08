@@ -3,7 +3,7 @@
   // on one line each, a label on the left and its controls on the right. Using one leaves
   // the menu open, to see the result and try another: the document's mode, the side of the
   // panels (a small sketch for each, the active one highlighted), the compact layout, the
-  // interface size and the preview window.
+  // interface size, the preview window and full screen.
 
   import { PanelsTopLeft, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { DropdownMenu } from "bits-ui";
@@ -32,6 +32,8 @@
     onCompact,
     preview,
     onPreview,
+    fullScreen,
+    onFullScreen,
   }: {
     modes: Mode[];
     /** Id of the document's mode. */
@@ -49,6 +51,8 @@
     /** The preview window is open. */
     preview: boolean;
     onPreview: (open: boolean) => void;
+    fullScreen: boolean;
+    onFullScreen: (on: boolean) => void;
   } = $props();
 
   const COMPACT: { mode: CompactMode; label: () => string; title: () => string }[] = [
@@ -60,6 +64,11 @@
   const PREVIEW: { open: boolean; label: () => string; title: () => string }[] = [
     { open: true, label: m.layout_on, title: m.layout_preview_on_title },
     { open: false, label: m.layout_off, title: m.layout_preview_off_title },
+  ];
+
+  const FULL_SCREEN: { on: boolean; label: () => string }[] = [
+    { on: true, label: m.layout_on },
+    { on: false, label: m.layout_off },
   ];
 
   const LAYOUTS: { hand: Hand; label: () => string; command: string }[] = [
@@ -201,6 +210,24 @@
               title={option.title()}
               closeOnSelect={false}
               onSelect={() => onPreview(option.open)}
+            >
+              {option.label()}
+            </DropdownMenu.Item>
+          {/each}
+        </div>
+      </DropdownMenu.Group>
+      <DropdownMenu.Group class="layout-option">
+        <DropdownMenu.GroupHeading class="layout-option-label"
+          >{m.layout_full_screen()}</DropdownMenu.GroupHeading
+        >
+        <div class="controls side">
+          {#each FULL_SCREEN as option (option.on)}
+            <DropdownMenu.Item
+              class="menu-item layout-text-item"
+              data-active={option.on === fullScreen ? "" : undefined}
+              title={tip("view.fullScreen")}
+              closeOnSelect={false}
+              onSelect={() => onFullScreen(option.on)}
             >
               {option.label()}
             </DropdownMenu.Item>

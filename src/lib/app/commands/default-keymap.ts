@@ -59,5 +59,10 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "6", command: "view.rotateRight" },
     { keys: "5", command: "view.resetRotation" },
     { keys: "ctrl+b", command: "view.togglePanels" },
+    { keys: "h", command: "view.mirror" },
+    { keys: "ctrl+'", command: "view.pixelGrid" },
+    { keys: "tab", command: "view.hideInterface" },
+    { keys: "f11", command: "view.fullScreen" },
+    { keys: "ctrl+/", command: "app.shortcuts" },
   ],
 };

@@ -82,7 +82,7 @@ function shapeTool(
     menu: kind === "line" ? undefined : styleMenu(icon, filledTitle),
     defaults: { size: 1, opacity: 1, style: "outline" },
     fields: [SIZE, OPACITY],
-    cursor: (s) => ({ kind: "square", size: s.size }),
+    cursor: (s) => ({ kind: "square", size: s.size, opacity: s.opacity }),
     resize: (s, direction) => (s.size = Math.min(MAX_PIXEL_SIZE, Math.max(1, s.size + direction))),
     begin(context, settings, sample) {
       const raster = new StrokeRaster(context.editor.drawing, context.layer!.id, {

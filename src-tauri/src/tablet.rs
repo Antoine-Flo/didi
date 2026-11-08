@@ -81,6 +81,7 @@ pub fn install(_app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg(target_os = "linux")]
 mod linux {
+    use std::cell::Cell;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use gtk::gdk;
@@ -109,9 +110,20 @@ mod linux {
         disable_compression(view);
         view.connect_realize(disable_compression);
 
+        // Moves while hovering only matter when the device changes (pen ↔ eraser), and for the
+        // first one after a press (a release missed elsewhere): skipping the others keeps the
+        // channel from flooding the frontend, which the pointer would lag behind.
         let s = sink.clone();
+        let last: Cell<Option<(&'static str, bool)>> = Cell::new(None);
         view.connect_motion_notify_event(move |_, ev| {
-            s.send(pen_event(Phase::Move, ev, ev.position(), 0));
+            let event = pen_event(Phase::Move, ev, ev.position(), 0);
+            let state = (event.source, event.pressed);
+            let previous = last.replace(Some(state));
+            let needed = event.pressed
+                || previous.is_none_or(|(source, pressed)| source != event.source || pressed);
+            if needed {
+                s.send(event);
+            }
             Propagation::Proceed
         });
         let s = sink.clone();

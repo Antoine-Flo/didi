@@ -53,7 +53,11 @@ function pixelTool(id: string, title: string, icon: Tool["icon"], mode: "paint" 
         title: m.tool_pixel_perfect_title(),
       },
     ],
-    cursor: (s) => ({ kind: s.shape === "square" ? "square" : "pixel-round", size: s.size }),
+    cursor: (s) => ({
+      kind: s.shape === "square" ? "square" : "pixel-round",
+      size: s.size,
+      opacity: mode === "paint" ? s.opacity : undefined,
+    }),
     resize: (s, direction) => (s.size = Math.min(MAX_PIXEL_SIZE, Math.max(1, s.size + direction))),
     begin(context, { size, opacity, pixelPerfect, shape }) {
       const rounded = Math.max(1, Math.round(size));

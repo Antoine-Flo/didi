@@ -25,7 +25,8 @@ export default ts.config(
   ...svelte.configs.prettier,
   {
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node },
+      // __APP_VERSION__: defined at build time (see vite.config.js and src/globals.d.ts).
+      globals: { ...globals.browser, ...globals.node, __APP_VERSION__: "readonly" },
     },
   },
   {

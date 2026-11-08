@@ -372,5 +372,18 @@
   "editor_window_title": "{name} — Didi",
   "editor_window_title_unsaved": "● {name} — Didi",
   "editor_color_tab": "Color and palette",
-  "editor_deselect": "Deselect"
+  "editor_deselect": "Deselect",
+  "cmd_view_mirror": "Mirror view",
+  "cmd_view_pixel_grid": "Show or hide pixel grid",
+  "cmd_view_hide_interface": "Hide or show interface",
+  "cmd_view_full_screen": "Full screen",
+  "cmd_app_shortcuts": "Keyboard shortcuts",
+  "cmd_app_about": "About Didi",
+  "menu_help": "Help",
+  "app_full_screen_failed": "Full screen is not available: {error}",
+  "about_title": "About Didi",
+  "about_version": "Version {version}",
+  "about_description": "A drawing app for painting and pixel art, with free lessons.",
+  "about_brushes": "Brushes: MyPaint (libmypaint).",
+  "layout_full_screen": "Full screen"
 }

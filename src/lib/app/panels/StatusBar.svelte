@@ -1,10 +1,11 @@
 <script lang="ts">
   // The bar below the canvas: the shortcuts' button and messages on the left, the view (zoom,
-  // rotation) in the middle, the cursor position and the document's size on the right. The
+  // rotation, pixels' grid) in the middle, the cursor position and the document's size on the right. The
   // buttons run commands.
 
   import {
     Compass,
+    Grid3x3,
     Keyboard,
     Maximize,
     RotateCcw,
@@ -22,6 +23,7 @@
     busy,
     error,
     camera,
+    pixelGrid,
     tip,
     run,
     onShortcuts,
@@ -33,6 +35,8 @@
     busy: string | null;
     error: string | null;
     camera: Camera;
+    /** The pixels' grid is shown (when zoomed in). */
+    pixelGrid: boolean;
     tip: (id: string) => string;
     run: (id: string, params?: unknown) => void;
     /** Opens the list of keyboard shortcuts. */
@@ -84,6 +88,16 @@
     >
       <Compass />
     </button>
+
+    <button
+      class="icon"
+      class:active={pixelGrid}
+      class:off={!pixelGrid}
+      title={tip("view.pixelGrid")}
+      onclick={() => run("view.pixelGrid")}
+    >
+      <Grid3x3 />
+    </button>
   </div>
 
   <div class="status-end">
@@ -131,6 +145,11 @@
 
   .view {
     color: var(--text);
+  }
+
+  /* A switch that is off, like the layers' locks. */
+  .view .off {
+    color: var(--text-faint);
   }
 
   .zoom {

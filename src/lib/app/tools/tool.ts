@@ -32,8 +32,11 @@ export interface Sample {
 export type BrushCursor =
   /** Soft brushes. */
   | { kind: "circle"; size: number }
-  /** The exact pixels of a pixel-art tip. */
-  | { kind: "square" | "pixel-round"; size: number }
+  /**
+   * The exact pixels of a pixel-art tip. With `opacity`, they show filled with the current
+   * color, as they would be drawn; without, outlined (erasers).
+   */
+  | { kind: "square" | "pixel-round"; size: number; opacity?: number }
   /** No outline: the system pointer becomes a pipette. */
   | { kind: "picker" }
   | { kind: "none" };

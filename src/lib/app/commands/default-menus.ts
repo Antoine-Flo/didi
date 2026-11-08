@@ -163,7 +163,16 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "view.resetRotation" },
         "separator",
         { command: "view.togglePanels" },
+        { command: "view.mirror" },
+        { command: "view.pixelGrid" },
+        "separator",
+        { command: "view.hideInterface" },
+        { command: "view.fullScreen" },
       ],
+    },
+    {
+      title: m.menu_help(),
+      items: [{ command: "app.shortcuts" }, { command: "app.about" }],
     },
   ];
 }

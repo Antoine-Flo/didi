@@ -17,6 +17,15 @@
     bottom: number;
     left: number;
   }
+
+  /** How far ahead the pointer is drawn, in milliseconds of the pen's movement. */
+  const PREDICT_MS = 30;
+  /** The pen's speed is averaged over about this long, in milliseconds. */
+  const VELOCITY_MS = 25;
+  /** At most this far ahead, in window pixels. */
+  const MAX_LEAD = 60;
+  /** Without a move for this long, the pen has stopped: the pointer goes back under it. */
+  const STILL_MS = 40;
 </script>
 
 <script lang="ts">
@@ -27,11 +36,13 @@
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import type { Painter } from "#lib/app/canvas/painter.js";
   import type { BrushCursor, Sample } from "#lib/app/tools/tool.js";
+  import type { RGB } from "#lib/core/color/color.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { PenInput } from "#lib/app/canvas/pen-input.svelte.js";
   import { nativePenAvailable, subscribeNativePen, type PenEvent } from "#lib/platform/pen.js";
   import {
     fit,
+    mirrorAt,
     pan,
     rotateAt,
     setRotationAt,
@@ -42,14 +53,16 @@
   } from "#lib/render/camera.js";
   import { placementOf, selectionOutline } from "#lib/core/selection/selection.js";
   import { shapeMask } from "#lib/core/selection/shape.js";
-  import { DrawingView } from "#lib/render/drawing-view.js";
+  import { DrawingView, type BrushCursorState } from "#lib/render/drawing-view.js";
 
   let {
     editor,
     painter,
     brushCursor,
+    brushColor = null,
     hoverCursor,
     selectionHandles = false,
+    pixelGrid = false,
     insets,
     oncamera,
     oncursor,
@@ -62,10 +75,14 @@
      * when what it reads changes (tool, size…), the outline is redrawn at once.
      */
     brushCursor?: (eraser: boolean) => BrushCursor;
+    /** The color drawn with: pixel-art tips show their pixels in it. */
+    brushColor?: RGB | null;
     /** The CSS pointer at a canvas position and zoom, if the tool has its own there. */
     hoverCursor?: (point: Point, zoom: number) => string | null;
     /** The current tool works on the selection: its handles are shown. */
     selectionHandles?: boolean;
+    /** The pixels' grid shows when zoomed in. */
+    pixelGrid?: boolean;
     /** Panels over the view: fitting and zooming use the area between them. */
     insets?: () => Insets;
     oncamera?: (camera: Camera) => void;
@@ -106,9 +123,11 @@
     : null;
   const stroking = $derived(pen?.stroking ?? false);
 
+  const viewSize = () => ({ width: host.clientWidth, height: host.clientHeight });
+
   function setCamera(next: Camera) {
     camera = next;
-    view?.setCamera(next, { width: host.clientWidth, height: host.clientHeight });
+    view?.setCamera(next, viewSize());
     oncamera?.(next);
   }
 
@@ -128,10 +147,17 @@
     return { x: area.x + area.width / 2, y: area.y + area.height / 2 };
   }
 
+  /** Fits the canvas in the view, unturned; a mirrored view stays mirrored. */
   export function fitView() {
     const area = visibleArea();
     const fitted = fit(editor.drawing, area);
-    setCamera({ ...fitted, x: fitted.x + area.x, y: fitted.y + area.y });
+    const next = { ...fitted, x: fitted.x + area.x, y: fitted.y + area.y };
+    setCamera(camera.mirrored ? mirrorAt(next, center()) : next);
+  }
+
+  /** Shows the drawing reversed, left to right, or back: the drawing doesn't change. */
+  export function mirrorView() {
+    setCamera(mirrorAt(camera, center()));
   }
 
   export function zoomBy(factor: number) {
@@ -215,10 +241,60 @@
       const events = e.getCoalescedEvents?.() ?? [];
       pen?.domMove((events.length ? events : [e]).map(domSample));
     }
-    const p = toCanvas(camera, local(e));
-    oncursor?.({ x: Math.floor(p.x), y: Math.floor(p.y) });
+    // A pen sends hundreds of moves a second: the pointer follows the last one, once per frame
+    // (see showPointer), so they do not pile up behind it.
+    const at = {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      time: e.timeStamp,
+      pen: e.pointerType === "pen",
+    };
+    if (pointerAt && at.time > pointerAt.time) {
+      // Window pixels per millisecond, smoothed over about VELOCITY_MS.
+      const dt = at.time - pointerAt.time;
+      const vx = (at.clientX - pointerAt.clientX) / dt;
+      const vy = (at.clientY - pointerAt.clientY) / dt;
+      const k = 1 - Math.exp(-dt / VELOCITY_MS);
+      velocity = { x: velocity.x + (vx - velocity.x) * k, y: velocity.y + (vy - velocity.y) * k };
+    }
+    pointerAt = at;
+    pointerMoved = true;
+  }
+
+  /** The last pointer position, in the window, and when it was there (event time). */
+  let pointerAt: { clientX: number; clientY: number; time: number; pen: boolean } | null = null;
+  /** The pointer moved since it was last shown. */
+  let pointerMoved = false;
+  let velocity = { x: 0, y: 0 };
+
+  /**
+   * Moves the pointer, the status bar's position and the tool's hover to the last move.
+   * The pointer drawn shows on screen a few frames after the pen got there: it is drawn a
+   * little ahead, where the pen is heading, to stay under it. Not when the pen has stopped, nor
+   * for a mouse (its moves are too irregular: it would shake), nor for pixel-art tips (their
+   * pixels are where the pen really is, under the system pointer).
+   */
+  function showPointer(now: number) {
+    if (!pointerAt) return;
+    const still = now - pointerAt.time > STILL_MS;
+    if (!pointerMoved && still) {
+      if (velocity.x === 0 && velocity.y === 0) return;
+      velocity = { x: 0, y: 0 };
+    }
+    pointerMoved = false;
+    const p = toCanvas(camera, local(pointerAt));
+    reportCursor(p);
     if (!stroking) hoverPoint = p;
-    updateCursor(panning ? null : p);
+    let lead = { x: velocity.x * PREDICT_MS, y: velocity.y * PREDICT_MS };
+    const length = Math.hypot(lead.x, lead.y);
+    if (still || !pointerAt.pen || cursorShape.kind !== "circle") lead = { x: 0, y: 0 };
+    else if (length > MAX_LEAD)
+      lead = { x: (lead.x * MAX_LEAD) / length, y: (lead.y * MAX_LEAD) / length };
+    const ahead = toCanvas(
+      camera,
+      local({ clientX: pointerAt.clientX + lead.x, clientY: pointerAt.clientY + lead.y }),
+    );
+    updateCursor(panning ? null : ahead);
   }
 
   function onPointerUp(e: PointerEvent) {
@@ -252,13 +328,43 @@
   // for the pen to move.
   $effect(() => {
     void cursorShape;
+    void brushColor;
     untrack(() => updateCursor(lastCursor));
   });
+
+  /** The view draws the pointer itself (see DrawingView): the system's is hidden. */
+  const ownPointer = $derived(cursorShape.kind === "circle" || cursorShape.kind === "picker");
 
   /** Moves the outline to `p` (canvas pixels), or hides it. */
   function updateCursor(p: Point | null) {
     lastCursor = p;
-    view?.setBrushCursor(p ? { ...cursorShape, x: p.x, y: p.y } : null);
+    view?.setBrushCursor(p ? cursorState(p) : null);
+  }
+
+  function cursorState(p: Point): BrushCursorState | null {
+    const c = cursorShape;
+    if (c.kind === "circle") return { ...c, x: p.x, y: p.y };
+    if (c.kind === "square" || c.kind === "pixel-round") {
+      const fill =
+        c.opacity !== undefined && brushColor
+          ? {
+              color: (brushColor[0] << 16) | (brushColor[1] << 8) | brushColor[2],
+              alpha: c.opacity,
+            }
+          : undefined;
+      return { kind: c.kind, size: c.size, x: p.x, y: p.y, fill };
+    }
+    if (c.kind === "picker") return { kind: "picker", x: p.x, y: p.y };
+    return null;
+  }
+
+  /** Tells the pixel under the pen, only when it changes: the status bar shows it. */
+  let reported: Point | null = null;
+  function reportCursor(p: Point | null) {
+    const pixel = p && { x: Math.floor(p.x), y: Math.floor(p.y) };
+    if (pixel?.x === reported?.x && pixel?.y === reported?.y) return;
+    reported = pixel;
+    oncursor?.(pixel);
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -289,6 +395,10 @@
     void selectionHandles;
     untrack(syncSelection);
   });
+  $effect(() => {
+    const shown = pixelGrid;
+    untrack(() => view?.setGridShown(shown, camera, viewSize()));
+  });
 
   function onKeyUp(e: KeyboardEvent) {
     if (e.key === "Alt") e.preventDefault();
@@ -313,11 +423,13 @@
         if (destroyed) return pixi.destroy();
         app = pixi;
         view = new DrawingView(editor.drawing);
+        view.setGridShown(pixelGrid, camera, viewSize());
         pixi.stage.addChild(view.root);
         fitView();
         syncSelection();
         let elapsed = 0;
         pixi.ticker.add((ticker) => {
+          showPointer(performance.now());
           painter?.flush();
           view?.flush();
           elapsed += ticker.deltaMS;
@@ -362,9 +474,11 @@
 
 <div
   class="host"
-  class:pick={cursorShape.kind === "picker"}
   class:grab={spaceDown}
   class:grabbing={panning}
+  class:own-pointer={ownPointer && !pointerCursor}
+  class:sight={(cursorShape.kind === "square" || cursorShape.kind === "pixel-round") &&
+    !pointerCursor}
   style:cursor={held.alt || spaceDown || panning ? undefined : (pointerCursor ?? undefined)}
   bind:this={host}
   onwheel={onWheel}
@@ -373,7 +487,9 @@
   onpointerup={onPointerUp}
   onpointercancel={onPointerUp}
   onpointerleave={() => {
-    oncursor?.(null);
+    pointerAt = null;
+    velocity = { x: 0, y: 0 };
+    reportCursor(null);
     hoverPoint = null;
     updateCursor(null);
   }}
@@ -393,11 +509,38 @@
     cursor: crosshair;
   }
 
-  /* A pipette with its tip on the pixel picked, with a white halo to show on dark colors. */
-  .pick {
+  /* The view draws the pointer (see ownPointer). */
+  .own-pointer {
+    cursor: none;
+  }
+
+  /*
+   * Pixel-art tips: a small sight, like Aseprite's, white edged with black, open on the pixel.
+   * The system shows it: no delay. Drawn for each screen scale (image-set), else WebKitGTK
+   * stretches it on a scaled screen, its tip off its center.
+   */
+  .sight {
     cursor:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='white' stroke-width='4' d='m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12M18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414'/%3E%3Cpath stroke='black' stroke-width='2' d='m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12M18 9l.4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3zM2 22l.414-.414'/%3E%3C/svg%3E")
-        2 22,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 15 15'%3E%3Cpath d='M1.5 7.5H5M10 7.5h3.5M7.5 1.5V5M7.5 10v3.5' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3Cpath d='M1 7.5h4.5M9.5 7.5H14M7.5 1v4.5M7.5 9.5V14' stroke='white' stroke-width='1'/%3E%3C/svg%3E")
+        7 7,
+      crosshair;
+    cursor:
+      -webkit-image-set(
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 15 15'%3E%3Cpath d='M1.5 7.5H5M10 7.5h3.5M7.5 1.5V5M7.5 10v3.5' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3Cpath d='M1 7.5h4.5M9.5 7.5H14M7.5 1v4.5M7.5 9.5V14' stroke='white' stroke-width='1'/%3E%3C/svg%3E")
+            1x,
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 15 15'%3E%3Cpath d='M1.5 7.5H5M10 7.5h3.5M7.5 1.5V5M7.5 10v3.5' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3Cpath d='M1 7.5h4.5M9.5 7.5H14M7.5 1v4.5M7.5 9.5V14' stroke='white' stroke-width='1'/%3E%3C/svg%3E")
+            2x
+        )
+        7 7,
+      crosshair;
+    cursor:
+      image-set(
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 15 15'%3E%3Cpath d='M1.5 7.5H5M10 7.5h3.5M7.5 1.5V5M7.5 10v3.5' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3Cpath d='M1 7.5h4.5M9.5 7.5H14M7.5 1v4.5M7.5 9.5V14' stroke='white' stroke-width='1'/%3E%3C/svg%3E")
+            1x,
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 15 15'%3E%3Cpath d='M1.5 7.5H5M10 7.5h3.5M7.5 1.5V5M7.5 10v3.5' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3Cpath d='M1 7.5h4.5M9.5 7.5H14M7.5 1v4.5M7.5 9.5V14' stroke='white' stroke-width='1'/%3E%3C/svg%3E")
+            2x
+        )
+        7 7,
       crosshair;
   }
 
