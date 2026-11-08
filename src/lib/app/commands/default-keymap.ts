@@ -30,6 +30,8 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "[", command: "brush.shrink" },
 
     { keys: "ctrl+shift+n", command: "layer.add" },
+    { keys: "ctrl+j", command: "layer.duplicate" },
+    { keys: "ctrl+e", command: "layer.mergeDown" },
 
     { keys: "enter", command: "selection.apply" },
     { keys: "escape", command: "selection.cancel" },
@@ -44,6 +46,9 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "delete", command: "edit.clear" },
     { keys: "backspace", command: "edit.clear" },
     { keys: "ctrl+t", command: "edit.transform" },
+
+    { keys: "ctrl+alt+c", command: "image.canvasSize" },
+    { keys: "ctrl+alt+i", command: "image.imageSize" },
 
     { keys: "0", command: "view.fit" },
     { keys: "1", command: "view.actualSize" },

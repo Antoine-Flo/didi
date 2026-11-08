@@ -216,7 +216,9 @@
     padding: 2px;
   }
 
+  /* Its padding inside its width: the same space on both sides. */
   .tab-bar :global(.segmented) {
+    box-sizing: border-box;
     width: 100%;
   }
 

@@ -56,6 +56,8 @@ export interface AppHost {
   openCommandPalette(): void;
   /** Whether documents can be opened and saved as files. Without it, no such commands. */
   readonly canUseFiles: boolean;
+  /** Opens the dialog changing the canvas size, or the image size. */
+  openSizeDialog(kind: "canvas" | "image"): void;
   /** Shows a short message to the user, e.g. why a command did nothing. */
   notify(message: string): void;
   /** Closes the app (offering to save first). Null where it cannot: no such command. */
@@ -290,6 +292,17 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
         if (editor.transform()) selectionTool();
         else host.notify("Nothing to transform: nothing is drawn there.");
       },
+    }),
+
+    registry.register({
+      id: "image.canvasSize",
+      title: "Canvas size…",
+      run: () => host.openSizeDialog("canvas"),
+    }),
+    registry.register({
+      id: "image.imageSize",
+      title: "Image size…",
+      run: () => host.openSizeDialog("image"),
     }),
 
     registry.register({ id: "file.new", title: "New document…", run: () => host.newDocument() }),

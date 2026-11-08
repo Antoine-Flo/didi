@@ -143,6 +143,11 @@
     zoomBy(zoom / camera.zoom);
   }
 
+  /** Shows what a resize would give, without changing the drawing (see DrawingView). */
+  export function previewResize(preview: Parameters<DrawingView["setResizePreview"]>[0]) {
+    view?.setResizePreview(preview);
+  }
+
   export function rotateBy(angle: number) {
     setCamera(rotateAt(camera, center(), angle));
   }

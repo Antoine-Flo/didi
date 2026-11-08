@@ -34,6 +34,8 @@ export interface Mode {
   readonly eraserTool: string;
   /** The selection tool of this mode, for the shortcuts choosing a selection's shape. */
   readonly selectTool: string;
+  /** Scaling the image mixes pixels (painting), rather than keeping them whole (pixel art). */
+  readonly smoothScaling: boolean;
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }

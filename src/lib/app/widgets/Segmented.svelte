@@ -17,7 +17,9 @@
 
 <div class="segmented" role="radiogroup" aria-label={label}>
   {#each choices as choice (choice.value)}
+    <!-- Not a submit button, inside a form. -->
     <button
+      type="button"
       class:active={choice.value === value}
       role="radio"
       aria-checked={choice.value === value}

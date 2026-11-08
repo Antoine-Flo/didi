@@ -34,6 +34,11 @@ export function isTransparent(data: TileData): boolean {
   return true;
 }
 
+function sized(width: number, height: number) {
+  assertCanvasSize(width, height);
+  return { width, height, cols: Math.ceil(width / TILE_SIZE), rows: Math.ceil(height / TILE_SIZE) };
+}
+
 export function assertCanvasSize(width: number, height: number) {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
     throw new RangeError(`Invalid size ${width} × ${height}`);
@@ -41,17 +46,43 @@ export function assertCanvasSize(width: number, height: number) {
 }
 
 export class TileStore {
-  readonly cols: number;
-  readonly rows: number;
+  private size: { width: number; height: number; cols: number; rows: number };
   private tiles = new Map<number, TileData>();
 
-  constructor(
-    readonly width: number,
-    readonly height: number,
-  ) {
-    assertCanvasSize(width, height);
-    this.cols = Math.ceil(width / TILE_SIZE);
-    this.rows = Math.ceil(height / TILE_SIZE);
+  constructor(width: number, height: number) {
+    this.size = sized(width, height);
+  }
+
+  get width(): number {
+    return this.size.width;
+  }
+
+  get height(): number {
+    return this.size.height;
+  }
+
+  get cols(): number {
+    return this.size.cols;
+  }
+
+  get rows(): number {
+    return this.size.rows;
+  }
+
+  /**
+   * Changes the size and replaces every tile (the canvas was cropped, scaled, turned…).
+   * Returns the size and the tiles as they were, to undo it the same way.
+   */
+  reset(
+    width: number,
+    height: number,
+    tiles: ReadonlyMap<number, TileData | undefined>,
+  ): { width: number; height: number; tiles: TileSnapshot } {
+    const before = { width: this.width, height: this.height, tiles: new Map(this.tiles) };
+    this.size = sized(width, height);
+    this.tiles = new Map();
+    for (const [key, tile] of tiles) if (tile) this.tiles.set(key, tile);
+    return before;
   }
 
   get bounds(): Rect {

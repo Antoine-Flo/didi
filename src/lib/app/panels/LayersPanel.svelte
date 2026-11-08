@@ -36,8 +36,11 @@
 
   /** The layer menu, in groups: commands, and "rename", which edits the name in its row. */
   const MENU: string[][] = [
-    ["layer.add", "rename", "layer.remove"],
+    ["layer.add", "layer.duplicate", "rename", "layer.remove"],
     ["layer.moveUp", "layer.moveDown"],
+    ["layer.mergeDown", "layer.flatten"],
+    ["layer.clear", "layer.flipHorizontal", "layer.flipVertical"],
+    ["selection.layerContent"],
   ];
 
   const BLEND_LABELS: Record<BlendMode, string> = {
@@ -77,6 +80,8 @@
   $effect(() =>
     editor.drawing.subscribe((change) => {
       if (change.type === "pixels-changed") changed.add(change.id);
+      if (change.type === "canvas-resized")
+        for (const l of editor.drawing.layers) changed.add(l.id);
     }),
   );
   $effect(() => {
@@ -371,6 +376,7 @@
   .thumb-button {
     display: flex;
     flex: none;
+    align-items: center;
     padding: 0;
     background: none;
     border: none;

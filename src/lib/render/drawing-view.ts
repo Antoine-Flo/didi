@@ -134,6 +134,8 @@ export class DrawingView {
   /** Checkerboard in screen space (no moiré when zoomed or rotated), cut to the canvas. */
   private checker: TilingSprite;
   private checkerMask = new Graphics();
+  /** Cuts the layers to the canvas a resize would make, while it is previewed. */
+  private previewMask = new Graphics();
   private grid = new Graphics();
   private selection = new Graphics();
   private selectionPlace: Placement | null = null;
@@ -162,6 +164,7 @@ export class DrawingView {
     this.checker.mask = this.checkerMask;
     this.canvasRoot.addChild(
       this.checkerMask,
+      this.previewMask,
       this.layersRoot,
       this.grid,
       this.selectionDraft,
@@ -199,6 +202,24 @@ export class DrawingView {
     this.drawGrid(camera, view);
     this.drawSelection();
     this.drawCursor();
+  }
+
+  /**
+   * Shows what a new canvas size would give, without changing the drawing: the canvas
+   * (`rect`, in canvas pixels now: it may reach past them) and the layers in it, stretched by
+   * `scale` (an image scaled from the top left corner). Null: the drawing as it is.
+   */
+  setResizePreview(preview: { rect: Rect; scaleX: number; scaleY: number } | null) {
+    const { width, height } = this.drawing;
+    const rect = preview?.rect ?? { x: 0, y: 0, width, height };
+    this.checkerMask.clear().rect(rect.x, rect.y, rect.width, rect.height).fill(0xffffff);
+    this.previewMask.clear();
+    if (preview) this.previewMask.rect(rect.x, rect.y, rect.width, rect.height).fill(0xffffff);
+    this.layersRoot.mask = preview ? this.previewMask : null;
+    this.layersRoot.scale.set(preview?.scaleX ?? 1, preview?.scaleY ?? 1);
+    // The grid and the selection belong to the drawing as it is.
+    this.grid.visible = !preview;
+    this.selection.visible = !preview;
   }
 
   /** Shows the brush outline at a canvas position, or hides it. */

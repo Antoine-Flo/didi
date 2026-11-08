@@ -23,6 +23,7 @@
     { title: "Selection", prefixes: ["selection"] },
     { title: "Edit", prefixes: ["history", "edit"] },
     { title: "View", prefixes: ["view"] },
+    { title: "Image", prefixes: ["image"] },
     { title: "Layers", prefixes: ["layer"] },
     { title: "File", prefixes: ["file", "app", "mode"] },
   ];

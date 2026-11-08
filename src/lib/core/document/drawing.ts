@@ -38,7 +38,16 @@ export type DrawingChange =
    * each tile (in the same order, in pixels from the tile's top-left corner); otherwise the
    * whole tiles changed.
    */
-  | { type: "pixels-changed"; id: string; tiles: number[]; areas?: Rect[] };
+  | { type: "pixels-changed"; id: string; tiles: number[]; areas?: Rect[] }
+  /** The canvas changed size, and possibly every pixel of every layer with it. */
+  | { type: "canvas-resized" };
+
+/** A canvas size and every tile of each layer, by layer id: see `Drawing.resizeCanvas`. */
+export interface CanvasContent {
+  width: number;
+  height: number;
+  layers: ReadonlyMap<string, TileSnapshot>;
+}
 
 export class Drawing {
   /** Layers from bottom to top. */
@@ -46,11 +55,38 @@ export class Drawing {
   private nextId = 1;
   private changes = new Emitter<DrawingChange>();
 
-  constructor(
-    readonly width: number,
-    readonly height: number,
-  ) {
+  private size: { width: number; height: number };
+
+  constructor(width: number, height: number) {
     assertCanvasSize(width, height);
+    this.size = { width, height };
+  }
+
+  get width(): number {
+    return this.size.width;
+  }
+
+  get height(): number {
+    return this.size.height;
+  }
+
+  /**
+   * Changes the canvas size, and replaces the tiles of the layers given (all of them, as a
+   * rule: the others would no longer match). Returns the size and tiles as they were, to
+   * undo it the same way.
+   */
+  resizeCanvas(content: CanvasContent): CanvasContent {
+    const { width, height } = content;
+    assertCanvasSize(width, height);
+    const before = new Map<string, TileSnapshot>();
+    for (const layer of this.stack) {
+      const tiles = content.layers.get(layer.id) ?? new Map();
+      before.set(layer.id, layer.tiles.reset(width, height, tiles).tiles);
+    }
+    const previous = { ...this.size, layers: before };
+    this.size = { width, height };
+    this.changes.emit({ type: "canvas-resized" });
+    return previous;
   }
 
   /** Layers from bottom to top. Change them only through the drawing's methods. */

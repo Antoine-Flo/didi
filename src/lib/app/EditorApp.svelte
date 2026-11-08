@@ -32,6 +32,7 @@
   import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import ConfirmDialog from "#lib/app/dialogs/ConfirmDialog.svelte";
+  import ImageSizeDialog, { type SizeKind } from "#lib/app/dialogs/ImageSizeDialog.svelte";
   import ShortcutsDialog from "#lib/app/dialogs/ShortcutsDialog.svelte";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
   import { runCommand } from "#lib/app/commands/run-command.js";
@@ -151,6 +152,7 @@
   );
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
+  let sizeDialog = $state<SizeKind | null>(null);
 
   /** The pending confirmation (see ConfirmDialog), answered once. */
   let confirmRequest = $state<{
@@ -344,6 +346,7 @@
         return palettes;
       },
       notify,
+      openSizeDialog: (kind) => (sizeDialog = kind),
       importImage: () => fileInput.click(),
       newDocument: () => (startOpen = true),
       openDocument: (path) => session.open(path),
@@ -388,7 +391,12 @@
 
   /** A dialog is open: the menus do nothing, and the title bar is dimmed. */
   const dialogOpen = $derived(
-    startOpen || paletteOpen || shortcutsOpen || unsavedRequest !== null || confirmRequest !== null,
+    startOpen ||
+      paletteOpen ||
+      shortcutsOpen ||
+      sizeDialog !== null ||
+      unsavedRequest !== null ||
+      confirmRequest !== null,
   );
 
   /** Whether a command can run now, for menus. */
@@ -457,6 +465,20 @@
   $effect(() => {
     if (preview === "out") return sendToWindow(editor.drawing);
   });
+
+  // The canvas size, and a new view whenever it changes (cropped, scaled, turned…).
+  let canvasSize = $state({ width: 0, height: 0 });
+  let resizes = $state(0);
+  $effect(() => {
+    const { drawing } = editor;
+    canvasSize = { width: drawing.width, height: drawing.height };
+    return drawing.subscribe((change) => {
+      if (change.type !== "canvas-resized") return;
+      canvasSize = { width: drawing.width, height: drawing.height };
+      resizes++;
+    });
+  });
+  const viewKey = $derived({ editor, resizes });
 
   // Follows the open document's changes.
   $effect(() => {
@@ -573,8 +595,8 @@
   }}
 >
   <div class="canvas">
-    <!-- A new view for each document, fitted to the window. -->
-    {#key editor}
+    <!-- A new view for each document, fitted to the window, and when its size changes. -->
+    {#key viewKey}
       <CanvasView
         bind:this={canvasView}
         {editor}
@@ -623,12 +645,13 @@
         title="Color and palette"
         onclick={() => openTab("color")}
       >
-        <span class="swatch" style:border-color={swatchOutline}>
-          {#if options.color}
-            {@const [r, g, b] = options.color}
-            <span style:background="rgb({r} {g} {b})"></span>
-          {/if}
-        </span>
+        <span
+          class="swatch"
+          style:border-color={swatchOutline}
+          style:--swatch-color={options.color
+            ? `rgb(${options.color[0]} ${options.color[1]} ${options.color[2]})`
+            : undefined}
+        ></span>
       </button>
       <button
         class="icon"
@@ -802,6 +825,15 @@
 
 <CommandPalette {editor} {keymap} {run} bind:open={paletteOpen} />
 <ShortcutsDialog {editor} {keymap} bind:open={shortcutsOpen} />
+<ImageSizeDialog
+  bind:kind={sizeDialog}
+  width={canvasSize.width}
+  height={canvasSize.height}
+  smoothByDefault={mode.smoothScaling}
+  side={panelsOnLeft ? "right" : "left"}
+  {run}
+  onpreview={(preview) => canvasView?.previewResize(preview)}
+/>
 
 <StartScreen
   bind:open={startOpen}
@@ -956,19 +988,17 @@
 
   /* On a checkerboard, to show that there is no color. */
   .swatch {
-    width: calc(var(--control-height) - 8px);
-    height: calc(var(--control-height) - 8px);
-    overflow: hidden;
-    background: repeating-conic-gradient(var(--field-border) 0 25%, var(--field) 0 50%) 0 0 / 8px
-      8px;
+    box-sizing: border-box;
+    width: calc(var(--control-height) - 6px);
+    height: calc(var(--control-height) - 6px);
+    /* The color and the checkerboard in the round itself, not in a child it clips: its
+       edge stays smooth. */
+    background:
+      linear-gradient(var(--swatch-color, transparent), var(--swatch-color, transparent)),
+      repeating-conic-gradient(var(--field-border) 0 25%, var(--field) 0 50%) 0 0 / 8px 8px;
+    background-clip: padding-box;
     border: 1px solid var(--field-border);
     border-radius: 50%;
-  }
-
-  .swatch span {
-    display: block;
-    width: 100%;
-    height: 100%;
   }
 
   /* The hover color over the panel's, which may be see-through. */

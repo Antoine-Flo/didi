@@ -29,6 +29,7 @@ function setup(withView = true) {
     togglePanels: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
     notify: vi.fn(),
+    openSizeDialog: vi.fn(),
     importImage: vi.fn(),
     newDocument: vi.fn(),
     openDocument: vi.fn(),

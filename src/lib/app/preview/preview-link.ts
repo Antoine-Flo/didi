@@ -69,6 +69,8 @@ export class PreviewSender {
     private post: (message: ToPreview) => void,
   ) {
     this.unsubscribe = drawing.subscribe((change) => {
+      // A new size: the whole image again, with its size.
+      if (change.type === "canvas-resized") return this.sendAll();
       const rect = changedRect(change, drawing);
       if (rect) this.invalidate(rect);
     });
