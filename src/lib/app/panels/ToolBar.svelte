@@ -1,27 +1,23 @@
 <script lang="ts">
   // The bar above the canvas: the active tool's options, and on the side, actions on the document.
+  // When compact (in the title bar), only the sliders: the other options are in the tool's
+  // popup (see ToolButton), the actions at the bottom (see EditorApp).
 
   import type { Snippet } from "svelte";
-  import Segmented from "#lib/app/widgets/Segmented.svelte";
-  import Slider from "#lib/app/widgets/Slider.svelte";
+  import ToolField from "#lib/app/panels/ToolField.svelte";
   import {
-    sizeFromSlider,
-    sliderFromSize,
+    isSliderField,
     type ColorPreview,
     type Tool,
     type ToolSettings,
   } from "#lib/app/tools/tool.js";
-  import { m } from "#lib/paraglide/messages.js";
 
   let {
     tool,
     settings,
     preview,
     actions,
-    bare = false,
-    wrap = false,
-    wrapSide = "right",
-    onoverflow,
+    compact = false,
   }: {
     tool: Tool;
     /** The tool's settings, changed in place by the controls. */
@@ -30,107 +26,37 @@
     preview?: ColorPreview | null;
     /** On the right, whatever the tool. Coming and going, they don't move the options. */
     actions?: Snippet;
-    /** Without its panel's background and border: inside another bar (the title bar). */
-    bare?: boolean;
-    /** On several lines if need be, centered: a line of its own on a narrow screen. */
-    wrap?: boolean;
-    /** Wrapped, the side of the next lines: away from the panels' tab. */
-    wrapSide?: "left" | "right";
-    /** How much wider the options would need to be to fit, in pixels: 0 if they fit. */
-    onoverflow?: (pixels: number) => void;
+    /** In the title bar, without its panel's background and border: only the sliders. */
+    compact?: boolean;
   } = $props();
 
-  type Field = NonNullable<Tool["fields"]>[number];
-  const isSlider = (field: Field) =>
-    field.kind === "size" || field.kind === "integer" || field.kind === "percent";
-  const sliders = $derived((tool.fields ?? []).filter(isSlider));
-  const rest = $derived((tool.fields ?? []).filter((field) => !isSlider(field)));
-
-  let optionsElement: HTMLElement;
-  let optionsWidth = $state(0);
-  $effect(() => {
-    void optionsWidth;
-    void tool;
-    void preview;
-    onoverflow?.(Math.max(0, optionsElement.scrollWidth - optionsElement.clientWidth));
-  });
+  const sliders = $derived((tool.fields ?? []).filter(isSliderField));
+  const rest = $derived((tool.fields ?? []).filter((field) => !isSliderField(field)));
 </script>
 
-{#snippet control(field: Field)}
-  {@const value = settings[field.key]}
-  {#if field.kind === "size" && typeof value === "number"}
-    <Slider
-      label={field.label}
-      min={0}
-      max={1}
-      step={0.001}
-      value={sliderFromSize(value)}
-      display={m.toolbar_size_px({ size: value })}
-      oninput={(v) => (settings[field.key] = sizeFromSlider(v))}
-    />
-  {:else if field.kind === "integer" && typeof value === "number"}
-    <Slider
-      label={field.label}
-      min={field.min}
-      max={field.max}
-      step={1}
-      {value}
-      display={field.unit ? m.toolbar_value_unit({ value, unit: field.unit }) : `${value}`}
-      oninput={(v) => (settings[field.key] = v)}
-    />
-  {:else if field.kind === "percent" && typeof value === "number"}
-    <Slider
-      label={field.label}
-      {value}
-      display={m.toolbar_percent({ percent: Math.round(value * 100) })}
-      oninput={(v) => (settings[field.key] = v)}
-    />
-  {:else if field.kind === "toggle" && typeof value === "boolean"}
-    <label class="check" title={field.title}>
-      <input
-        type="checkbox"
-        checked={value}
-        onchange={(e) => (settings[field.key] = e.currentTarget.checked)}
-      />
-      {field.label}
-    </label>
-  {:else if field.kind === "choice" && typeof value === "string"}
-    <Segmented
-      label={field.label}
-      {value}
-      choices={field.choices}
-      onselect={(v) => (settings[field.key] = v)}
-    />
-  {/if}
-{/snippet}
-
-<!-- Wrapped (a narrow screen), each group is a panel of its own, as wide as its content: the
-     sliders together, never broken, then each of the other controls and the actions, beside
-     or below, against the side away from the panels' tab. -->
-<div class="toolbar" class:panel={!bare && !wrap} class:wrap class:wrap-left={wrapSide === "left"}>
-  <div class="options" bind:this={optionsElement} bind:clientWidth={optionsWidth}>
-    <div class="group sliders" class:panel={wrap}>
-      <!-- Not when wrapped: a narrow screen, where the panels' tab shows the color. -->
-      {#if preview && !wrap}
-        <span class="swatch" aria-hidden="true">
-          {#if preview.color}
-            {@const [r, g, b] = preview.color}
-            <span style:background="rgb({r} {g} {b} / {preview.opacity})"></span>
-          {/if}
-        </span>
-      {/if}
-      {#each sliders as field (field.key)}
-        {@render control(field)}
-      {/each}
-    </div>
-    {#each rest as field (field.key)}
-      <div class="group" class:panel={wrap}>{@render control(field)}</div>
-    {:else}
-      {#if !tool.fields?.length && tool.hint}
-        <div class="group" class:panel={wrap}><span class="hint">{tool.hint}</span></div>
-      {/if}
+<div class="toolbar" class:panel={!compact} class:compact>
+  <div class="options">
+    <!-- Not when compact: the panels' tab shows the color. -->
+    {#if preview && !compact}
+      <span class="swatch" aria-hidden="true">
+        {#if preview.color}
+          {@const [r, g, b] = preview.color}
+          <span style:background="rgb({r} {g} {b} / {preview.opacity})"></span>
+        {/if}
+      </span>
+    {/if}
+    {#each sliders as field (field.key)}
+      <ToolField {field} {settings} />
     {/each}
-    <div class="group actions" class:panel={wrap}>{@render actions?.()}</div>
+    {#if !compact}
+      {#each rest as field (field.key)}
+        <ToolField {field} {settings} />
+      {/each}
+      <div class="actions">{@render actions?.()}</div>
+    {/if}
+    {#if !tool.fields?.length && tool.hint}
+      <span class="hint">{tool.hint}</span>
+    {/if}
   </div>
 </div>
 
@@ -151,59 +77,26 @@
     min-width: 0;
     /* Room for the focus outline, which the clipping would hide. */
     padding: 2px var(--space);
-    /* Too narrow for the sliders' smallest, for a moment: the bar then moves (see EditorApp). */
     overflow: hidden;
   }
 
-  /* On one line, the groups are not boxes. */
-  .group {
-    display: contents;
+  .actions {
+    display: flex;
+    gap: var(--space);
+  }
+
+  .actions:empty {
+    display: none;
   }
 
   .actions :global(*) {
     white-space: nowrap;
   }
 
-  /* Wrapped: no bar, a panel per group, the window's gutter between them, each as high as
-     the bar. The sliders, first, are centered on their line. */
-  .toolbar.wrap {
-    height: auto;
-    padding: 0;
-    pointer-events: none;
-  }
-
-  .wrap .options {
-    flex: 1;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: var(--space);
-    padding: 0;
-    overflow: visible;
-  }
-
-  .wrap-left .options {
-    justify-content: flex-start;
-  }
-
-  .wrap .group {
-    display: flex;
-    flex: 0 1 auto;
-    align-items: center;
-    gap: var(--space);
-    box-sizing: border-box;
-    min-width: 0;
-    /* As high as the bar, whatever they hold (a checkbox is lower than a button). */
-    height: var(--bar-height);
-    padding: 0 calc(var(--space) / 2);
-    pointer-events: auto;
-  }
-
-  .wrap .sliders {
-    margin: 0 auto;
-  }
-
-  .wrap .group:not(:has(*)) {
-    display: none;
+  .hint {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   /* A fixed width: the bar does not change size while a value changes. Short of room, the
@@ -212,6 +105,11 @@
     flex: 0 1 auto;
     width: calc(180px * var(--ui-scale));
     min-width: calc(120px * var(--ui-scale));
+  }
+
+  /* Compact (down to a phone): narrower still, to fit beside the title bar's buttons. */
+  .compact :global(.slider) {
+    min-width: calc(90px * var(--ui-scale));
   }
 
   /* On a checkerboard, to show the opacity, or that there is no color. */
@@ -229,13 +127,5 @@
     display: block;
     width: 100%;
     height: 100%;
-  }
-
-  .check {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: calc(var(--space) / 2);
-    white-space: nowrap;
   }
 </style>

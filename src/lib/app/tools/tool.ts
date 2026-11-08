@@ -60,6 +60,10 @@ export type ToolField =
       choices: readonly { value: string; label: string; title?: string }[];
     };
 
+/** A slider: in view in the options' bar even when compact (see ToolBar). */
+export const isSliderField = (field: ToolField) =>
+  field.kind === "size" || field.kind === "integer" || field.kind === "percent";
+
 /** A color shown in the tool bar. */
 export interface ColorPreview {
   /** Straight RGB, 0-255. Null: no color. */

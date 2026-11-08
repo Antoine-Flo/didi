@@ -409,5 +409,6 @@
   "theme_canvas_pick": "Choose the color around the drawing",
   "theme_canvas_reset": "Back to the theme's color",
   "theme_color": "Color",
-  "theme_grayscale": "Grayscale"
+  "theme_grayscale": "Grayscale",
+  "editor_history": "Undo and redo"
 }

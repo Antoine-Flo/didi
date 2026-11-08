@@ -1,9 +1,11 @@
 <script lang="ts">
   // The menus of the title bar (File, Edit…), drawn by the app (Bits UI). Each item runs a
   // command, with the command's title and shortcut; a disabled command shows a disabled
-  // item. Menus come from data (see default-menus.ts).
+  // item. Menus come from data (see default-menus.ts). Collapsed (a small screen), one
+  // button opens them all, one page at a time: a submenu replaces its menu, with a way back
+  // at the top, rather than opening beside it, past the screen's edge.
 
-  import { ChevronRight, Menu } from "@lucide/svelte";
+  import { ChevronLeft, ChevronRight, Menu } from "@lucide/svelte";
   import { Menubar } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
@@ -32,12 +34,17 @@
     run: (command: string, params?: unknown) => void;
   } = $props();
 
+  type Submenu = Extract<MenuEntry, { items: MenuEntry[] }>;
+  /** Collapsed, the submenus opened, from the first: the last one is shown. */
+  let pages = $state<Submenu[]>([]);
+
   // While a menu is open, a click on the canvas only closes it.
   let open = false;
   function setValue(value: string) {
     const next = value !== "";
     if (next === open) return;
     open = next;
+    pages = [];
     if (next) popupOpened();
     else popupClosed();
   }
@@ -49,6 +56,16 @@
   {#each items as entry, i (i)}
     {#if entry === "separator"}
       <Menubar.Separator class="menu-separator" />
+    {:else if "items" in entry && collapsed}
+      <Menubar.Item
+        class="menu-item"
+        disabled={entry.items.length === 0}
+        closeOnSelect={false}
+        onSelect={() => (pages = [...pages, entry])}
+      >
+        {entry.label}
+        <span class="menu-item-end"><ChevronRight class="icon-small" /></span>
+      </Menubar.Item>
     {:else if "items" in entry}
       <Menubar.Sub>
         <Menubar.SubTrigger class="menu-item" disabled={entry.items.length === 0}>
@@ -80,8 +97,27 @@
         <Menu />
       </Menubar.Trigger>
       <Menubar.Portal>
-        <Menubar.Content class="menu-content menubar-content" align="start" sideOffset={2}>
-          {@render entries(menus.map((m) => ({ label: m.title, items: m.items })))}
+        <Menubar.Content
+          class="menu-content menubar-content"
+          align="start"
+          sideOffset={2}
+          collisionPadding={8}
+        >
+          {@const page = pages.at(-1)}
+          {#if page}
+            <Menubar.Item
+              class="menu-item menu-back"
+              closeOnSelect={false}
+              onSelect={() => (pages = pages.slice(0, -1))}
+            >
+              <ChevronLeft class="icon-small" />
+              {page.label}
+            </Menubar.Item>
+            <Menubar.Separator class="menu-separator" />
+            {@render entries(page.items)}
+          {:else}
+            {@render entries(menus.map((m) => ({ label: m.title, items: m.items })))}
+          {/if}
         </Menubar.Content>
       </Menubar.Portal>
     </Menubar.Menu>
@@ -134,5 +170,11 @@
 
   :global(.menubar-content) {
     min-width: calc(220px * var(--ui-scale));
+  }
+
+  /* The way back to the menu above: its name, muted, like a title. */
+  :global(.menu-item.menu-back) {
+    gap: calc(var(--space) / 2);
+    color: var(--text-muted);
   }
 </style>

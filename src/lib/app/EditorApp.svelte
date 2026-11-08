@@ -253,8 +253,10 @@
   }
 
   // Compact: for a narrow or low window (a small tablet, a phone, landscape included), or
-  // always or never, as chosen in the layout menu. The tool's options go into the title
-  // bar's line, the menus behind one button, and there is no status bar.
+  // always or never, as chosen in the preferences. The tool's sliders go into the title
+  // bar, instead of the document's name, and its other options into its popup (see
+  // ToolButton); the menus are behind one button, and there is no status bar: undo and redo
+  // float in its corner, below the tools, with the actions on the selection.
   //
   // The panels' column can be closed, to make room. When compact, it starts closed, and
   // opening it lasts until the layout is compact again; otherwise the user's choice is kept
@@ -274,35 +276,6 @@
   });
   const panelsOpen = $derived(compact ? openWhileCompact : layout.panelsOpen);
 
-  // When compact, the tool's options are in the title bar's line; if they don't fit there
-  // (a phone held upright), they get a line of their own below it, the whole width, and the
-  // panels and tools go down by a line. The window's width they need is kept, to go back up
-  // once it has it again; they try again with another tool, or interface size.
-  /** How much wider the options would need to be, in pixels (see ToolBar). */
-  let toolBarOverflow = $state(0);
-  let optionsBelow = $state(false);
-  let widthNeeded = 0;
-  $effect(() => {
-    void shownTool.id;
-    void uiScale;
-    optionsBelow = false;
-  });
-  $effect(() => {
-    if (!compact) return;
-    if (!optionsBelow && toolBarOverflow > 0) {
-      widthNeeded = appWidth + toolBarOverflow;
-      optionsBelow = true;
-    } else if (optionsBelow && appWidth >= widthNeeded) {
-      optionsBelow = false;
-    }
-  });
-  /** Below this width (at 100% interface size), the options are always below: they don't
-   *  move from one tool to the next. */
-  const OPTIONS_BELOW_WIDTH = 570;
-  const optionsLine = $derived(
-    compact && (optionsBelow || appWidth < OPTIONS_BELOW_WIDTH * uiScale),
-  );
-  const optionsInTitle = $derived(compact && !optionsLine);
   /** Opening or closing, animated: not while the column is resized. */
   let sliding = $state(false);
   let slideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -557,7 +530,7 @@
   $effect(() => {
     windowTitle.menu = menuBar;
     windowTitle.end = titleEnd;
-    windowTitle.center = optionsInTitle && !interfaceHidden ? toolBar : null;
+    windowTitle.center = compact && !interfaceHidden ? toolBar : null;
     return () => {
       windowTitle.center = null;
       windowTitle.dimmed = false;
@@ -629,7 +602,6 @@
   class:sliding
   class:compact
   class:interface-hidden={interfaceHidden}
-  class:options-below={optionsLine}
   bind:clientWidth={appWidth}
   bind:clientHeight={appHeight}
   style:--panel-width={scaledSize(panelWidth)}
@@ -753,11 +725,10 @@
     />
   </div>
 
-  <!-- The active tool's options, centered above the canvas. -->
-  <!-- When compact, the options are in the title bar's line (or below it, short of room),
-       and messages float at the bottom. -->
+  <!-- The active tool's options, centered above the canvas. When compact, they are in the
+       title bar, and messages float at the bottom. -->
   <div class="bar top" bind:this={top}>
-    {#if !optionsInTitle}{@render toolBar()}{/if}
+    {#if !compact}{@render toolBar()}{/if}
   </div>
 
   {#if preview === "in"}
@@ -786,6 +757,24 @@
       <div class="panel message" class:error={!session.busy}>{session.busy ?? error}</div>
     {/if}
   </div>
+
+  <!-- When compact, undo and redo below the tools, in the status bar's corner: no keyboard
+       on a phone, and within the other hand's reach. Beside them, the actions on the
+       selection, while there is one. -->
+  {#if compact}
+    <div class="corner">
+      <div class="panel history" role="group" aria-label={m.editor_history()}>
+        {#each ["history.undo", "history.redo"] as id (id)}
+          <button class="icon" title={tip(id)} disabled={!enabled(id)} onclick={() => run(id)}>
+            {#if id === "history.undo"}<Undo2 />{:else}<Redo2 />{/if}
+          </button>
+        {/each}
+      </div>
+      {#if enabled("selection.deselect")}
+        <div class="panel actions">{@render selectionActions()}</div>
+      {/if}
+    </div>
+  {/if}
 
   <input
     bind:this={paletteInput}
@@ -816,35 +805,20 @@
     tool={shownTool}
     settings={options.tools[shownTool.id]}
     preview={toolPreview}
-    bare={optionsInTitle}
-    wrap={optionsLine}
-    wrapSide={panelsOnLeft ? "right" : "left"}
-    onoverflow={(pixels) => (toolBarOverflow = pixels)}
-  >
-    {#snippet actions()}
-      {#if enabled("selection.deselect")}
-        <button title={tip("selection.deselect")} onclick={() => run("selection.deselect")}>
-          {m.editor_deselect()}
-        </button>
-      {/if}
-    {/snippet}
-  </ToolBar>
+    {compact}
+    actions={selectionActions}
+  />
 {/snippet}
 
-<!-- When compact, undo and redo before the layout menu: no keyboard on a phone. -->
-{#snippet titleEnd()}
-  {#if compact}
-    {#each ["history.undo", "history.redo"] as id (id)}
-      <button
-        class="title-button"
-        title={tip(id)}
-        disabled={dialogOpen || !enabled(id)}
-        onclick={() => run(id)}
-      >
-        {#if id === "history.undo"}<Undo2 />{:else}<Redo2 />{/if}
-      </button>
-    {/each}
+{#snippet selectionActions()}
+  {#if enabled("selection.deselect")}
+    <button title={tip("selection.deselect")} onclick={() => run("selection.deselect")}>
+      {m.editor_deselect()}
+    </button>
   {/if}
+{/snippet}
+
+{#snippet titleEnd()}
   {@render layoutMenu()}
 {/snippet}
 
@@ -929,8 +903,7 @@
     --tool-column-width: calc(var(--control-height) + var(--space) + 2px);
     /* Below the title bar. */
     --top-inset: calc(var(--titlebar-height) + var(--space));
-    /* Where the panels and the tools start: lower when the options have a line of their
-       own (see .options-below). */
+    /* Where the panels and the tools start. */
     --content-top: var(--top-inset);
     /* Like the title bar. */
     --bar-height: calc(var(--control-height) + var(--space));
@@ -1119,21 +1092,28 @@
     pointer-events: none;
   }
 
-  .compact .tool-track {
+  /* Undo and redo, in the status bar's corner on the tools' side, below them, then the
+     actions on the selection, towards the middle. */
+  .corner {
+    position: absolute;
+    z-index: 1;
     bottom: var(--space);
+    right: calc(var(--column-space) + var(--space));
+    display: flex;
+    flex-direction: row-reverse;
+    gap: var(--space);
   }
 
-  /* Compact, the options' line below the title bar, the whole width. The panels' tab and
-     the tools go below its first line: the next one is on the other side (see ToolBar). */
-  .options-below {
-    --content-top: calc(var(--top-inset) + var(--bar-height) + var(--space));
+  .panels-left .corner {
+    right: auto;
+    left: calc(var(--column-space) + var(--space));
+    flex-direction: row;
   }
 
-  .compact.options-below .top {
-    top: var(--top-inset);
-    left: var(--space);
-    right: var(--space);
-    height: auto;
+  .corner .panel {
+    display: flex;
+    gap: 2px;
+    padding: calc(var(--space) / 2);
   }
 
   .message {
@@ -1150,12 +1130,13 @@
   }
 
   /* Only the canvas (Tab): the panels, the tools and the bars go. */
-  .interface-hidden :is(.panel-column, .panels-tab, .column-edge, .tool-track, .top, .bottom) {
+  .interface-hidden
+    :is(.panel-column, .panels-tab, .column-edge, .tool-track, .top, .bottom, .corner) {
     visibility: hidden;
   }
 
   /* Opening or closing: everything beside the column follows it. */
-  .sliding :is(.panel-column, .panels-tab, .tool-track, .top, .bottom) {
+  .sliding :is(.panel-column, .panels-tab, .tool-track, .top, .bottom, .corner) {
     transition:
       transform 0.2s ease,
       visibility 0.2s,

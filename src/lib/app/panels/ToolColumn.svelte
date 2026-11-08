@@ -118,7 +118,15 @@
     {/if}
     {#if entry.kind === "tool"}
       {@const t = entry.tool}
-      <ToolButton tool={t} active={active === t.id} settings={settings[t.id]} {side} {tip} {run} />
+      <ToolButton
+        tool={t}
+        active={active === t.id}
+        settings={settings[t.id]}
+        {side}
+        {compact}
+        {tip}
+        {run}
+      />
     {:else}
       {@const t = shownTool(entry.tools, active, lastUsed[entry.group.id])}
       <ToolButton
@@ -127,6 +135,7 @@
         active={active === t.id}
         settings={settings[t.id]}
         {side}
+        {compact}
         {tip}
         {run}
       />
