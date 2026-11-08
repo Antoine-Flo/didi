@@ -36,6 +36,8 @@ export interface Mode {
   readonly selectTool: string;
   /** Scaling the image mixes pixels (painting), rather than keeping them whole (pixel art). */
   readonly smoothScaling: boolean;
+  /** Two fingers turn the view (painting), or only move and zoom it (pixel art). */
+  readonly touchRotation: boolean;
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }

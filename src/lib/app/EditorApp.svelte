@@ -215,6 +215,21 @@
   // The layout (the side of the panels, the sizes of resizable panels), kept from one
   // session to the next.
   const layout = new LayoutPrefs();
+  /**
+   * The screen takes fingers: the finger drawing option shows. Else (a PC, a graphics tablet)
+   * it would only clutter the menu. Also once a finger touched it, if the browser did not say.
+   */
+  let touchScreen = $state(
+    navigator.maxTouchPoints > 0 || matchMedia("(any-pointer: coarse)").matches,
+  );
+  $effect(() => {
+    if (touchScreen) return;
+    const onPointer = (e: PointerEvent) => {
+      if (e.pointerType === "touch") touchScreen = true;
+    };
+    window.addEventListener("pointerdown", onPointer, { capture: true });
+    return () => window.removeEventListener("pointerdown", onPointer, { capture: true });
+  });
   /** The interface size as a factor. Saved panel sizes are at 100%: they follow it. */
   const uiScale = $derived(layout.uiScale / 100);
   $effect(() => document.documentElement.style.setProperty("--ui-scale", String(uiScale)));
@@ -631,9 +646,13 @@
         hoverCursor={(p, zoom) => activeTool.hover?.(editor, p, zoom) ?? null}
         selectionHandles={isSelectTool(activeTool)}
         pixelGrid={layout.pixelGrid}
+        touchRotation={mode.touchRotation}
+        fingerDraws={layout.fingerDraws}
+        onpen={() => layout.notePen()}
         {insets}
         oncamera={(c) => (camera = c)}
         oncursor={(p) => (cursor = p)}
+        oncommand={(id) => run(id)}
       />
     {/key}
   </div>
@@ -834,6 +853,9 @@
     onUiScale={(scale) => (layout.uiScale = scale)}
     compact={layout.compact}
     onCompact={(mode) => (layout.compact = mode)}
+    fingerDrawing={touchScreen ? layout.fingerDrawing : null}
+    penSeen={layout.penSeen}
+    onFingerDrawing={(mode) => (layout.fingerDrawing = mode)}
     preview={preview !== "off"}
     onPreview={(open) => setPreview(open ? "in" : "off")}
     {fullScreen}

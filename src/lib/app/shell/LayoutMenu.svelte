@@ -3,7 +3,7 @@
   // on one line each, a label on the left and its controls on the right. Using one leaves
   // the menu open, to see the result and try another: the document's mode, the side of the
   // panels (a small sketch for each, the active one highlighted), the compact layout, the
-  // interface size, the preview window and full screen.
+  // interface size, finger drawing (on touch screens only), the preview window and full screen.
 
   import { PanelsTopLeft, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { DropdownMenu } from "bits-ui";
@@ -13,6 +13,7 @@
   import { m } from "#lib/paraglide/messages.js";
   import {
     type CompactMode,
+    type FingerDrawing,
     type Hand,
     UI_SCALE_MAX,
     UI_SCALE_MIN,
@@ -30,6 +31,9 @@
     run,
     onUiScale,
     onCompact,
+    fingerDrawing = null,
+    penSeen = false,
+    onFingerDrawing,
     preview,
     onPreview,
     fullScreen,
@@ -48,6 +52,11 @@
     run: (command: string) => void;
     onUiScale: (scale: number) => void;
     onCompact: (mode: CompactMode) => void;
+    /** Null hides the option: not a touch screen. */
+    fingerDrawing?: FingerDrawing | null;
+    /** A pen was used: "Auto" then means the fingers move the view. */
+    penSeen?: boolean;
+    onFingerDrawing?: (mode: FingerDrawing) => void;
     /** The preview window is open. */
     preview: boolean;
     onPreview: (open: boolean) => void;
@@ -59,6 +68,16 @@
     { mode: "auto", label: m.layout_compact_auto, title: m.layout_compact_auto_title },
     { mode: "on", label: m.layout_on, title: m.layout_compact_on_title },
     { mode: "off", label: m.layout_off, title: m.layout_compact_off_title },
+  ];
+
+  const FINGER: { mode: FingerDrawing; label: () => string; title: () => string }[] = [
+    {
+      mode: "auto",
+      label: m.layout_compact_auto,
+      title: () => (penSeen ? m.layout_finger_auto_pen_title() : m.layout_finger_auto_title()),
+    },
+    { mode: "on", label: m.layout_on, title: m.layout_finger_on_title },
+    { mode: "off", label: m.layout_off, title: m.layout_finger_off_title },
   ];
 
   const PREVIEW: { open: boolean; label: () => string; title: () => string }[] = [
@@ -198,6 +217,26 @@
           </DropdownMenu.Item>
         </div>
       </DropdownMenu.Group>
+      {#if fingerDrawing}
+        <DropdownMenu.Group class="layout-option">
+          <DropdownMenu.GroupHeading class="layout-option-label"
+            >{m.layout_finger_drawing()}</DropdownMenu.GroupHeading
+          >
+          <div class="controls side">
+            {#each FINGER as option (option.mode)}
+              <DropdownMenu.Item
+                class="menu-item layout-text-item"
+                data-active={option.mode === fingerDrawing ? "" : undefined}
+                title={option.title()}
+                closeOnSelect={false}
+                onSelect={() => onFingerDrawing?.(option.mode)}
+              >
+                {option.label()}
+              </DropdownMenu.Item>
+            {/each}
+          </div>
+        </DropdownMenu.Group>
+      {/if}
       <DropdownMenu.Group class="layout-option">
         <DropdownMenu.GroupHeading class="layout-option-label"
           >{m.preview_title()}</DropdownMenu.GroupHeading

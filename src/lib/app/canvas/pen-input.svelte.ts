@@ -2,7 +2,8 @@
 // or from native pen events (Linux), and with which end of the pen. The view (CanvasView)
 // turns events into samples and handles panning; the painter draws.
 //
-// When native pen events are available, they draw, and DOM pointer events only pan the view.
+// When native pen events are available, they draw, and DOM pointer events only pan the view,
+// except for fingers: they always come as DOM events (see touch-gestures.ts).
 
 import type { Painter } from "#lib/app/canvas/painter.js";
 import type { Sample } from "#lib/app/tools/tool.js";
@@ -35,6 +36,8 @@ export class PenInput {
 
   /** Native pen events draw. */
   private native = false;
+  /** The stroke in progress comes from DOM events, even with native ones (a finger). */
+  private domStroke = false;
   /** Pending end of a native stroke, see `onNative`. */
   private pendingEnd: ReturnType<typeof setTimeout> | null = null;
 
@@ -45,26 +48,33 @@ export class PenInput {
     this.native = true;
   }
 
-  /** A DOM press with the tip or the eraser end. Returns whether a stroke started. */
-  domDown(sample: Sample, eraser: boolean): boolean {
-    if (this.native || this.host.consumeDismissal()) return false;
+  /**
+   * A DOM press with the tip or the eraser end. Returns whether a stroke started. `finger`:
+   * fingers draw from DOM events even when the pen's are native.
+   */
+  domDown(sample: Sample, eraser: boolean, finger = false): boolean {
+    if ((this.native && !finger) || this.stroking || this.host.consumeDismissal()) return false;
     this.stroking = this.host.painter.begin(sample, eraser);
     this.strokeEraser = eraser;
+    this.domStroke = this.stroking;
     return this.stroking;
   }
 
   domMove(samples: readonly Sample[]) {
-    if (this.stroking && !this.native) this.host.painter.move(samples);
+    if (this.stroking && this.domStroke) this.host.painter.move(samples);
   }
 
   domUp() {
-    if (!this.stroking || this.native) return;
+    if (!this.stroking || !this.domStroke) return;
     this.host.painter.end();
     this.stroking = false;
+    this.domStroke = false;
   }
 
   onNative(e: PenEvent) {
     if (e.source === "pen" || e.source === "eraser") this.hoverEraser = e.source === "eraser";
+    // Fingers come as DOM events too: they are handled there. A finger is drawing: the pen waits.
+    if (e.source === "touch" || this.domStroke) return;
     if (e.phase === "move") {
       if (!this.stroking) return;
       if (!e.pressed && this.pendingEnd === null) {
@@ -99,6 +109,7 @@ export class PenInput {
     this.clearPendingEnd();
     if (this.stroking) this.host.painter.end();
     this.stroking = false;
+    this.domStroke = false;
   }
 
   /**
@@ -110,6 +121,7 @@ export class PenInput {
     this.clearPendingEnd();
     this.host.painter.cancel();
     this.stroking = false;
+    this.domStroke = false;
     return true;
   }
 

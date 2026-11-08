@@ -1,7 +1,8 @@
 // The user's layout preferences, saved in the app data folder so they are kept from one
 // session to the next: the hand (the panels on the left for right-handed users, on the
 // right for left-handed ones), where the tool column sits along it, the interface size, and
-// whether the layout is compact, whether the panels' column is open (on a wide window; see EditorApp), the sizes of
+// whether the layout is compact, whether the panels' column is open (on a wide window; see
+// EditorApp), whether one finger draws on a touch screen (see touch-gestures.ts), the sizes of
 // resizable panels, in pixels at 100% interface size, by panel id (e.g.
 // "palette"; a panel without a size has its default one, see the Splitter widget). The
 // same in every mode: switching modes moves nothing.
@@ -18,6 +19,9 @@ export type Hand = "right" | "left";
 /** The compact layout: on a small window ("auto"), always, or never. */
 export type CompactMode = "auto" | "on" | "off";
 const COMPACT_MODES: readonly CompactMode[] = ["auto", "on", "off"];
+/** One finger draws: until a pen is used ("auto"), always, or never (it moves the view). */
+export type FingerDrawing = "auto" | "on" | "off";
+const FINGER_DRAWINGS: readonly FingerDrawing[] = ["auto", "on", "off"];
 
 /** The interface size, in percent. Barely below 100: the interface is already compact. */
 export const UI_SCALE_MIN = 90;
@@ -35,6 +39,9 @@ export interface LayoutPrefsData {
   /** The pixels' grid shows when zoomed in. */
   pixelGrid: boolean;
   compact: CompactMode;
+  fingerDrawing: FingerDrawing;
+  /** A pen was used on this device: with "auto", one finger then moves the view. */
+  penSeen: boolean;
   sizes: Record<string, number>;
 }
 
@@ -70,6 +77,10 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   if ("compact" in data && COMPACT_MODES.includes(data.compact as CompactMode)) {
     prefs.compact = data.compact as CompactMode;
   }
+  if ("fingerDrawing" in data && FINGER_DRAWINGS.includes(data.fingerDrawing as FingerDrawing)) {
+    prefs.fingerDrawing = data.fingerDrawing as FingerDrawing;
+  }
+  if ("penSeen" in data && typeof data.penSeen === "boolean") prefs.penSeen = data.penSeen;
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};
     for (const [id, size] of Object.entries(data.sizes)) {
@@ -88,6 +99,8 @@ export class LayoutPrefs {
     panelsOpen: true,
     pixelGrid: false,
     compact: "auto",
+    fingerDrawing: "auto",
+    penSeen: false,
     sizes: {},
   });
   /** Changed before loading: kept over the saved values. */
@@ -98,6 +111,8 @@ export class LayoutPrefs {
     panelsOpen?: true;
     pixelGrid?: true;
     compact?: true;
+    fingerDrawing?: true;
+    penSeen?: true;
     sizes: string[];
   } = { sizes: [] };
   private loaded = false;
@@ -176,6 +191,35 @@ export class LayoutPrefs {
     this.scheduleSave();
   }
 
+  get fingerDrawing(): FingerDrawing {
+    return this.data.fingerDrawing;
+  }
+
+  set fingerDrawing(mode: FingerDrawing) {
+    if (mode === this.data.fingerDrawing) return;
+    this.data.fingerDrawing = mode;
+    if (!this.loaded) this.changed.fingerDrawing = true;
+    this.scheduleSave();
+  }
+
+  get penSeen(): boolean {
+    return this.data.penSeen;
+  }
+
+  /** A pen was used: kept for good. */
+  notePen() {
+    if (this.data.penSeen) return;
+    this.data.penSeen = true;
+    if (!this.loaded) this.changed.penSeen = true;
+    this.scheduleSave();
+  }
+
+  /** One finger draws, from the setting and whether a pen was used. */
+  get fingerDraws(): boolean {
+    const mode = this.data.fingerDrawing;
+    return mode === "on" || (mode === "auto" && !this.data.penSeen);
+  }
+
   /** The size of a panel, or undefined for its default size. */
   size(id: string): number | undefined {
     return this.data.sizes[id];
@@ -217,6 +261,12 @@ export class LayoutPrefs {
         }
         if (saved.compact !== undefined && !this.changed.compact) {
           this.data.compact = saved.compact;
+        }
+        if (saved.fingerDrawing !== undefined && !this.changed.fingerDrawing) {
+          this.data.fingerDrawing = saved.fingerDrawing;
+        }
+        if (saved.penSeen !== undefined && !this.changed.penSeen) {
+          this.data.penSeen = saved.penSeen;
         }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {
           if (!this.changed.sizes.includes(id)) this.data.sizes[id] = size;

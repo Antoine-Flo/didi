@@ -11,6 +11,8 @@ describe("layout preferences", () => {
       panelsOpen: false,
       pixelGrid: false,
       compact: "on",
+      fingerDrawing: "off",
+      penSeen: true,
       sizes: { palette: 240 },
     });
     expect(parseLayoutPrefs(text)).toEqual({
@@ -20,6 +22,8 @@ describe("layout preferences", () => {
       panelsOpen: false,
       pixelGrid: false,
       compact: "on",
+      fingerDrawing: "off",
+      penSeen: true,
       sizes: { palette: 240 },
     });
   });
@@ -31,6 +35,8 @@ describe("layout preferences", () => {
       panelsOpen: "no",
       pixelGrid: 1,
       compact: "maybe",
+      fingerDrawing: "sometimes",
+      penSeen: "yes",
       sizes: { a: "big", b: -5, c: null, d: 120 },
     });
     expect(parseLayoutPrefs(text)).toEqual({ sizes: { d: 120 } });

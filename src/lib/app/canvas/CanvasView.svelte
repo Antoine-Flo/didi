@@ -39,6 +39,7 @@
   import type { RGB } from "#lib/core/color/color.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { PenInput } from "#lib/app/canvas/pen-input.svelte.js";
+  import { TouchGestures } from "#lib/app/canvas/touch-gestures.js";
   import { nativePenAvailable, subscribeNativePen, type PenEvent } from "#lib/platform/pen.js";
   import {
     fit,
@@ -63,10 +64,14 @@
     hoverCursor,
     selectionHandles = false,
     pixelGrid = false,
+    touchRotation = false,
+    fingerDraws = true,
+    onpen,
     insets,
     oncamera,
     oncursor,
     onstats,
+    oncommand,
   }: {
     editor: Editor;
     painter?: Painter;
@@ -83,12 +88,20 @@
     selectionHandles?: boolean;
     /** The pixels' grid shows when zoomed in. */
     pixelGrid?: boolean;
+    /** Two fingers may turn the view. */
+    touchRotation?: boolean;
+    /** One finger draws; else it moves the view (see touch-gestures.ts). */
+    fingerDraws?: boolean;
+    /** A pen was used: see LayoutPrefs.penSeen. */
+    onpen?: () => void;
     /** Panels over the view: fitting and zooming use the area between them. */
     insets?: () => Insets;
     oncamera?: (camera: Camera) => void;
     oncursor?: (point: Point | null) => void;
     /** Called twice a second with rendering statistics. */
     onstats?: (stats: ViewStats) => void;
+    /** A gesture asks for a command: a two-finger tap undoes, a three-finger tap redoes. */
+    oncommand?: (id: string) => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -122,6 +135,39 @@
       })
     : null;
   const stroking = $derived(pen?.stroking ?? false);
+
+  /** Fingers move the view: the brush's pointer is hidden meanwhile. */
+  let touchNavigating = $state(false);
+  /** A finger is drawing (not the pen). */
+  let touchStroke = false;
+  const touch = new TouchGestures({
+    camera: () => camera,
+    setCamera,
+    fingerDraws: () => fingerDraws,
+    mayRotate: () => touchRotation,
+    beginStroke: (p, time) => {
+      touchStroke = !!pen?.domDown(sample(p, 1, { time }), false, true);
+      return touchStroke;
+    },
+    moveStroke: (p, time) => pen?.domMove([sample(p, 1, { time })]),
+    endStroke: () => {
+      touchStroke = false;
+      pen?.domUp();
+    },
+    cancelStroke: () => {
+      touchStroke = false;
+      pen?.cancel();
+    },
+    undo: () => oncommand?.("history.undo"),
+    redo: () => oncommand?.("history.redo"),
+  });
+
+  /** The pen came down: fingers still on the screen are the resting hand. */
+  function penDown() {
+    onpen?.();
+    touch.abandon();
+    touchNavigating = false;
+  }
 
   const viewSize = () => ({ width: host.clientWidth, height: host.clientHeight });
 
@@ -219,6 +265,14 @@
   // DOM pointer events: panning everywhere, drawing when there is no native input.
 
   function onPointerDown(e: PointerEvent) {
+    if (e.pointerType === "pen") penDown();
+    if (e.pointerType === "touch") {
+      // The palm, while the pen draws: ignored.
+      if (stroking && !touchStroke) return;
+      touch.down(e.pointerId, local(e), e.timeStamp);
+      touchNavigating = touch.navigating;
+      return;
+    }
     if (e.button === 1 || (e.button === 0 && spaceDown)) {
       e.preventDefault();
       host.setPointerCapture(e.pointerId);
@@ -233,11 +287,17 @@
   }
 
   function onPointerMove(e: PointerEvent) {
+    if (e.pointerType === "touch") {
+      const events = touch.stroking ? (e.getCoalescedEvents?.() ?? []) : [];
+      for (const c of events.length ? events : [e]) touch.move(e.pointerId, local(c), c.timeStamp);
+      touchNavigating = touch.navigating;
+      if (touchNavigating) return;
+    }
     if (panning?.id === e.pointerId) {
       setCamera(pan(camera, e.clientX - panning.x, e.clientY - panning.y));
       panning = { id: e.pointerId, x: e.clientX, y: e.clientY };
     }
-    if (stroking) {
+    if (stroking && e.pointerType !== "touch") {
       const events = e.getCoalescedEvents?.() ?? [];
       pen?.domMove((events.length ? events : [e]).map(domSample));
     }
@@ -294,12 +354,19 @@
       camera,
       local({ clientX: pointerAt.clientX + lead.x, clientY: pointerAt.clientY + lead.y }),
     );
-    updateCursor(panning ? null : ahead);
+    updateCursor(panning || touchNavigating ? null : ahead);
   }
 
   function onPointerUp(e: PointerEvent) {
+    if (e.pointerType === "touch") {
+      if (e.type === "pointercancel") touch.cancel(e.pointerId);
+      else touch.up(e.pointerId, e.timeStamp);
+      touchNavigating = touch.navigating;
+      return;
+    }
     if (panning?.id === e.pointerId) panning = null;
-    pen?.domUp();
+    // Not the stroke of a finger: a mouse button released elsewhere.
+    if (!touchStroke) pen?.domUp();
   }
 
   /** Mice report 0.5 while pressed: they draw at full pressure. */
@@ -444,6 +511,7 @@
       if (!available || destroyed || !pen) return;
       pen.useNative();
       subscribeNativePen((e) => {
+        if ((e.source === "pen" || e.source === "eraser") && e.phase === "down") penDown();
         if (!destroyed) pen.onNative(e);
       });
     });
