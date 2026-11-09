@@ -20,10 +20,13 @@
   <h1>Didi</h1>
   <p>{m.about_description()}</p>
   <a class="open" href={resolve("/(app)/app")}>{m.site_open()}</a>
-  <p class="free">{m.site_free()}</p>
-  <!-- Not a SvelteKit page but the website (website/): no resolve(), the browser loads it. -->
-  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-  <a class="docs" href="/doc/" data-sveltekit-reload>{m.site_docs()}</a>
+  <!-- Not SvelteKit pages but the website (website/): no resolve(), the browser loads them. -->
+  <nav class="links">
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+    <a href="/doc/" data-sveltekit-reload>{m.site_docs()}</a>
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+    <a href="/devlog/" data-sveltekit-reload>{m.site_devlog()}</a>
+  </nav>
 </main>
 
 <style>
@@ -64,6 +67,8 @@
   .open {
     padding: var(--space) calc(var(--space) * 3);
     border-radius: var(--radius);
+    /* Transparent, colored on hover: the button keeps its size, nothing moves. */
+    border: 1px solid transparent;
     background: var(--selected);
     color: var(--text);
     font-size: 16px;
@@ -71,20 +76,20 @@
   }
 
   .open:hover {
-    outline: 1px solid var(--text-faint);
+    border-color: var(--text-faint);
   }
 
-  .docs {
+  .links {
+    display: flex;
+    gap: calc(var(--space) * 3);
+  }
+
+  .links a {
     font-size: 14px;
     color: var(--text-muted);
   }
 
-  .docs:hover {
+  .links a:hover {
     color: var(--text);
-  }
-
-  .free {
-    font-size: 14px;
-    color: var(--text-faint);
   }
 </style>

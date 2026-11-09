@@ -2,11 +2,14 @@
 
 [![CI](https://github.com/Antoine-Flo/didi/actions/workflows/ci.yml/badge.svg)](https://github.com/Antoine-Flo/didi/actions/workflows/ci.yml)
 
-A drawing app for pixel art and painting, made for drawing tablets, with lessons built in to help you learn to draw.
+A drawing app for pixel art and painting, with lessons built in (coming soon) to help you learn to draw.
 
 **[Try it in your browser](https://didipaint.com/app)** · [Website](https://didipaint.com) · [Documentation](https://didipaint.com/doc/) · [Devlog](https://didipaint.com/devlog/)
 
-> Didi is in early development. Things move fast and some features are still missing, but it is already usable, and feedback is very welcome.
+## AI disclosure
+
+- Didi never sends your art anywhere: your drawings stay on your device. No AI will ever be trained on them through Didi, and no AI will ever be integrated into the tool or any future related tool. If anything, I plan to add some tools to help artists prove more easily that their work is legitimate, because sadly, this is where we are now.
+- AI is used for coding. To me, generative AI for art and AI for programming are two different things. Of course, it comes with questions too, but different ones. If you're against the use of AI to create software, I totally respect that. I'm not, and this is where I decided to draw the line for this project.
 
 ## Features
 
@@ -22,12 +25,12 @@ Coming next: animation, then drawing lessons for both painting and pixel art.
 
 ## Platforms
 
-| Platform | Status                                                                                          |
-| -------- | ----------------------------------------------------------------------------------------------- |
-| Browser  | Available at [didipaint.com/app](https://didipaint.com/app). Chromium-based browsers work best. |
-| Linux    | Builds from source, with native pen input (pressure and tilt).                                  |
-| Windows  | Builds from source.                                                                             |
-| macOS    | Planned.                                                                                        |
+| Platform | Status                                                         |
+| -------- | -------------------------------------------------------------- |
+| Browser  | Available at [didipaint.com/app](https://didipaint.com/app).   |
+| Linux    | Builds from source, with native pen input (pressure and tilt). |
+| Windows  | Builds from source.                                            |
+| macOS    | Planned.                                                       |
 
 ## Building from source
 
@@ -86,6 +89,8 @@ Bug reports, ideas and feedback are all welcome: please open an [issue](https://
 Before sending a pull request, please make sure `npm run lint`, `npm run check` and `npm test` pass.
 
 Please sign off your commits (`git commit -s`). This adds a `Signed-off-by` line, which says that you wrote the change, or have the right to send it, under the project's license (the [Developer Certificate of Origin](https://developercertificate.org)).
+
+AI-assisted code is fine, as long as you understand and stand behind what you send. Art is different: please don't contribute AI-generated images, brushes or lesson content (see [AI disclosure](#ai-disclosure)).
 
 ## Acknowledgements
 

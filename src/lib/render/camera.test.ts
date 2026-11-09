@@ -127,7 +127,11 @@ describe("camera", () => {
         fc.double({ min: 0, max: 600, noNaN: true, maxExcluded: true }),
         (c, sx, sy) => {
           const p = toCanvas(c, { x: sx, y: sy });
-          if (p.x < 0 || p.y < 0 || p.x >= canvas.width || p.y >= canvas.height) return;
+          // Only points inside the canvas. Not on its very edge: the view can touch the canvas
+          // at a single point (a corner of the view, rotated by π/2, on a corner of the
+          // canvas), where no pixel is displayed and visibleRect rightly returns null.
+          const e = 1e-6;
+          if (p.x < e || p.y < e || p.x >= canvas.width - e || p.y >= canvas.height - e) return;
           const r = visibleRect(c, view, canvas)!;
           expect(r).not.toBeNull();
           expect(Math.floor(p.x)).toBeGreaterThanOrEqual(r.x);
