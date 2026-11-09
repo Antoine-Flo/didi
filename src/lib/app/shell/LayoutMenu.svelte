@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The layout menu of the title bar, next to the window buttons (like VS Code's): options
+  // The layout menu, at the end of the view's column (see NavColumn): options
   // on one line each, a label on the left and its controls on the right. Using one leaves
   // the menu open, to see the result and try another: the document's mode, the preview
   // window and full screen. What is set once (side of the panels, compact layout, interface
@@ -15,6 +15,7 @@
   let {
     modes,
     mode,
+    side,
     disabled = false,
     tip,
     run,
@@ -26,6 +27,8 @@
     modes: Mode[];
     /** Id of the document's mode. */
     mode: string;
+    /** Where it opens: towards the canvas. */
+    side: "left" | "right";
     /** Does not open, e.g. while a dialog is open. */
     disabled?: boolean;
     tip: (command: string) => string;
@@ -64,14 +67,15 @@
 </script>
 
 <DropdownMenu.Root onOpenChange={setOpen}>
-  <DropdownMenu.Trigger class="title-button" title={m.layout_title()} {disabled}>
+  <DropdownMenu.Trigger class="icon" title={m.layout_title()} {disabled}>
     <PanelsTopLeft />
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content
       class="menu-content layout-menu"
+      {side}
       align="end"
-      sideOffset={4}
+      sideOffset={8}
       collisionPadding={8}
     >
       <DropdownMenu.Group class="layout-option">
@@ -172,27 +176,5 @@
   :global(.menu-item.layout-text-item) {
     flex: 1 1 0;
     justify-content: center;
-  }
-
-  /* Rounded, like the menus and window buttons next to it; also the title bar's undo and
-     redo when compact (see EditorApp). */
-  :global(.title-button) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: calc(36px * var(--ui-scale));
-    height: var(--control-height);
-    padding: 0;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    border-radius: var(--radius-small);
-    cursor: default;
-  }
-
-  :global(.title-button:hover:not(:disabled)),
-  :global(.title-button[data-state="open"]) {
-    color: var(--text);
-    background: var(--hover);
   }
 </style>

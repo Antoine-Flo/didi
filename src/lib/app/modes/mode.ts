@@ -40,6 +40,8 @@ export interface Mode {
   readonly touchRotation: boolean;
   /** Zoomed out, the zoom keeps every pixel the same size on screen (see pixel-zoom.ts). */
   readonly pixelZoom: boolean;
+  /** The pixel under the pointer is shown (pixel art); in painting it means little. */
+  readonly showsCursorPixel: boolean;
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }

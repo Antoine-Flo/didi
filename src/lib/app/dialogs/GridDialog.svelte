@@ -1,6 +1,6 @@
 <script lang="ts">
-  // View → Grid settings…: the grids' settings (see GridSettings), also where the status bar
-  // is not shown (compact). Changes show at once; Close keeps them.
+  // View → Grid settings…: the grids' settings (see GridSettings), also where the view's
+  // column is not shown (compact). Changes show at once; Close keeps them.
 
   import type { ComponentProps } from "svelte";
   import { Dialog } from "bits-ui";

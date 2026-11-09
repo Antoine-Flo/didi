@@ -1,6 +1,6 @@
 <script lang="ts">
   // The grids' settings: the pixels' grid and the tiles' grid, each shown on its own, and the
-  // tiles' size. Changes show at once. In the status bar's popup and the Grid settings dialog.
+  // tiles' size. Changes show at once. In the view's column's popup and the Grid settings dialog.
 
   import { isTileGridSize, MAX_TILE_GRID, type TileGrid } from "#lib/core/file/didi-file.js";
   import { m } from "#lib/paraglide/messages.js";

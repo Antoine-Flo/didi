@@ -28,7 +28,16 @@
   import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
   import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
   import PanelColumn, { type PanelTab } from "#lib/app/panels/PanelColumn.svelte";
-  import StatusBar from "#lib/app/panels/StatusBar.svelte";
+  import DocumentInfo from "#lib/app/panels/DocumentInfo.svelte";
+  import NavColumn from "#lib/app/panels/NavColumn.svelte";
+  import {
+    columnTops,
+    edgeOnSide,
+    nearestSide,
+    positionOnEdge,
+    sideOfEdge,
+    type ColumnEdge,
+  } from "#lib/app/panels/edge-columns.js";
   import ToolBar from "#lib/app/panels/ToolBar.svelte";
   import ToolColumn from "#lib/app/panels/ToolColumn.svelte";
   import Splitter from "#lib/app/widgets/Splitter.svelte";
@@ -143,7 +152,7 @@
   });
   $effect.pre(() => painter.setEditor(editor));
 
-  /** Shows a message in the status bar for a few seconds. */
+  /** Shows a message at the bottom for a few seconds. */
   function notify(message: string) {
     error = message;
     setTimeout(() => {
@@ -220,8 +229,21 @@
   let paletteVersion = $state(0);
   let app: HTMLDivElement;
   let panelColumn: HTMLElement;
+  let panelsTabElement = $state<HTMLElement>();
   let toolColumn = $state<HTMLElement>();
-  let toolTrackHeight = $state(0);
+  let navColumn = $state<HTMLElement>();
+  let toolsHeight = $state(0);
+  let navHeight = $state(0);
+  /** Where the thin columns can go, on either edge (see edge-columns.ts). */
+  const tracks: Record<ColumnEdge, HTMLElement | undefined> = $state({
+    panels: undefined,
+    opposite: undefined,
+  });
+  const trackHeights = $state<Record<ColumnEdge, number>>({ panels: 0, opposite: 0 });
+  /** The same on both edges: one button. */
+  let trackWidth = $state(0);
+  /** The edge whose column is being dragged: above the rest. */
+  let draggedFrom = $state<ColumnEdge | null>(null);
   let top: HTMLElement;
   let bottom: HTMLElement;
 
@@ -252,8 +274,9 @@
   $effect(() => document.documentElement.style.setProperty("--ui-scale", String(uiScale)));
   /** The panels' column: on the left for right-handed users, out of the drawing hand's way. */
   const panelsOnLeft = $derived(layout.hand === "right");
-  /** Popups of the tool column open towards the canvas. */
-  const popupSide = $derived(panelsOnLeft ? "right" : "left");
+  /** Popups of a column on an edge open towards the canvas. */
+  const popupSide = (edge: ColumnEdge) =>
+    sideOfEdge(edge, panelsOnLeft) === "left" ? "right" : "left";
   const MIN_PANEL_WIDTH = 180;
   const MAX_PANEL_WIDTH = 480;
   /** Set by the user, else undefined: the default width. */
@@ -267,10 +290,10 @@
   }
 
   // Compact: for a narrow or low window (a small tablet, a phone, landscape included), or
-  // always or never, as chosen in the preferences. The tool's sliders go into the title
-  // bar, instead of the document's name, and its other options into its popup (see
-  // ToolButton); the menus are behind one button, and there is no status bar: undo and redo
-  // float in its corner, below the tools, with the actions on the selection.
+  // always or never, as chosen in the preferences. Only the tool's sliders stay in the title
+  // bar, its other options go into its popup (see ToolButton); the menus are behind one
+  // button, and there is neither the view's column nor the document's information: undo and
+  // redo float in the bottom corner, below the tools, with the actions on the selection.
   //
   // The panels' column can be closed, to make room. When compact, it starts closed, and
   // opening it lasts until the layout is compact again; otherwise the user's choice is kept
@@ -291,6 +314,25 @@
     }
   });
   const panelsOpen = $derived(compact ? openWhileCompact : layout.panelsOpen);
+
+  // The title bar holds the menus, then the tool's options. Short of room for the options,
+  // the menus go behind one button first, until the window is as wide as the options needed;
+  // another tool tries again.
+  let toolbarLacking = $state(0);
+  let menusShort = $state(false);
+  let menusWidthNeeded = 0;
+  $effect(() => {
+    void shownTool.id;
+    untrack(() => (menusShort = false));
+  });
+  $effect(() => {
+    if (!menusShort && toolbarLacking > 0) {
+      menusWidthNeeded = appWidth + toolbarLacking;
+      menusShort = true;
+    } else if (menusShort && appWidth >= menusWidthNeeded) {
+      menusShort = false;
+    }
+  });
 
   /** Opening or closing, animated: not while the column is resized. */
   let sliding = $state(false);
@@ -327,15 +369,70 @@
   const scaledSize = (size: number | undefined) =>
     size !== undefined ? `calc(${size}px * var(--ui-scale))` : undefined;
 
+  // The thin columns: the tools, and the view's buttons (not when compact), each against an
+  // edge, pushed apart when on the same one (see edge-columns.ts).
+  const navShown = $derived(!compact);
+  const toolsEdge = $derived(layout.toolsEdge);
+  const navEdge = $derived(layout.navEdge);
+  /** Between two columns on the same edge: the gutter between panels. */
+  const columnGap = $derived(8 * uiScale);
+  const columnTop = $derived.by(() => {
+    const tops = { tools: 0, nav: 0 };
+    for (const edge of ["panels", "opposite"] as const) {
+      const columns = [
+        ...(toolsEdge === edge
+          ? [{ id: "tools" as const, height: toolsHeight, position: layout.toolsPosition }]
+          : []),
+        ...(navShown && navEdge === edge
+          ? [{ id: "nav" as const, height: navHeight, position: layout.navPosition }]
+          : []),
+      ];
+      const placed = columnTops(trackHeights[edge], columns, columnGap);
+      columns.forEach((c, i) => (tops[c.id] = placed[i]));
+    }
+    return tops;
+  });
+  /** The height the tools have: their edge's, less the view's column if it is on it too. */
+  const toolsRoom = $derived(
+    trackHeights[toolsEdge] - (navShown && navEdge === toolsEdge ? navHeight + columnGap : 0),
+  );
+
+  /** A column dropped at `box`: against the nearest side, at the height it was dropped. */
+  function dropColumn(column: "tools" | "nav", box: DOMRect) {
+    const edge = edgeOnSide(nearestSide(box, app.getBoundingClientRect()), panelsOnLeft);
+    const track = tracks[edge];
+    if (track) {
+      layout.placeColumn(column, edge, positionOnEdge(box, track.getBoundingClientRect()));
+    }
+  }
+
   /** Space taken by the floating panels over the canvas, margins included. */
   function insets(): Insets {
     const box = app.getBoundingClientRect();
-    // The tool column is beside the panels' column, on the canvas side.
-    const tools = toolColumn!.getBoundingClientRect();
-    const left = panelsOnLeft;
+    // On each side, as far as what floats there reaches: the panels' column and its tab, and
+    // the thin columns.
+    let left = 0;
+    let right = 0;
+    const floating = [
+      panelsOpen ? panelColumn : undefined,
+      panelsTabElement,
+      toolColumn,
+      navShown ? navColumn : undefined,
+    ];
+    for (const element of floating) {
+      if (!element?.isConnected) {
+        continue;
+      }
+      const rect = element.getBoundingClientRect();
+      if (nearestSide(rect, box) === "left") {
+        left = Math.max(left, rect.right - box.left);
+      } else {
+        right = Math.max(right, box.right - rect.left);
+      }
+    }
     return {
-      left: left ? tools.right - box.left : 0,
-      right: left ? 0 : box.right - tools.left,
+      left,
+      right,
       top: top.getBoundingClientRect().bottom - box.top,
       bottom: box.bottom - bottom.getBoundingClientRect().top,
     };
@@ -367,7 +464,10 @@
             ? !interfaceHidden
             : what === "pixelGrid"
               ? layout.pixelGrid
-              : session.grid.shown,
+              : what === "preview"
+                ? preview !== "off"
+                : session.grid.shown,
+      togglePreview: () => setPreview(preview === "off" ? "in" : "off"),
       openGridSettings: () => (gridOpen = true),
       toggleInterface: () => (interfaceHidden = !interfaceHidden),
       toggleFullScreen: () =>
@@ -461,6 +561,7 @@
     void version;
     const all = defaultMenus({
       recent: session.recent,
+      modes: modes.list(),
       undoLabel: editor.history.undoLabel,
       redoLabel: editor.history.redoLabel,
     });
@@ -570,10 +671,8 @@
     return () => unsubscribe.forEach((fn) => fn());
   });
 
-  // "● name — Didi" while there are unsaved changes (taskbar), and the same in our title bar.
+  // "● name — Didi" while there are unsaved changes, in the taskbar or the browser's tab.
   $effect(() => {
-    windowTitle.name = session.name;
-    windowTitle.dirty = session.unsaved;
     const title = session.unsaved
       ? m.editor_window_title_unsaved({ name: session.name })
       : m.editor_window_title({ name: session.name });
@@ -589,8 +688,10 @@
   });
   $effect(() => {
     windowTitle.menu = menuBar;
-    windowTitle.end = titleEnd;
-    windowTitle.center = compact && !interfaceHidden ? toolBar : null;
+    windowTitle.end = null;
+    // No name: the document's information shows it. Only the canvas: no options either.
+    windowTitle.name = "";
+    windowTitle.center = interfaceHidden ? null : toolBar;
     return () => {
       windowTitle.center = null;
       windowTitle.dimmed = false;
@@ -741,7 +842,7 @@
        against the window's edge. When compact, one button per tab: the current color (on a
        checkerboard if none), and the layers. -->
   {#if compact}
-    <div class="panel panels-tab">
+    <div class="panel panels-tab" bind:this={panelsTabElement}>
       <button
         class="icon"
         class:active={panelsOpen && panelTab === "color"}
@@ -766,7 +867,12 @@
       </button>
     </div>
   {:else}
-    <button class="panel panels-tab" title={tip("view.togglePanels")} onclick={togglePanels}>
+    <button
+      class="panel panels-tab"
+      title={tip("view.togglePanels")}
+      onclick={togglePanels}
+      bind:this={panelsTabElement}
+    >
       {#if panelsOnLeft}
         {#if panelsOpen}<PanelLeftClose />{:else}<PanelLeftOpen />{/if}
       {:else if panelsOpen}<PanelRightClose />{:else}<PanelRightOpen />{/if}
@@ -784,61 +890,93 @@
     />
   </div>
 
-  <!-- The tools, in a thin column beside the panels' column, on the canvas side, movable
-       along it. -->
-  <div class="tool-track" bind:clientHeight={toolTrackHeight}>
-    <ToolColumn
-      tools={tools.inBar}
-      active={shownTool.id}
-      settings={options.tools}
-      side={popupSide}
-      trackHeight={toolTrackHeight}
-      {compact}
-      position={layout.toolsPosition}
-      bind:element={toolColumn}
-      onmove={(p) => (layout.toolsPosition = p)}
-      onreset={() => layout.resetToolsPosition()}
-      {tip}
-      {run}
-    />
-  </div>
+  <!-- The thin columns, the tools and the view's buttons: beside the panels' column, on the
+       canvas side, or against the window's other edge. Moved by their grip. -->
+  {#each ["panels", "opposite"] as const as edge (edge)}
+    <div
+      class="track {edge}"
+      class:dragged-from={draggedFrom === edge}
+      bind:this={tracks[edge]}
+      bind:clientHeight={trackHeights[edge]}
+      bind:clientWidth={trackWidth}
+    >
+      {#if toolsEdge === edge}
+        <ToolColumn
+          tools={tools.inBar}
+          active={shownTool.id}
+          settings={options.tools}
+          side={popupSide(edge)}
+          room={toolsRoom}
+          {compact}
+          top={columnTop.tools}
+          bind:element={toolColumn}
+          bind:height={toolsHeight}
+          ondrop={(box) => dropColumn("tools", box)}
+          ondragging={(on) => (draggedFrom = on ? edge : null)}
+          onreset={() => layout.resetColumn("tools")}
+          {tip}
+          {run}
+        />
+      {/if}
+      {#if navShown && navEdge === edge}
+        <NavColumn
+          {camera}
+          pixelGrid={layout.pixelGrid}
+          tileGrid={session.grid}
+          ontilegrid={(grid) => session.setGrid(grid)}
+          side={popupSide(edge)}
+          top={columnTop.nav}
+          bind:element={navColumn}
+          bind:height={navHeight}
+          ondrop={(box) => dropColumn("nav", box)}
+          ondragging={(on) => (draggedFrom = on ? edge : null)}
+          onreset={() => layout.resetColumn("nav")}
+          {tip}
+          {run}
+        >
+          {#snippet end()}
+            {@render layoutMenu(popupSide(edge))}
+          {/snippet}
+        </NavColumn>
+      {/if}
+    </div>
+  {/each}
 
-  <!-- The active tool's options, centered above the canvas. When compact, they are in the
-       title bar, and messages float at the bottom. -->
-  <div class="bar top" bind:this={top}>
-    {#if !compact}{@render toolBar()}{/if}
-  </div>
+  <!-- The document's information, in the bottom corner away from the panels. -->
+  {#if !compact}
+    <div class="info">
+      <DocumentInfo
+        name={session.name}
+        unsaved={session.unsaved}
+        width={canvasSize.width}
+        height={canvasSize.height}
+        cursor={mode.showsCursorPixel ? cursor : undefined}
+        corner={panelsOnLeft ? "right" : "left"}
+      />
+    </div>
+  {/if}
+
+  <!-- Where the canvas starts below the title bar, which holds the tool's options. -->
+  <div class="bar top" bind:this={top}></div>
 
   {#if preview === "in"}
     <PreviewPopin
       drawing={editor.drawing}
       side={panelsOnLeft ? "right" : "left"}
+      inset={toolsEdge === "opposite" || (navShown && navEdge === "opposite") ? trackWidth : 0}
       onPopOut={capabilities.windows ? () => setPreview("out") : null}
       onClose={() => setPreview("off")}
     />
   {/if}
 
+  <!-- Messages float at the bottom. -->
   <div class="bar bottom" bind:this={bottom}>
-    {#if !compact}
-      <StatusBar
-        {editor}
-        {cursor}
-        busy={session.busy}
-        {error}
-        {camera}
-        pixelGrid={layout.pixelGrid}
-        tileGrid={session.grid}
-        ontilegrid={(grid) => session.setGrid(grid)}
-        {tip}
-        {run}
-        onShortcuts={() => (shortcutsOpen = true)}
-      />
-    {:else if session.busy || error}
+    {#if session.busy || error}
       <div class="panel message" class:error={!session.busy}>{session.busy ?? error}</div>
     {/if}
   </div>
 
-  <!-- When compact, undo and redo below the tools, in the status bar's corner: no keyboard
+  <!-- When compact, undo and redo below the tools, in the bottom corner: no keyboard
        on a phone, and within the other hand's reach. Beside them, the actions on the
        selection, while there is one. -->
   {#if compact}
@@ -889,6 +1027,7 @@
     preview={toolPreview}
     {compact}
     actions={selectionActions}
+    onlacking={(pixels) => (toolbarLacking = pixels)}
   />
 {/snippet}
 
@@ -900,14 +1039,11 @@
   {/if}
 {/snippet}
 
-{#snippet titleEnd()}
-  {@render layoutMenu()}
-{/snippet}
-
-{#snippet layoutMenu()}
+{#snippet layoutMenu(side: "left" | "right")}
   <LayoutMenu
     modes={modes.list()}
     mode={mode.id}
+    {side}
     disabled={dialogOpen}
     {tip}
     {run}
@@ -924,7 +1060,7 @@
 {#snippet menuBar()}
   <MenuBar
     {menus}
-    collapsed={compact}
+    collapsed={compact || menusShort}
     disabled={dialogOpen}
     title={(id) => editor.commands.get(id)?.title ?? id}
     {shortcut}
@@ -980,11 +1116,11 @@
 />
 
 <style>
-  /* The canvas fills the window, under the title bar too; the panels float over it, inset
-     from the edges: a column of panels on one side, the whole height (on the left for
-     right-handed users, on the right for left-handed ones, resizable), the tools in a thin
-     column beside it, the active tool's options centered at the top, and the status bar at
-     the bottom, beside the panels. */
+  /* The canvas fills the window, under the title bar too (which holds the tool's options);
+     the panels float over it, inset from the edges: a column of panels on one side, the whole
+     height (on the left for right-handed users, on the right for left-handed ones,
+     resizable), the tools in a thin column beside it, the view's buttons in another against
+     the other edge, and the document's information in the bottom corner below them. */
   .app {
     position: relative;
     height: calc(100% + var(--titlebar-height));
@@ -1019,35 +1155,23 @@
     height: var(--bar-height);
   }
 
-  /* Between the tab (see .panels-tab) and the window's other edge (the tools stay below),
-     the bar centered in it (by the layout: a transform could blur the text), as wide as its
-     content, or as the room left. Clicks around the bar go through to the canvas. */
+  /* Empty: the canvas's top inset, below the title bar. */
   .top {
-    top: var(--top-inset);
-    left: var(--space);
-    right: calc(var(--column-space) + var(--tool-column-width) + 2 * var(--space));
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
+    top: var(--titlebar-height);
+    height: 0;
   }
 
-  .panels-left .top {
-    left: calc(var(--column-space) + var(--tool-column-width) + 2 * var(--space));
-    right: var(--space);
-  }
-
-  .top > :global(*) {
-    flex: 0 1 auto;
-    min-width: 0;
-    pointer-events: auto;
-  }
-
-  /* From the panels' column to the window's other edge (later the animation timeline,
-     which will open upwards). */
+  /* From the panels' column to the window's other edge, empty: the canvas's bottom inset.
+     Messages float above it, in the middle. */
   .bottom {
     bottom: var(--space);
     left: var(--space);
     right: calc(var(--column-space) + var(--space));
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: 0;
+    pointer-events: none;
   }
 
   .panels-left .bottom {
@@ -1055,7 +1179,7 @@
     right: var(--space);
   }
 
-  /* The whole height, beside the status bar. Closed, it slides out past the window's
+  /* The whole height. Closed, it slides out past the window's
      edge. */
   /* Above the options' panels, which may reach it on a narrow screen (see ToolBar), like
      the panels' tab and the tools. */
@@ -1151,41 +1275,70 @@
     display: none;
   }
 
-  /* Where the tool column can go: beside the panels' column, past the width handle, between
-     the options' bar and the status bar (their lines are kept for them). Clicks go through
-     it to the canvas, except on the column. */
-  .tool-track {
+  /* Where the thin columns can go. Clicks go through to the canvas, except on a column.
+     Beside the panels' column, past the width handle, below the panels' tab (and when
+     compact, above undo and redo). */
+  .track {
     position: absolute;
     z-index: 1;
-    top: calc(var(--content-top) + var(--tabs-height) + var(--space));
-    bottom: calc(var(--bar-height) + 2 * var(--space));
-    right: calc(var(--column-space) + var(--space));
     width: var(--tool-column-width);
     pointer-events: none;
   }
 
-  .panels-left .tool-track {
+  /* A column being dragged passes over everything else. */
+  .track.dragged-from {
+    z-index: 2;
+  }
+
+  .track.panels {
+    top: calc(var(--content-top) + var(--tabs-height) + var(--space));
+    bottom: var(--space);
+    right: calc(var(--column-space) + var(--space));
+  }
+
+  .panels-left .track.panels {
     right: auto;
     left: calc(var(--column-space) + var(--space));
   }
 
-  /* Compact: no options' line (they are in the title bar) and no status bar. The empty
-     bars stay, as the canvas's insets. Messages float at the bottom. */
-  .compact .top {
-    top: var(--titlebar-height);
-    height: 0;
+  .compact .track.panels {
+    bottom: calc(var(--bar-height) + 2 * var(--space));
   }
 
-  .compact .bottom {
+  /* Against the window's other edge, above the document's information. */
+  .track.opposite {
+    top: var(--content-top);
+    bottom: calc(var(--bar-height) + 2 * var(--space));
+    left: var(--space);
+  }
+
+  .panels-left .track.opposite {
+    left: auto;
+    right: var(--space);
+  }
+
+  .compact .track.opposite {
+    bottom: var(--space);
+  }
+
+  /* In the bottom corner, below the view's column; at most half the window. */
+  .info {
+    position: absolute;
+    bottom: var(--space);
+    left: var(--space);
     display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    height: 0;
+    max-width: 50%;
     pointer-events: none;
   }
 
-  /* Undo and redo, in the status bar's corner on the tools' side, below them, then the
-     actions on the selection, towards the middle. */
+  .panels-left .info {
+    left: auto;
+    right: var(--space);
+    justify-content: flex-end;
+  }
+
+  /* Undo and redo, in the bottom corner on the tools' side, below them, then the actions on
+     the selection, towards the middle. */
   .corner {
     position: absolute;
     z-index: 1;
@@ -1222,13 +1375,12 @@
   }
 
   /* Only the canvas (Tab): the panels, the tools and the bars go. */
-  .interface-hidden
-    :is(.panel-column, .panels-tab, .column-edge, .tool-track, .top, .bottom, .corner) {
+  .interface-hidden :is(.panel-column, .panels-tab, .column-edge, .track, .info, .bottom, .corner) {
     visibility: hidden;
   }
 
   /* Opening or closing: everything beside the column follows it. */
-  .sliding :is(.panel-column, .panels-tab, .tool-track, .top, .bottom, .corner) {
+  .sliding :is(.panel-column, .panels-tab, .track.panels, .top, .bottom, .corner) {
     transition:
       transform 0.2s ease,
       visibility 0.2s,

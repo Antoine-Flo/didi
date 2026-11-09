@@ -1,7 +1,8 @@
 <script lang="ts">
-  // The bar above the canvas: the active tool's options, and on the side, actions on the document.
-  // When compact (in the title bar), only the sliders: the other options are in the tool's
-  // popup (see ToolButton), the actions at the bottom (see EditorApp).
+  // The active tool's options, in the title bar, and after them actions on the document. When
+  // compact, only the sliders: the other options are in the tool's popup (see ToolButton), the
+  // actions at the bottom (see EditorApp). It tells how much room it lacks, for the menus to
+  // make room (see EditorApp).
 
   import type { Snippet } from "svelte";
   import ToolField from "#lib/app/panels/ToolField.svelte";
@@ -18,6 +19,7 @@
     preview,
     actions,
     compact = false,
+    onlacking,
   }: {
     tool: Tool;
     /** The tool's settings, changed in place by the controls. */
@@ -26,16 +28,32 @@
     preview?: ColorPreview | null;
     /** On the right, whatever the tool. Coming and going, they don't move the options. */
     actions?: Snippet;
-    /** In the title bar, without its panel's background and border: only the sliders. */
+    /** Only the sliders. */
     compact?: boolean;
+    /** How many pixels the options lack to show whole, the sliders at their smallest. */
+    onlacking?: (pixels: number) => void;
   } = $props();
+
+  // Measured again when the bar changes size, or what is in it (another tool, an action).
+  let options: HTMLElement;
+  $effect(() => {
+    const measure = () => onlacking?.(Math.max(0, options.scrollWidth - options.clientWidth));
+    const resizes = new ResizeObserver(measure);
+    resizes.observe(options);
+    const changes = new MutationObserver(measure);
+    changes.observe(options, { childList: true, subtree: true });
+    return () => {
+      resizes.disconnect();
+      changes.disconnect();
+    };
+  });
 
   const sliders = $derived((tool.fields ?? []).filter(isSliderField));
   const rest = $derived((tool.fields ?? []).filter((field) => !isSliderField(field)));
 </script>
 
-<div class="toolbar" class:panel={!compact} class:compact>
-  <div class="options">
+<div class="toolbar" class:compact>
+  <div class="options" bind:this={options}>
     <!-- Not when compact: the panels' tab shows the color. -->
     {#if preview && !compact}
       <span class="swatch" aria-hidden="true">
@@ -107,7 +125,7 @@
     min-width: calc(120px * var(--ui-scale));
   }
 
-  /* Compact (down to a phone): narrower still, to fit beside the title bar's buttons. */
+  /* Compact (down to a phone): narrower still. */
   .compact :global(.slider) {
     min-width: calc(90px * var(--ui-scale));
   }

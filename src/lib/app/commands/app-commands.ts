@@ -43,8 +43,10 @@ export interface AppHost {
   hand: Hand;
   /** Shows or hides the panels' column. */
   togglePanels(): void;
-  /** What is shown, for the switches of the Show menu. */
-  shown(what: "panels" | "interface" | "pixelGrid" | "tileGrid"): boolean;
+  /** What is shown, for the switches of View → Show. */
+  shown(what: "panels" | "interface" | "pixelGrid" | "tileGrid" | "preview"): boolean;
+  /** Opens or closes the preview of the whole drawing. */
+  togglePreview(): void;
   /** Opens the grids' settings. */
   openGridSettings(): void;
   /** Shows or hides the pixels' grid. */
@@ -121,6 +123,7 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       registry.register({
         id: `mode.${mode.id}`,
         title: m.cmd_mode({ title: mode.title }),
+        checked: () => host.mode === mode.id,
         run: () => (host.mode = mode.id),
       }),
     ),
@@ -385,6 +388,12 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       title: m.cmd_view_tile_grid(),
       checked: () => host.shown("tileGrid"),
       run: () => host.toggleTileGrid(),
+    }),
+    registry.register({
+      id: "view.preview",
+      title: m.cmd_view_preview(),
+      checked: () => host.shown("preview"),
+      run: () => host.togglePreview(),
     }),
     registry.register({
       id: "view.gridSettings",

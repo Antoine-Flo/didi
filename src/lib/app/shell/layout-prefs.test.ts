@@ -6,7 +6,10 @@ describe("layout preferences", () => {
     const text = JSON.stringify({
       version: 1,
       hand: "left",
+      toolsEdge: "opposite",
       toolsPosition: 0.25,
+      navEdge: "panels",
+      navPosition: 0.5,
       uiScale: 125,
       panelsOpen: false,
       pixelGrid: false,
@@ -17,7 +20,10 @@ describe("layout preferences", () => {
     });
     expect(parseLayoutPrefs(text)).toEqual({
       hand: "left",
+      toolsEdge: "opposite",
       toolsPosition: 0.25,
+      navEdge: "panels",
+      navPosition: 0.5,
       uiScale: 125,
       panelsOpen: false,
       pixelGrid: false,
@@ -31,7 +37,9 @@ describe("layout preferences", () => {
   it("ignores anything unexpected", () => {
     const text = JSON.stringify({
       hand: "both",
+      toolsEdge: "left",
       toolsPosition: 2,
+      navPosition: -1,
       panelsOpen: "no",
       pixelGrid: 1,
       compact: "maybe",

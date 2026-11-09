@@ -405,7 +405,7 @@
   let velocity = { x: 0, y: 0 };
 
   /**
-   * Moves the pointer, the status bar's position and the tool's hover to the last move.
+   * Moves the pointer, the shown position and the tool's hover to the last move.
    * The pointer drawn shows on screen a few frames after the pen got there: it is drawn a
    * little ahead, where the pen is heading, to stay under it. Not when the pen has stopped, nor
    * for a mouse (its moves are too irregular: it would shake), nor for pixel-art tips (their
@@ -521,7 +521,7 @@
     return null;
   }
 
-  /** Tells the pixel under the pen, only when it changes: the status bar shows it. */
+  /** Tells the pixel under the pen, only when it changes: the document's information shows it. */
   let reported: Point | null = null;
   function reportCursor(p: Point | null) {
     const pixel = p && { x: Math.floor(p.x), y: Math.floor(p.y) };

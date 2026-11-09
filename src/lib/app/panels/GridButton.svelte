@@ -1,6 +1,6 @@
 <script lang="ts">
-  // The grids' button of the status bar: lit while a grid is shown; a click opens the grids'
-  // settings in a popup above it (see GridSettings).
+  // The grids' button of the view's column: lit while a grid is shown; a click opens the
+  // grids' settings in a popup beside it, towards the canvas (see GridSettings).
 
   import type { ComponentProps } from "svelte";
   import { Popover } from "bits-ui";
@@ -10,7 +10,13 @@
   import GridSettings from "#lib/app/panels/GridSettings.svelte";
   import { m } from "#lib/paraglide/messages.js";
 
-  let props: ComponentProps<typeof GridSettings> = $props();
+  let {
+    side,
+    ...props
+  }: ComponentProps<typeof GridSettings> & {
+    /** Where the popup opens: towards the canvas. */
+    side: "left" | "right";
+  } = $props();
 
   let open = $state(false);
   $effect(() => {
@@ -26,20 +32,25 @@
 
 <Popover.Root bind:open>
   <Popover.Trigger
-    class={["icon", anyShown ? "active" : "off"]}
+    class={["icon grid-button", anyShown ? "active" : "off"]}
     title={m.grid_button_tip()}
     aria-label={m.grid_button_tip()}
   >
     <Grid3x3 />
   </Popover.Trigger>
   <Popover.Portal>
-    <Popover.Content class="grid-popup" side="top" sideOffset={8} collisionPadding={popupPadding()}>
+    <Popover.Content class="grid-popup" {side} sideOffset={8} collisionPadding={popupPadding()}>
       <GridSettings {...props} />
     </Popover.Content>
   </Popover.Portal>
 </Popover.Root>
 
 <style>
+  /* Off: like the layers' locks. */
+  :global(.grid-button.off) {
+    color: var(--text-faint);
+  }
+
   :global(.grid-popup) {
     z-index: 60;
     padding: var(--space);

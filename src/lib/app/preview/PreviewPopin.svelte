@@ -15,12 +15,15 @@
   let {
     drawing,
     side,
+    inset = 0,
     onPopOut,
     onClose,
   }: {
     drawing: Drawing;
     /** Where it first appears: away from the panels. */
     side: "left" | "right";
+    /** Width taken against the window's edge on that side (the view's column), in pixels. */
+    inset?: number;
     /** Null where the app cannot open windows (a browser). */
     onPopOut: (() => void) | null;
     onClose: () => void;
@@ -48,9 +51,9 @@
     const parent = element.offsetParent as HTMLElement | null;
     const width = parent?.clientWidth ?? innerWidth;
     const height = parent?.clientHeight ?? innerHeight;
-    // Near the top corner, under the title bar and the tool's options.
+    // Near the top corner, under the title bar, beside the view's column.
     box.y = Math.round(height * 0.12);
-    box.x = side === "right" ? width - box.width - 4 * MARGIN : 4 * MARGIN;
+    box.x = side === "right" ? width - box.width - 4 * MARGIN - inset : 4 * MARGIN + inset;
   });
 
   /** Follows the pointer from `down` until it is released. */

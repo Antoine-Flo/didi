@@ -4,10 +4,13 @@
 
 const EDGE = 8;
 
-/** Measured: the token is a calculation, which only the browser can resolve. */
-function titlebarHeight(): number {
+/** A length in pixels, e.g. "var(--space)": tokens are calculations only the browser resolves. */
+export function cssLength(length: string): number {
+  if (typeof document === "undefined") {
+    return 0;
+  }
   const probe = document.createElement("div");
-  probe.style.cssText = "position: absolute; visibility: hidden; height: var(--titlebar-height)";
+  probe.style.cssText = `position: absolute; visibility: hidden; height: ${length}`;
   document.body.append(probe);
   const height = probe.getBoundingClientRect().height;
   probe.remove();
@@ -16,6 +19,6 @@ function titlebarHeight(): number {
 
 /** Collision padding for Bits UI popups. */
 export function popupPadding(): { top: number; right: number; bottom: number; left: number } {
-  const titlebar = typeof document === "undefined" ? 0 : titlebarHeight();
+  const titlebar = cssLength("var(--titlebar-height)");
   return { top: titlebar + EDGE, right: EDGE, bottom: EDGE, left: EDGE };
 }

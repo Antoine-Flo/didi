@@ -21,6 +21,7 @@ describe("default menus", () => {
     } as unknown as AppHost);
     const menus = defaultMenus({
       recent: [{ path: "/a.didi", name: "a" }],
+      modes: createModeRegistry().list(),
       undoLabel: null,
       redoLabel: null,
     });
@@ -39,7 +40,7 @@ describe("default menus", () => {
       canUseFiles: false,
       quit: null,
     } as unknown as AppHost);
-    const menus = defaultMenus({ recent: [], undoLabel: null, redoLabel: null });
+    const menus = defaultMenus({ recent: [], modes: [], undoLabel: null, redoLabel: null });
     const [file] = availableMenus(menus, (id) => editor.commands.has(id));
     expect(file.items).toEqual([
       { command: "file.new" },
@@ -49,9 +50,15 @@ describe("default menus", () => {
     ]);
   });
 
-  it("name the undo and redo steps, and list recent files", () => {
+  it("name the undo and redo steps, and list recent files with their mode's icon", () => {
+    const modes = createModeRegistry().list();
+    const pixel = modes.find((mode) => mode.id === "pixel")!;
     const [file, edit] = defaultMenus({
-      recent: [{ path: "/a.didi", name: "a" }],
+      recent: [
+        { path: "/a.didi", name: "a", mode: "pixel" },
+        { path: "/b.didi", name: "b" },
+      ],
+      modes,
       undoLabel: "Brush",
       redoLabel: null,
     });
@@ -59,7 +66,10 @@ describe("default menus", () => {
     expect(edit.items[1]).toMatchObject({ command: "history.redo", label: "Redo" });
     const recent = file.items.find((e) => e !== "separator" && "items" in e);
     expect(recent).toMatchObject({
-      items: [{ command: "file.open", params: { path: "/a.didi" }, label: "a" }],
+      items: [
+        { command: "file.open", params: { path: "/a.didi" }, label: "a", icon: pixel.icon },
+        { command: "file.open", params: { path: "/b.didi" }, label: "b", icon: undefined },
+      ],
     });
   });
 });

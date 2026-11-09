@@ -30,6 +30,7 @@ function setup(withView = true) {
     togglePanels: vi.fn(),
     togglePixelGrid: vi.fn(),
     toggleTileGrid: vi.fn(),
+    togglePreview: vi.fn(),
     shown: vi.fn(() => true),
     openGridSettings: vi.fn(),
     toggleInterface: vi.fn(),
@@ -173,7 +174,7 @@ describe("app commands", () => {
     expect(palettes.locked).toBe(false);
   });
 
-  it("tells which switches are on, for the Show menu", () => {
+  it("tells which switches are on, for View → Show", () => {
     const { editor, host } = setup();
     vi.mocked(host.shown).mockImplementation((what) => what === "tileGrid");
     expect(editor.commands.isChecked("view.tileGrid")).toBe(true);

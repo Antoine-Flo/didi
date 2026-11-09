@@ -1,6 +1,7 @@
 // The user's layout preferences, saved in the app data folder so they are kept from one
 // session to the next: the hand (the panels on the left for right-handed users, on the
-// right for left-handed ones), where the tool column sits along it, the interface size, and
+// right for left-handed ones), the edge each thin column (the tools, the view's buttons)
+// stands against and its place along it (see edge-columns.ts), the interface size, and
 // whether the layout is compact, whether the panels' column is open (on a wide window; see
 // EditorApp), whether one finger draws on a touch screen (see touch-gestures.ts), the sizes of
 // resizable panels, in pixels at 100% interface size, by panel id (e.g.
@@ -8,6 +9,7 @@
 // same in every mode: switching modes moves nothing.
 
 import { errorMessage } from "#lib/app/error-message.js";
+import type { ColumnEdge } from "#lib/app/panels/edge-columns.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 import { m } from "#lib/paraglide/messages.js";
 
@@ -30,8 +32,12 @@ export const UI_SCALE_STEP = 5;
 
 export interface LayoutPrefsData {
   hand: Hand;
-  /** The tool column's place along the panels: 0 at the top, 1 at the bottom. */
+  /** The tool column's edge, and its place along it: 0 at the top, 1 at the bottom. */
+  toolsEdge: ColumnEdge;
   toolsPosition: number;
+  /** The view's column's edge, and its place along it. */
+  navEdge: ColumnEdge;
+  navPosition: number;
   /** The interface size, in percent. */
   uiScale: number;
   /** The panels' column is shown. */
@@ -45,7 +51,7 @@ export interface LayoutPrefsData {
   sizes: Record<string, number>;
 }
 
-const DEFAULT_TOOLS_POSITION = 0;
+const EDGES: readonly ColumnEdge[] = ["panels", "opposite"];
 
 /** The preferences in a saved file. Anything unexpected is ignored: they are not precious. */
 export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
@@ -61,6 +67,18 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
     const p = data.toolsPosition;
     if (typeof p === "number" && p >= 0 && p <= 1) {
       prefs.toolsPosition = p;
+    }
+  }
+  if ("toolsEdge" in data && EDGES.includes(data.toolsEdge as ColumnEdge)) {
+    prefs.toolsEdge = data.toolsEdge as ColumnEdge;
+  }
+  if ("navEdge" in data && EDGES.includes(data.navEdge as ColumnEdge)) {
+    prefs.navEdge = data.navEdge as ColumnEdge;
+  }
+  if ("navPosition" in data) {
+    const p = data.navPosition;
+    if (typeof p === "number" && p >= 0 && p <= 1) {
+      prefs.navPosition = p;
     }
   }
   if ("uiScale" in data) {
@@ -104,7 +122,10 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
 export class LayoutPrefs {
   private data = $state<LayoutPrefsData>({
     hand: "right",
-    toolsPosition: DEFAULT_TOOLS_POSITION,
+    toolsEdge: "panels",
+    toolsPosition: 0,
+    navEdge: "opposite",
+    navPosition: 0,
     uiScale: 100,
     panelsOpen: true,
     pixelGrid: false,
@@ -116,7 +137,10 @@ export class LayoutPrefs {
   /** Changed before loading: kept over the saved values. */
   private changed: {
     hand?: true;
+    toolsEdge?: true;
     toolsPosition?: true;
+    navEdge?: true;
+    navPosition?: true;
     uiScale?: true;
     panelsOpen?: true;
     pixelGrid?: true;
@@ -144,25 +168,44 @@ export class LayoutPrefs {
     this.scheduleSave();
   }
 
+  get toolsEdge(): ColumnEdge {
+    return this.data.toolsEdge;
+  }
+
   get toolsPosition(): number {
     return this.data.toolsPosition;
   }
 
-  set toolsPosition(position: number) {
+  get navEdge(): ColumnEdge {
+    return this.data.navEdge;
+  }
+
+  get navPosition(): number {
+    return this.data.navPosition;
+  }
+
+  /** Puts a thin column against an edge, at a place along it (clamped from 0 to 1). */
+  placeColumn(column: "tools" | "nav", edge: ColumnEdge, position: number) {
     const p = Math.min(1, Math.max(0, position));
-    if (p === this.data.toolsPosition) {
+    const [edgeKey, positionKey] =
+      column === "tools"
+        ? (["toolsEdge", "toolsPosition"] as const)
+        : (["navEdge", "navPosition"] as const);
+    if (edge === this.data[edgeKey] && p === this.data[positionKey]) {
       return;
     }
-    this.data.toolsPosition = p;
+    this.data[edgeKey] = edge;
+    this.data[positionKey] = p;
     if (!this.loaded) {
-      this.changed.toolsPosition = true;
+      this.changed[edgeKey] = true;
+      this.changed[positionKey] = true;
     }
     this.scheduleSave();
   }
 
-  /** The tool column back in the middle. */
-  resetToolsPosition() {
-    this.toolsPosition = DEFAULT_TOOLS_POSITION;
+  /** A thin column back where it starts: at the top of its edge (the tools beside the panels). */
+  resetColumn(column: "tools" | "nav") {
+    this.placeColumn(column, column === "tools" ? "panels" : "opposite", 0);
   }
 
   get uiScale(): number {
@@ -299,6 +342,15 @@ export class LayoutPrefs {
         }
         if (saved.toolsPosition !== undefined && !this.changed.toolsPosition) {
           this.data.toolsPosition = saved.toolsPosition;
+        }
+        if (saved.toolsEdge !== undefined && !this.changed.toolsEdge) {
+          this.data.toolsEdge = saved.toolsEdge;
+        }
+        if (saved.navEdge !== undefined && !this.changed.navEdge) {
+          this.data.navEdge = saved.navEdge;
+        }
+        if (saved.navPosition !== undefined && !this.changed.navPosition) {
+          this.data.navPosition = saved.navPosition;
         }
         if (saved.uiScale !== undefined && !this.changed.uiScale) {
           this.data.uiScale = saved.uiScale;

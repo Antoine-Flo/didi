@@ -1,7 +1,12 @@
 // The menus of the title bar (File, Edit…). Plain data, like the keymap: each item runs a
 // command, shown with its title (unless it has a label) and its shortcut.
 
+import type { Component } from "svelte";
+import { Settings } from "@lucide/svelte";
 import { m } from "#lib/paraglide/messages.js";
+
+/** A small icon before an item's name, e.g. a recent file's mode. */
+export type MenuIcon = Component<{ class?: string }>;
 
 /** An item of a menu: a command, a submenu, or a separator line. */
 export type MenuEntry =
@@ -10,10 +15,12 @@ export type MenuEntry =
       params?: unknown;
       /** Instead of the command's title. */
       label?: string;
+      icon?: MenuIcon;
     }
   | {
       label: string;
       items: MenuEntry[];
+      icon?: MenuIcon;
       /** Only shown with this command: the items may be empty for now (the recent files). */
       requires?: string;
     }
@@ -26,7 +33,10 @@ export interface MenuDefinition {
 
 /** What changes in the menus: the recent files, the names of the undo and redo steps. */
 export interface MenuState {
-  recent: readonly { path: string; name: string }[];
+  /** With their mode, if known: its icon shows. */
+  recent: readonly { path: string; name: string; mode?: string }[];
+  /** The modes, to choose the document's. */
+  modes: readonly { id: string; title: string; icon: MenuIcon }[];
   /** E.g. "Brush" for "Undo Brush", null if there is nothing to undo. */
   undoLabel: string | null;
   redoLabel: string | null;
@@ -64,7 +74,7 @@ export function availableMenus(
   });
 }
 
-export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuDefinition[] {
+export function defaultMenus({ recent, modes, undoLabel, redoLabel }: MenuState): MenuDefinition[] {
   return [
     {
       title: m.menu_file(),
@@ -78,6 +88,7 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
             command: "file.open",
             params: { path: f.path },
             label: f.name,
+            icon: modes.find((mode) => mode.id === f.mode)?.icon,
           })),
         },
         "separator",
@@ -112,7 +123,7 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "edit.flipHorizontal" },
         { command: "edit.flipVertical" },
         "separator",
-        { command: "app.preferences" },
+        { command: "app.preferences", icon: Settings },
       ],
     },
     {
@@ -140,6 +151,11 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "image.rotate180" },
         { command: "image.flipHorizontal" },
         { command: "image.flipVertical" },
+        "separator",
+        {
+          label: m.menu_mode(),
+          items: modes.map((mode) => ({ command: `mode.${mode.id}`, label: mode.title })),
+        },
       ],
     },
     {
@@ -163,6 +179,19 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
     {
       title: m.menu_view(),
       items: [
+        {
+          // Switches only: what is shown, checked when it is.
+          label: m.menu_show(),
+          items: [
+            { command: "view.hideInterface", label: m.show_interface() },
+            { command: "view.togglePanels", label: m.show_panels() },
+            { command: "view.preview", label: m.preview_title() },
+            "separator",
+            { command: "view.pixelGrid", label: m.grid_pixels() },
+            { command: "view.tileGrid", label: m.grid_tiles() },
+          ],
+        },
+        "separator",
         { command: "view.zoomIn" },
         { command: "view.zoomOut" },
         { command: "view.actualSize" },
@@ -176,17 +205,6 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "view.gridSettings" },
         "separator",
         { command: "view.fullScreen" },
-      ],
-    },
-    {
-      // Switches only: what is shown, checked when it is.
-      title: m.menu_show(),
-      items: [
-        { command: "view.hideInterface", label: m.show_interface() },
-        { command: "view.togglePanels", label: m.show_panels() },
-        "separator",
-        { command: "view.pixelGrid", label: m.grid_pixels() },
-        { command: "view.tileGrid", label: m.grid_tiles() },
       ],
     },
     {
