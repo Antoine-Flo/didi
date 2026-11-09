@@ -405,6 +405,7 @@
   "site_title": "Didi — Drawing app for painting and pixel art",
   "site_open": "Open Didi",
   "site_free": "Free, in your browser. A drawing tablet is recommended.",
+  "site_docs": "Documentation",
   "app_theme_save_failed": "Theme could not be saved: {error}",
   "cmd_app_preferences": "Preferences…",
   "preferences_title": "Preferences",

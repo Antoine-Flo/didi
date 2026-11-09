@@ -1,7 +1,7 @@
 {
   "name": "didi",
   "version": "0.1.0",
-  "description": "",
+  "description": "A drawing app for pixel art and painting, with lessons built in.",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -18,9 +18,10 @@
     "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts",
     "measure:brushes": "DIDI_MEASURE=1 vitest run src/lib/mypaint/brush-sizes.test.ts",
     "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
-    "deploy": "npm run build && wrangler deploy"
+    "website": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'build', { recursive: true })\"",
+    "deploy": "npm run build && npm run website && wrangler deploy"
   },
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "dependencies": {
     "@lucide/svelte": "^1.66.0",
     "@tauri-apps/api": "^2",

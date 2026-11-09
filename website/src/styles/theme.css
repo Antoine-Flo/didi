@@ -1,0 +1,32 @@
+/* The app's colors (src/lib/app/shell/theme.ts, DARK_THEME and LIGHT_THEME) on Starlight's
+   variables, so the site looks like Didi. */
+
+:root {
+  --sl-font: system-ui, sans-serif;
+  --sl-color-accent-low: #26303c;
+  --sl-color-accent: #7a9cc6;
+  --sl-color-accent-high: #c9d7e8;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #d4d4d4;
+  --sl-color-gray-2: #b4b4b4;
+  --sl-color-gray-3: #9a9a9a;
+  --sl-color-gray-4: #6a6a6a;
+  --sl-color-gray-5: #3c3c3c;
+  --sl-color-gray-6: #262626;
+  --sl-color-black: #1c1c1c;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #c9d7e8;
+  --sl-color-accent: #4a72a8;
+  --sl-color-accent-high: #26303c;
+  --sl-color-white: #1c1c1c;
+  --sl-color-gray-1: #262626;
+  --sl-color-gray-2: #3c3c3c;
+  --sl-color-gray-3: #5e5e5e;
+  --sl-color-gray-4: #828282;
+  --sl-color-gray-5: #b6b6b6;
+  --sl-color-gray-6: #e0e0e0;
+  --sl-color-gray-7: #e6e6e6;
+  --sl-color-black: #ececec;
+}

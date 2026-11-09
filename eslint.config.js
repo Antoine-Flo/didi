@@ -11,6 +11,8 @@ export default ts.config(
   {
     ignores: [
       "build/",
+      // The website has its own project and checks (website/package.json).
+      "website/",
       ".svelte-kit/",
       "src-tauri/",
       "node_modules/",

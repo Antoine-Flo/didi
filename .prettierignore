@@ -1,4 +1,6 @@
 build/
+website/dist/
+website/.astro/
 .svelte-kit/
 src-tauri/target/
 src-tauri/gen/

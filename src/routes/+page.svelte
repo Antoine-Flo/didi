@@ -21,6 +21,9 @@
   <p>{m.about_description()}</p>
   <a class="open" href={resolve("/(app)/app")}>{m.site_open()}</a>
   <p class="free">{m.site_free()}</p>
+  <!-- Not a SvelteKit page but the website (website/): no resolve(), the browser loads it. -->
+  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+  <a class="docs" href="/doc/" data-sveltekit-reload>{m.site_docs()}</a>
 </main>
 
 <style>
@@ -69,6 +72,15 @@
 
   .open:hover {
     outline: 1px solid var(--text-faint);
+  }
+
+  .docs {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .docs:hover {
+    color: var(--text);
   }
 
   .free {

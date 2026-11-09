@@ -18,5 +18,9 @@ tools/brush-compare/out/
 # Interface texts compiled from messages/ by Paraglide
 /src/lib/paraglide/
 
+# Website (Astro): build output and generated types
+/website/dist/
+/website/.astro/
+
 # Wrangler (Cloudflare) local state
 .wrangler/

@@ -1,8 +1,9 @@
 [package]
 name = "didi"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A drawing app for pixel art and painting, with lessons built in."
+authors = ["Antoine Flouzat"]
+license = "GPL-3.0-or-later"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
