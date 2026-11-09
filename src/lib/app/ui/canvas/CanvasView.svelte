@@ -1,5 +1,6 @@
 <script lang="ts" module>
   import { CullerPlugin, extensions } from "pixi.js";
+  import type { Insets as PanelInsets } from "#lib/app/input/view-navigation.js";
 
   // Skips off-screen tiles when rendering.
   extensions.add(CullerPlugin);
@@ -11,54 +12,25 @@
   }
 
   /** Space taken by panels over the view, in pixels, on each side. */
-  export interface Insets {
-    top: number;
-    right: number;
-    bottom: number;
-    left: number;
-  }
-
-  /** How far ahead the pointer is drawn, in milliseconds of the pen's movement. */
-  const PREDICT_MS = 30;
-  /** The pen's speed is averaged over about this long, in milliseconds. */
-  const VELOCITY_MS = 25;
-  /** At most this far ahead, in window pixels. */
-  const MAX_LEAD = 60;
-  /** Without a move for this long, the pen has stopped: the pointer goes back under it. */
-  const STILL_MS = 40;
-  /** Wheel movement, in pixels, for one zoom level in pixel art: about a mouse wheel's notch. */
-  const WHEEL_NOTCH = 100;
+  export type Insets = PanelInsets;
 </script>
 
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { Application } from "pixi.js";
-  import { consumeDismissal } from "#lib/app/shared/dismissal.js";
   import { held } from "#lib/app/input/modifiers.svelte.js";
-  import { isTyping } from "#lib/app/commands/keyboard.js";
   import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
   import type { Painter } from "#lib/app/input/painter.js";
-  import type { BrushCursor, Sample } from "#lib/app/tools/tool.js";
+  import { CanvasInput } from "#lib/app/input/canvas-input.svelte.js";
+  import { ViewNavigation } from "#lib/app/input/view-navigation.js";
+  import { brushCursorState } from "#lib/app/tools/brush-cursor.js";
+  import type { BrushCursor } from "#lib/app/tools/tool.js";
   import type { RGB } from "#lib/core/color/color.js";
   import type { Editor } from "#lib/core/editor/editor.js";
-  import { PenInput } from "#lib/app/input/pen-input.svelte.js";
-  import { TouchGestures } from "#lib/app/input/touch-gestures.js";
-  import { nativePenAvailable, subscribeNativePen, type PenEvent } from "#lib/platform/pen.js";
-  import {
-    fit,
-    mirrorAt,
-    pan,
-    rotateAt,
-    setRotationAt,
-    toCanvas,
-    zoomAt,
-    type Camera,
-    type Point,
-  } from "#lib/render/camera.js";
+  import { toCanvas, type Camera, type Point } from "#lib/render/camera.js";
   import { placementOf, selectionOutline } from "#lib/core/selection/selection.js";
   import { shapeMask } from "#lib/core/selection/shape.js";
-  import { DrawingView, type BrushCursorState } from "#lib/render/drawing-view.js";
-  import { isFreeZoom, snapZoomDown, snapZoomNearest, stepZoom } from "#lib/render/pixel-zoom.js";
+  import { DrawingView } from "#lib/render/drawing-view.js";
 
   let {
     editor,
@@ -118,133 +90,60 @@
   let canvas: HTMLCanvasElement;
   let app: Application | null = null;
   let view: DrawingView | null = null;
-  let camera: Camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
 
-  let spaceDown = $state(false);
+  const viewSize = () => ({ width: host.clientWidth, height: host.clientHeight });
+
+  const navigation = new ViewNavigation({
+    size: viewSize,
+    insets: () => insets?.(),
+    pixelZoom: () => pixelZoom,
+    changed: (next) => {
+      view?.setCamera(next, viewSize());
+      oncamera?.(next);
+    },
+  });
+
   /** Where the pen hovers, for the tool's pointer. It stays put during a stroke. */
   let hoverPoint = $state<Point | null>(null);
   const pointerCursor = $derived(
-    hoverPoint && hoverCursor ? hoverCursor(hoverPoint, camera.zoom) : null,
+    hoverPoint && hoverCursor ? hoverCursor(hoverPoint, navigation.camera.zoom) : null,
   );
-  let panning: { id: number; x: number; y: number } | null = $state(null);
   /** Last cursor position, in canvas pixels, to redraw the outline when the pen flips. */
   let lastCursor: Point | null = null;
   let destroyed = false;
 
   // svelte-ignore state_referenced_locally
-  const pen = painter
-    ? new PenInput({
-        painter,
-        consumeDismissal,
-        // Only on the canvas itself, not over a panel or while panning.
-        mayStartAt(x, y) {
-          const target = document.elementFromPoint(x, y);
-          return !spaceDown && !panning && !!target && host.contains(target);
-        },
-        sample: nativeSample,
-      })
-    : null;
-  const stroking = $derived(pen?.stroking ?? false);
-
-  /** Fingers move the view: the brush's pointer is hidden meanwhile. */
-  let touchNavigating = $state(false);
-  /** A finger is drawing (not the pen). */
-  let touchStroke = false;
-  const touch = new TouchGestures({
-    camera: () => camera,
-    setCamera,
+  const input = new CanvasInput({
+    element: () => host,
+    painter,
+    navigation,
     fingerDraws: () => fingerDraws,
     mayRotate: () => touchRotation,
-    beginStroke: (p, time) => {
-      touchStroke = !!pen?.domDown(sample(p, 1, { time }), false, true);
-      return touchStroke;
-    },
-    moveStroke: (p, time) => pen?.domMove([sample(p, 1, { time })]),
-    endStroke: () => {
-      touchStroke = false;
-      pen?.domUp();
-    },
-    cancelStroke: () => {
-      touchStroke = false;
-      pen?.cancel();
-    },
-    endNavigation: (at) => {
-      if (pixelZoom) {
-        zoomAround(at, snapZoomNearest(camera.zoom, devicePixelRatio));
-      }
-    },
-    undo: () => oncommand?.("history.undo"),
-    redo: () => oncommand?.("history.redo"),
+    penUsed: () => onpen?.(),
+    command: (id) => oncommand?.(id),
+    hideCursor: () => updateCursor(null),
   });
-
-  /** The pen came down: fingers still on the screen are the resting hand. */
-  function penDown() {
-    onpen?.();
-    touch.abandon();
-    touchNavigating = false;
-  }
-
-  const viewSize = () => ({ width: host.clientWidth, height: host.clientHeight });
-
-  function setCamera(next: Camera) {
-    camera = next;
-    view?.setCamera(next, viewSize());
-    oncamera?.(next);
-  }
-
-  /** The part of the view that is not under panels. */
-  function visibleArea() {
-    const { top, right, bottom, left } = insets?.() ?? { top: 0, right: 0, bottom: 0, left: 0 };
-    return {
-      x: left,
-      y: top,
-      width: Math.max(1, host.clientWidth - left - right),
-      height: Math.max(1, host.clientHeight - top - bottom),
-    };
-  }
-
-  function center(): Point {
-    const area = visibleArea();
-    return { x: area.x + area.width / 2, y: area.y + area.height / 2 };
-  }
+  const pen = input.pen;
+  const stroking = $derived(input.stroking);
 
   /** Fits the canvas in the view, unturned; a mirrored view stays mirrored. */
   export function fitView() {
-    const area = visibleArea();
-    let fitted = fit(editor.drawing, area);
-    if (pixelZoom) {
-      // Around the middle of the area, where the canvas is centered.
-      const middle = { x: area.width / 2, y: area.height / 2 };
-      const zoom = snapZoomDown(fitted.zoom, devicePixelRatio);
-      fitted = zoomAt(fitted, middle, zoom / fitted.zoom);
-    }
-    const next = { ...fitted, x: fitted.x + area.x, y: fitted.y + area.y };
-    setCamera(camera.mirrored ? mirrorAt(next, center()) : next);
+    navigation.fit(editor.drawing);
   }
 
   /** Shows the drawing reversed, left to right, or back: the drawing doesn't change. */
   export function mirrorView() {
-    setCamera(mirrorAt(camera, center()));
+    navigation.mirror();
   }
 
   /** One step in (1) or out (-1), around the center of the view. */
   export function zoomStep(direction: 1 | -1) {
-    if (pixelZoom) {
-      zoomAround(center(), stepZoom(camera.zoom, devicePixelRatio, direction));
-    } else {
-      setCamera(zoomAt(camera, center(), direction > 0 ? 1.25 : 0.8));
-    }
+    navigation.zoomStep(direction);
   }
 
   /** Sets the zoom to an absolute value (the nearest level in pixel art), around the center. */
   export function zoomTo(zoom: number) {
-    zoomAround(center(), pixelZoom ? snapZoomNearest(zoom, devicePixelRatio) : zoom);
-  }
-
-  function zoomAround(at: Point, zoom: number) {
-    if (zoom !== camera.zoom) {
-      setCamera(zoomAt(camera, at, zoom / camera.zoom));
-    }
+    navigation.zoomTo(zoom);
   }
 
   /** Shows what a resize would give, without changing the drawing (see DrawingView). */
@@ -253,156 +152,12 @@
   }
 
   export function rotateBy(angle: number) {
-    setCamera(rotateAt(camera, center(), angle));
+    navigation.rotateBy(angle);
   }
 
   export function resetRotation() {
-    setCamera(setRotationAt(camera, center(), 0));
+    navigation.resetRotation();
   }
-
-  function local(e: { clientX: number; clientY: number }): Point {
-    const rect = host.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  function onWheel(e: WheelEvent) {
-    e.preventDefault();
-    const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY;
-    if (e.shiftKey) {
-      setCamera(rotateAt(camera, local(e), (Math.sign(delta) * Math.PI) / 12));
-    } else {
-      wheelZoom(local(e), delta);
-    }
-  }
-
-  /** In pixel art, wheel movement toward the next zoom level (see wheelZoom). */
-  let wheelRest = 0;
-
-  /** Zooms with the wheel: smoothly, or in pixel art by levels when zoomed out. */
-  function wheelZoom(at: Point, delta: number) {
-    const factor = Math.exp(-delta * 0.0015);
-    if (!pixelZoom) {
-      return setCamera(zoomAt(camera, at, factor));
-    }
-    const dpr = devicePixelRatio;
-    const free = isFreeZoom(camera.zoom, dpr);
-    const target = camera.zoom * factor;
-    if (free && isFreeZoom(target, dpr)) {
-      wheelRest = 0;
-      return setCamera(zoomAt(camera, at, factor));
-    }
-    // Leaving the free zone: stops at its edge first.
-    if (free && factor < 1) {
-      wheelRest = 0;
-      return zoomAround(at, stepZoom(camera.zoom, dpr, -1, Infinity));
-    }
-    // One level per notch of a mouse wheel; a touchpad adds up its small moves.
-    if (Math.sign(delta) !== Math.sign(wheelRest)) {
-      wheelRest = 0;
-    }
-    wheelRest += delta;
-    if (Math.abs(wheelRest) < WHEEL_NOTCH) {
-      return;
-    }
-    wheelRest = 0;
-    zoomAround(at, stepZoom(camera.zoom, dpr, delta < 0 ? 1 : -1));
-  }
-
-  /** A drawing sample from a point in view coordinates. */
-  function sample(
-    p: Point,
-    pressure: number,
-    extra: { tiltX?: number; tiltY?: number; time?: number } = {},
-  ): Sample {
-    return {
-      ...toCanvas(camera, p),
-      pressure,
-      viewZoom: camera.zoom,
-      viewRotation: (camera.rotation * 180) / Math.PI,
-      ...extra,
-    };
-  }
-
-  function domSample(e: PointerEvent): Sample {
-    return sample(local(e), domPressure(e), { tiltX: e.tiltX, tiltY: e.tiltY, time: e.timeStamp });
-  }
-
-  // DOM pointer events: panning everywhere, drawing when there is no native input.
-
-  function onPointerDown(e: PointerEvent) {
-    if (e.pointerType === "pen") {
-      penDown();
-    }
-    if (e.pointerType === "touch") {
-      // The palm, while the pen draws: ignored.
-      if (stroking && !touchStroke) {
-        return;
-      }
-      touch.down(e.pointerId, local(e), e.timeStamp);
-      touchNavigating = touch.navigating;
-      return;
-    }
-    if (e.button === 1 || (e.button === 0 && spaceDown)) {
-      e.preventDefault();
-      host.setPointerCapture(e.pointerId);
-      panning = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      updateCursor(null);
-      return;
-    }
-    // Button 5 is the pen's eraser end.
-    if (!pen || (e.button !== 0 && e.button !== 5)) {
-      return;
-    }
-    const eraser = e.button === 5 || (e.buttons & 32) !== 0;
-    if (pen.domDown(domSample(e), eraser)) {
-      host.setPointerCapture(e.pointerId);
-    }
-  }
-
-  function onPointerMove(e: PointerEvent) {
-    if (e.pointerType === "touch") {
-      const events = touch.stroking ? (e.getCoalescedEvents?.() ?? []) : [];
-      for (const c of events.length ? events : [e]) {
-        touch.move(e.pointerId, local(c), c.timeStamp);
-      }
-      touchNavigating = touch.navigating;
-      if (touchNavigating) {
-        return;
-      }
-    }
-    if (panning?.id === e.pointerId) {
-      setCamera(pan(camera, e.clientX - panning.x, e.clientY - panning.y));
-      panning = { id: e.pointerId, x: e.clientX, y: e.clientY };
-    }
-    if (stroking && e.pointerType !== "touch") {
-      const events = e.getCoalescedEvents?.() ?? [];
-      pen?.domMove((events.length ? events : [e]).map(domSample));
-    }
-    // A pen sends hundreds of moves a second: the pointer follows the last one, once per frame
-    // (see showPointer), so they do not pile up behind it.
-    const at = {
-      clientX: e.clientX,
-      clientY: e.clientY,
-      time: e.timeStamp,
-      pen: e.pointerType === "pen",
-    };
-    if (pointerAt && at.time > pointerAt.time) {
-      // Window pixels per millisecond, smoothed over about VELOCITY_MS.
-      const dt = at.time - pointerAt.time;
-      const vx = (at.clientX - pointerAt.clientX) / dt;
-      const vy = (at.clientY - pointerAt.clientY) / dt;
-      const k = 1 - Math.exp(-dt / VELOCITY_MS);
-      velocity = { x: velocity.x + (vx - velocity.x) * k, y: velocity.y + (vy - velocity.y) * k };
-    }
-    pointerAt = at;
-    pointerMoved = true;
-  }
-
-  /** The last pointer position, in the window, and when it was there (event time). */
-  let pointerAt: { clientX: number; clientY: number; time: number; pen: boolean } | null = null;
-  /** The pointer moved since it was last shown. */
-  let pointerMoved = false;
-  let velocity = { x: 0, y: 0 };
 
   /**
    * Moves the pointer, the shown position and the tool's hover to the last move.
@@ -412,66 +167,25 @@
    * pixels are where the pen really is, under the system pointer).
    */
   function showPointer(now: number) {
-    if (!pointerAt) {
+    const frame = input.lead.frame(now, cursorShape.kind === "circle");
+    if (!frame) {
       return;
     }
-    const still = now - pointerAt.time > STILL_MS;
-    if (!pointerMoved && still) {
-      if (velocity.x === 0 && velocity.y === 0) {
-        return;
-      }
-      velocity = { x: 0, y: 0 };
-    }
-    pointerMoved = false;
-    const p = toCanvas(camera, local(pointerAt));
+    const camera = navigation.camera;
+    const p = toCanvas(camera, input.local(frame.at));
     reportCursor(p);
     if (!stroking) {
       hoverPoint = p;
     }
-    let lead = { x: velocity.x * PREDICT_MS, y: velocity.y * PREDICT_MS };
-    const length = Math.hypot(lead.x, lead.y);
-    if (still || !pointerAt.pen || cursorShape.kind !== "circle") {
-      lead = { x: 0, y: 0 };
-    } else if (length > MAX_LEAD) {
-      lead = { x: (lead.x * MAX_LEAD) / length, y: (lead.y * MAX_LEAD) / length };
-    }
-    const ahead = toCanvas(
-      camera,
-      local({ clientX: pointerAt.clientX + lead.x, clientY: pointerAt.clientY + lead.y }),
-    );
-    updateCursor(panning || touchNavigating ? null : ahead);
+    const ahead = toCanvas(camera, input.local(frame.ahead));
+    updateCursor(input.panning || input.touchNavigating ? null : ahead);
   }
 
-  function onPointerUp(e: PointerEvent) {
-    if (e.pointerType === "touch") {
-      if (e.type === "pointercancel") {
-        touch.cancel(e.pointerId);
-      } else {
-        touch.up(e.pointerId, e.timeStamp);
-      }
-      touchNavigating = touch.navigating;
-      return;
-    }
-    if (panning?.id === e.pointerId) {
-      panning = null;
-    }
-    // Not the stroke of a finger: a mouse button released elsewhere.
-    if (!touchStroke) {
-      pen?.domUp();
-    }
-  }
-
-  /** Mice report 0.5 while pressed: they draw at full pressure. */
-  function domPressure(e: PointerEvent): number {
-    return e.pointerType === "pen" || e.pointerType === "touch" ? e.pressure : 1;
-  }
-
-  /** A drawing sample from a native pen event (Linux): positions are relative to the webview. */
-  function nativeSample(e: PenEvent): Sample {
-    const rect = host.getBoundingClientRect();
-    const p = { x: e.x - rect.left, y: e.y - rect.top };
-    const pressure = e.source === "pen" || e.source === "eraser" ? e.pressure : 1;
-    return sample(p, pressure, { tiltX: e.tiltX, tiltY: e.tiltY, time: e.time });
+  function onPointerLeave() {
+    input.lead.leave();
+    reportCursor(null);
+    hoverPoint = null;
+    updateCursor(null);
   }
 
   /** The outline's shape. Recomputed only when the tool or its settings change. */
@@ -497,28 +211,7 @@
   /** Moves the outline to `p` (canvas pixels), or hides it. */
   function updateCursor(p: Point | null) {
     lastCursor = p;
-    view?.setBrushCursor(p ? cursorState(p) : null);
-  }
-
-  function cursorState(p: Point): BrushCursorState | null {
-    const c = cursorShape;
-    if (c.kind === "circle") {
-      return { ...c, x: p.x, y: p.y };
-    }
-    if (c.kind === "square" || c.kind === "pixel-round") {
-      const fill =
-        c.opacity !== undefined && brushColor
-          ? {
-              color: (brushColor[0] << 16) | (brushColor[1] << 8) | brushColor[2],
-              alpha: c.opacity,
-            }
-          : undefined;
-      return { kind: c.kind, size: c.size, x: p.x, y: p.y, fill };
-    }
-    if (c.kind === "picker") {
-      return { kind: "picker", x: p.x, y: p.y };
-    }
-    return null;
+    view?.setBrushCursor(p ? brushCursorState(cursorShape, p, brushColor) : null);
   }
 
   /** Tells the pixel under the pen, only when it changes: the document's information shows it. */
@@ -530,22 +223,6 @@
     }
     reported = pixel;
     oncursor?.(pixel);
-  }
-
-  function onKeyDown(e: KeyboardEvent) {
-    // Alt alone must not open a menu of the system or the browser.
-    if (e.key === "Alt") {
-      e.preventDefault();
-    }
-    if (e.code === "Space" && !isTyping(e)) {
-      spaceDown = true;
-      e.preventDefault();
-    }
-    // Also while the queue of a lifted stroke is still being painted.
-    // Esc was for the stroke, not for the shortcut (see EditorApp).
-    if (e.key === "Escape" && pen?.cancel()) {
-      e.preventDefault();
-    }
   }
 
   function syncSelection() {
@@ -567,7 +244,7 @@
   $effect(() => {
     const shown = pixelGrid;
     const tiles = tileGrid;
-    untrack(() => view?.setGridShown(shown, tiles, camera, viewSize()));
+    untrack(() => view?.setGridShown(shown, tiles, navigation.camera, viewSize()));
   });
   // The background follows the theme when it changes (Preferences).
   $effect(() => {
@@ -576,15 +253,6 @@
       app.renderer.background.color = background;
     }
   });
-
-  function onKeyUp(e: KeyboardEvent) {
-    if (e.key === "Alt") {
-      e.preventDefault();
-    }
-    if (e.code === "Space") {
-      spaceDown = false;
-    }
-  }
 
   onMount(() => {
     const pixi = new Application();
@@ -606,7 +274,7 @@
         }
         app = pixi;
         view = new DrawingView(editor.drawing);
-        view.setGridShown(pixelGrid, tileGrid, camera, viewSize());
+        view.setGridShown(pixelGrid, tileGrid, navigation.camera, viewSize());
         pixi.stage.addChild(view.root);
         fitView();
         syncSelection();
@@ -623,20 +291,7 @@
         });
       });
 
-    nativePenAvailable().then((available) => {
-      if (!available || destroyed || !pen) {
-        return;
-      }
-      pen.useNative();
-      subscribeNativePen((e) => {
-        if ((e.source === "pen" || e.source === "eraser") && e.phase === "down") {
-          penDown();
-        }
-        if (!destroyed) {
-          pen.onNative(e);
-        }
-      });
-    });
+    input.connectNativePen(() => destroyed);
 
     const unsubscribeSelection = editor.selection.subscribe(syncSelection);
 
@@ -645,7 +300,7 @@
     window.addEventListener("blur", onBlur);
 
     // Keep the checkerboard and the grid matching the view size.
-    const resize = new ResizeObserver(() => setCamera(camera));
+    const resize = new ResizeObserver(() => navigation.set(navigation.camera));
     resize.observe(host);
 
     return () => {
@@ -660,29 +315,25 @@
   });
 </script>
 
-<svelte:window onkeydown={onKeyDown} onkeyup={onKeyUp} />
+<svelte:window onkeydown={(e) => input.keyDown(e)} onkeyup={(e) => input.keyUp(e)} />
 
 <div
   class="host"
-  class:grab={spaceDown}
-  class:grabbing={panning}
+  class:grab={input.spaceDown}
+  class:grabbing={input.panning}
   class:own-pointer={ownPointer && !pointerCursor}
   class:sight={(cursorShape.kind === "square" || cursorShape.kind === "pixel-round") &&
     !pointerCursor}
-  style:cursor={held.alt || spaceDown || panning ? undefined : (pointerCursor ?? undefined)}
+  style:cursor={held.alt || input.spaceDown || input.panning
+    ? undefined
+    : (pointerCursor ?? undefined)}
   bind:this={host}
-  onwheel={onWheel}
-  onpointerdown={onPointerDown}
-  onpointermove={onPointerMove}
-  onpointerup={onPointerUp}
-  onpointercancel={onPointerUp}
-  onpointerleave={() => {
-    pointerAt = null;
-    velocity = { x: 0, y: 0 };
-    reportCursor(null);
-    hoverPoint = null;
-    updateCursor(null);
-  }}
+  onwheel={(e) => navigation.wheel(input.local(e), e)}
+  onpointerdown={(e) => input.pointerDown(e)}
+  onpointermove={(e) => input.pointerMove(e)}
+  onpointerup={(e) => input.pointerUp(e)}
+  onpointercancel={(e) => input.pointerUp(e)}
+  onpointerleave={onPointerLeave}
   oncontextmenu={(e) => e.preventDefault()}
   role="application"
 >

@@ -4,15 +4,14 @@
   // transparency lock and lock. Rows are dragged to reorder; a right click opens the layer
   // menu for that layer.
 
-  import { Eye, EyeOff, Lock, LockOpen, Plus } from "@lucide/svelte";
+  import { Plus } from "@lucide/svelte";
   import { ContextMenu, DropdownMenu } from "bits-ui";
   import { onDestroy, untrack } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
   import PanelMenu from "#lib/app/ui/widgets/PanelMenu.svelte";
   import Select from "#lib/app/ui/widgets/Select.svelte";
   import Slider from "#lib/app/ui/widgets/Slider.svelte";
-  import AlphaLockIcon from "#lib/app/ui/panels/AlphaLockIcon.svelte";
-  import LayerThumb from "#lib/app/ui/panels/LayerThumb.svelte";
+  import LayerRow from "#lib/app/ui/panels/LayerRow.svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
   import { m } from "#lib/paraglide/messages.js";
@@ -285,63 +284,16 @@
             onpointerup={endDrag}
             onpointercancel={cancelDrag}
           >
-            <button
-              class="icon"
-              class:off={!layer.visible}
-              title={layer.visible ? m.layers_hide() : m.layers_show()}
-              onclick={() => update(layer.id, { visible: !layer.visible })}
-            >
-              {#if layer.visible}<Eye />{:else}<EyeOff />{/if}
-            </button>
-            <button
-              class="thumb-button"
-              title={m.layers_thumb_tip()}
-              onclick={() => run("layer.select", { id: layer.id })}
-              ondblclick={() => run("selection.layerContent", { id: layer.id })}
-            >
-              <LayerThumb tiles={layer.tiles} stamp={stamps[layer.id] ?? 0} />
-            </button>
-            {#if renaming === layer.id}
-              <!-- svelte-ignore a11y_autofocus -->
-              <input
-                type="text"
-                value={layer.name}
-                autofocus
-                onfocus={(e) => e.currentTarget.select()}
-                onblur={(e) => rename(layer.id, e.currentTarget)}
-                onkeydown={(e) => {
-                  if (e.key === "Enter") {
-                    rename(layer.id, e.currentTarget);
-                  }
-                  if (e.key === "Escape") {
-                    renaming = null;
-                  }
-                }}
-              />
-            {:else}
-              <button
-                class="name"
-                title={m.layers_name_tip()}
-                onclick={() => run("layer.select", { id: layer.id })}
-                ondblclick={() => (renaming = layer.id)}>{layer.name}</button
-              >
-            {/if}
-            <button
-              class="icon"
-              class:off={!layer.alphaLocked}
-              title={layer.alphaLocked ? m.layers_unlock_alpha() : m.layers_lock_alpha()}
-              onclick={() => update(layer.id, { alphaLocked: !layer.alphaLocked })}
-            >
-              <AlphaLockIcon locked={layer.alphaLocked} />
-            </button>
-            <button
-              class="icon"
-              class:off={!layer.locked}
-              title={layer.locked ? m.layers_unlock() : m.layers_lock()}
-              onclick={() => update(layer.id, { locked: !layer.locked })}
-            >
-              {#if layer.locked}<Lock />{:else}<LockOpen />{/if}
-            </button>
+            <LayerRow
+              {layer}
+              stamp={stamps[layer.id] ?? 0}
+              renaming={renaming === layer.id}
+              {update}
+              {run}
+              onrename={(input) => rename(layer.id, input)}
+              onstartrename={() => (renaming = layer.id)}
+              oncancelrename={() => (renaming = null)}
+            />
           </li>
         {/each}
       </ul>
@@ -399,41 +351,5 @@
 
   li.drop-below {
     box-shadow: inset 0 -2px 0 var(--text-muted);
-  }
-
-  .name,
-  li input {
-    flex: 1;
-    min-width: 0;
-  }
-
-  /* Only the thumbnail shows. */
-  .thumb-button {
-    display: flex;
-    flex: none;
-    align-items: center;
-    padding: 0;
-    background: none;
-    border: none;
-  }
-
-  .thumb-button:hover:not(:disabled) {
-    background: none;
-  }
-
-  .name {
-    overflow: hidden;
-    padding: 0 calc(var(--space) / 2);
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .name:hover:not(:disabled) {
-    background: none;
-  }
-
-  .off {
-    color: var(--text-faint);
   }
 </style>
