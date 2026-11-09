@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_TILE_GRID,
   DidiFileError,
   documentFromEditor,
   editorFromDocument,
@@ -89,6 +90,25 @@ describe(".didi files", () => {
       strFromU8(unzipSync(writeDidi(documentFromEditor(editor)))["document.json"]),
     );
     expect(json).not.toHaveProperty("mode");
+  });
+
+  it("saves the tiles' grid, and gives older files the default one", () => {
+    const editor = sample();
+    for (const grid of [
+      { width: 32, height: 8, shown: true },
+      { width: 4, height: 4, shown: false },
+    ]) {
+      expect(readDidi(writeDidi(documentFromEditor(editor, {}, null, grid))).grid).toEqual(grid);
+    }
+    // A file from before grids, or with a grid not understood.
+    const files = unzipSync(writeDidi(documentFromEditor(editor)));
+    for (const value of [undefined, { width: 0, height: 16 }, "16"]) {
+      const json = JSON.parse(strFromU8(files["document.json"]));
+      if (value === undefined) delete json.grid;
+      else json.grid = value;
+      const bytes = zipSync({ ...files, "document.json": strToU8(JSON.stringify(json)) });
+      expect(readDidi(bytes).grid).toEqual(DEFAULT_TILE_GRID);
+    }
   });
 
   it("round-trips any document", () => {

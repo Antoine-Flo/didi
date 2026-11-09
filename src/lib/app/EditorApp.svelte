@@ -38,6 +38,7 @@
   import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
   import ConfirmDialog from "#lib/app/dialogs/ConfirmDialog.svelte";
   import ImageSizeDialog, { type SizeKind } from "#lib/app/dialogs/ImageSizeDialog.svelte";
+  import GridDialog from "#lib/app/dialogs/GridDialog.svelte";
   import ShortcutsDialog from "#lib/app/dialogs/ShortcutsDialog.svelte";
   import AboutDialog from "#lib/app/dialogs/AboutDialog.svelte";
   import PreferencesDialog from "#lib/app/dialogs/PreferencesDialog.svelte";
@@ -169,6 +170,7 @@
   /** Only the canvas shows: every panel and bar is hidden (Tab). */
   let interfaceHidden = $state(false);
   let sizeDialog = $state<SizeKind | null>(null);
+  let gridOpen = $state(false);
 
   /** The pending confirmation (see ConfirmDialog), answered once. */
   let confirmRequest = $state<{
@@ -336,6 +338,16 @@
       },
       togglePanels,
       togglePixelGrid: () => (layout.pixelGrid = !layout.pixelGrid),
+      toggleTileGrid: () => session.setGrid({ ...session.grid, shown: !session.grid.shown }),
+      shown: (what) =>
+        what === "panels"
+          ? panelsOpen
+          : what === "interface"
+            ? !interfaceHidden
+            : what === "pixelGrid"
+              ? layout.pixelGrid
+              : session.grid.shown,
+      openGridSettings: () => (gridOpen = true),
       toggleInterface: () => (interfaceHidden = !interfaceHidden),
       toggleFullScreen: () =>
         void toggleFullScreen().catch((e) =>
@@ -410,6 +422,7 @@
       aboutOpen ||
       preferencesOpen ||
       sizeDialog !== null ||
+      gridOpen ||
       unsavedRequest !== null ||
       confirmRequest !== null,
   );
@@ -625,6 +638,7 @@
         hoverCursor={(p, zoom) => activeTool.hover?.(editor, p, zoom) ?? null}
         selectionHandles={isSelectTool(activeTool)}
         pixelGrid={layout.pixelGrid}
+        tileGrid={session.grid.shown ? session.grid : null}
         touchRotation={mode.touchRotation}
         pixelZoom={mode.pixelZoom}
         fingerDraws={layout.fingerDraws}
@@ -750,6 +764,8 @@
         {error}
         {camera}
         pixelGrid={layout.pixelGrid}
+        tileGrid={session.grid}
+        ontilegrid={(grid) => session.setGrid(grid)}
         {tip}
         {run}
         onShortcuts={() => (shortcutsOpen = true)}
@@ -848,6 +864,7 @@
     title={(id) => editor.commands.get(id)?.title ?? id}
     {shortcut}
     {enabled}
+    checked={(id) => editor.commands.isChecked(id)}
     {run}
   />
 {/snippet}
@@ -864,6 +881,15 @@
   side={panelsOnLeft ? "right" : "left"}
   {run}
   onpreview={(preview) => canvasView?.previewResize(preview)}
+/>
+<GridDialog
+  bind:open={gridOpen}
+  pixelGrid={layout.pixelGrid}
+  tileGrid={session.grid}
+  side={panelsOnLeft ? "right" : "left"}
+  {tip}
+  {run}
+  ontilegrid={(grid) => session.setGrid(grid)}
 />
 
 <StartScreen

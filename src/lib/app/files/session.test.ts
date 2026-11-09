@@ -231,6 +231,26 @@ describe("Session", () => {
     expect(session.dirty).toBe(false);
   });
 
+  it("keeps the tiles' grid with the document: saved, reopened, unsaved when changed", async () => {
+    const { session } = setup("discard");
+    await session.newDocument(16, 16, "white", "pixel");
+    expect(session.grid).toEqual({ width: 16, height: 16, shown: false });
+    session.setGrid({ width: 8, height: 8, shown: false });
+    expect(session.dirty).toBe(true);
+    session.setGrid({ width: 16, height: 16, shown: false });
+    expect(session.dirty).toBe(false);
+    session.setGrid({ width: 8, height: 8, shown: true });
+    dialogs.save = "/g.didi";
+    await session.save();
+    expect(session.dirty).toBe(false);
+
+    await session.newDocument(16, 16, "white", "pixel");
+    expect(session.grid.shown).toBe(false);
+    await session.open("/g.didi");
+    expect(session.grid).toEqual({ width: 8, height: 8, shown: true });
+    expect(session.dirty).toBe(false);
+  });
+
   it("tells whether the document is untouched, and can be replaced without loss", async () => {
     const host = { notify: vi.fn(), askUnsaved: vi.fn(async () => "cancel" as const) };
     const session = new Session(host, undefined, "pixel");

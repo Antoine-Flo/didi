@@ -29,6 +29,9 @@ function setup(withView = true) {
     hand: "right",
     togglePanels: vi.fn(),
     togglePixelGrid: vi.fn(),
+    toggleTileGrid: vi.fn(),
+    shown: vi.fn(() => true),
+    openGridSettings: vi.fn(),
     toggleInterface: vi.fn(),
     toggleFullScreen: vi.fn(),
     openShortcuts: vi.fn(),
@@ -168,6 +171,14 @@ describe("app commands", () => {
     editor.commands.execute("palette.duplicate", { name: " Copy " });
     expect(palettes.active?.name).toBe("Copy");
     expect(palettes.locked).toBe(false);
+  });
+
+  it("tells which switches are on, for the Show menu", () => {
+    const { editor, host } = setup();
+    vi.mocked(host.shown).mockImplementation((what) => what === "tileGrid");
+    expect(editor.commands.isChecked("view.tileGrid")).toBe(true);
+    expect(editor.commands.isChecked("view.pixelGrid")).toBe(false);
+    expect(editor.commands.isChecked("view.zoomIn")).toBeUndefined();
   });
 
   it("controls the view, once there is one", () => {

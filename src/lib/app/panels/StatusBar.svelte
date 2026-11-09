@@ -1,11 +1,10 @@
 <script lang="ts">
   // The bar below the canvas: the shortcuts' button and messages on the left, the view (zoom,
-  // rotation, pixels' grid) in the middle, the cursor position and the document's size on the right. The
+  // rotation, grids) in the middle, the cursor position and the document's size on the right. The
   // buttons run commands.
 
   import {
     Compass,
-    Grid3x3,
     Keyboard,
     Maximize,
     RotateCcw,
@@ -13,7 +12,9 @@
     ZoomIn,
     ZoomOut,
   } from "@lucide/svelte";
+  import GridButton from "#lib/app/panels/GridButton.svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
+  import type { TileGrid } from "#lib/core/file/didi-file.js";
   import type { Camera, Point } from "#lib/render/camera.js";
   import { m } from "#lib/paraglide/messages.js";
 
@@ -24,6 +25,8 @@
     error,
     camera,
     pixelGrid,
+    tileGrid,
+    ontilegrid,
     tip,
     run,
     onShortcuts,
@@ -37,6 +40,9 @@
     camera: Camera;
     /** The pixels' grid is shown (when zoomed in). */
     pixelGrid: boolean;
+    /** The document's tiles' grid. */
+    tileGrid: TileGrid;
+    ontilegrid: (grid: TileGrid) => void;
     tip: (id: string) => string;
     run: (id: string, params?: unknown) => void;
     /** Opens the list of keyboard shortcuts. */
@@ -89,15 +95,7 @@
       <Compass />
     </button>
 
-    <button
-      class="icon"
-      class:active={pixelGrid}
-      class:off={!pixelGrid}
-      title={tip("view.pixelGrid")}
-      onclick={() => run("view.pixelGrid")}
-    >
-      <Grid3x3 />
-    </button>
+    <GridButton {pixelGrid} {tileGrid} {tip} {run} {ontilegrid} />
   </div>
 
   <div class="status-end">
@@ -148,7 +146,7 @@
   }
 
   /* A switch that is off, like the layers' locks. */
-  .view .off {
+  .view :global(.off) {
     color: var(--text-faint);
   }
 

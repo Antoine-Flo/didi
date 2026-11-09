@@ -2,9 +2,11 @@
 // open, save, save as, export), recent files and crash recovery (see recovery-copy).
 
 import {
+  DEFAULT_TILE_GRID,
   documentFromEditor,
   editorFromDocument,
   type DocumentData,
+  type TileGrid,
 } from "#lib/core/file/didi-file.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { errorMessage } from "#lib/app/error-message.js";
@@ -48,6 +50,9 @@ export interface SessionHost {
 }
 
 const didiFilter = () => [{ name: m.files_didi_filter(), extensions: ["didi"] }];
+const sameGrid = (a: TileGrid, b: TileGrid) =>
+  a.width === b.width && a.height === b.height && a.shown === b.shown;
+
 const pngFilter = () => [{ name: m.files_png_filter(), extensions: ["png"] }];
 
 /** The document as last saved, to tell whether it has changed since. */
@@ -55,13 +60,15 @@ interface SavedState {
   /** See History.marker. */
   marker: unknown;
   mode: string;
+  grid: TileGrid;
   /** Visibility is saved, but is not in the history. */
   hidden: ReadonlySet<string>;
 }
 
-const savedStateOf = (editor: Editor, mode: string): SavedState => ({
+const savedStateOf = (editor: Editor, mode: string, grid: TileGrid): SavedState => ({
   marker: editor.history.marker,
   mode,
+  grid,
   hidden: new Set(editor.drawing.layers.filter((l) => !l.visible).map((l) => l.id)),
 });
 
@@ -71,6 +78,7 @@ interface Replacement {
   path: string | null;
   name: string;
   mode: string;
+  grid?: TileGrid;
   extensions?: Record<string, unknown>;
   /** Its changes are in no file (e.g. a recovered copy): replacing it would lose them. */
   inNoFile?: boolean;
@@ -85,13 +93,17 @@ export class Session {
   name = $state<string>(m.files_untitled());
   /** Id of the document's mode (see $lib/app/modes), saved with it. */
   mode = $state(DEFAULT_MODE);
+  /** The tiles' grid over the drawing, saved with it. */
+  grid = $state.raw<TileGrid>(DEFAULT_TILE_GRID);
   /** A file action in progress ("Saving…"), shown to the user. */
   busy = $state<string | null>(null);
   recent = $state.raw<RecentFile[]>([]);
   /** A copy left by a session that did not close normally. */
   recovery = $state.raw<RecoveryInfo | null>(null);
 
-  private saved = $state.raw<SavedState>(savedStateOf(this.editor, DEFAULT_MODE));
+  private saved = $state.raw<SavedState>(
+    savedStateOf(this.editor, DEFAULT_MODE, DEFAULT_TILE_GRID),
+  );
   /** Bumped on every history or visibility change, to recompute `dirty`. */
   private revision = $state(0);
   private extensions: Record<string, unknown> = {};
@@ -99,7 +111,7 @@ export class Session {
   private readonly copy = new RecoveryCopy({
     needsCopy: () => this.dirty,
     snapshot: () => ({
-      doc: documentFromEditor(this.editor, this.extensions, this.mode),
+      doc: documentFromEditor(this.editor, this.extensions, this.mode, this.grid),
       info: { name: this.name, path: this.path, time: Date.now() },
     }),
     onError: (e) => this.host.notify(m.files_recovery_write_failed({ error: errorMessage(e) })),
@@ -113,7 +125,7 @@ export class Session {
   ) {
     this.setEditor(editor);
     this.mode = mode;
-    this.saved = savedStateOf(editor, mode);
+    this.saved = savedStateOf(editor, mode, this.grid);
   }
 
   /**
@@ -132,6 +144,7 @@ export class Session {
     return (
       this.editor.history.marker !== saved.marker ||
       this.mode !== saved.mode ||
+      !sameGrid(this.grid, saved.grid) ||
       this.editor.drawing.layers.some((l) => l.visible === saved.hidden.has(l.id))
     );
   }
@@ -193,6 +206,13 @@ export class Session {
   setMode(id: string) {
     if (id === this.mode) return;
     this.mode = id;
+    this.copy.schedule();
+  }
+
+  /** Changes the tiles' grid (or shows it): an unsaved change, but not an undo step. */
+  setGrid(grid: TileGrid) {
+    if (sameGrid(grid, this.grid)) return;
+    this.grid = grid;
     this.copy.schedule();
   }
 
@@ -283,8 +303,8 @@ export class Session {
 
   private async saveTo(path: string): Promise<boolean> {
     // The state being saved: later changes, during the save, stay unsaved.
-    const doc = documentFromEditor(this.editor, this.extensions, this.mode);
-    const saved = savedStateOf(this.editor, this.mode);
+    const doc = documentFromEditor(this.editor, this.extensions, this.mode, this.grid);
+    const saved = savedStateOf(this.editor, this.mode, this.grid);
     const name = fileName(path);
     return this.run(
       m.files_saving({ name }),
@@ -328,10 +348,11 @@ export class Session {
   }
 
   /** Replaces the open document with one read from a file or a copy. */
-  private load(doc: DocumentData, replacement: Omit<Replacement, "mode" | "extensions">) {
+  private load(doc: DocumentData, replacement: Omit<Replacement, "mode" | "grid" | "extensions">) {
     this.replace(editorFromDocument(doc), {
       ...replacement,
       mode: doc.mode ?? DEFAULT_MODE,
+      grid: doc.grid,
       extensions: doc.extensions,
     });
   }
@@ -341,8 +362,9 @@ export class Session {
     this.path = replacement.path;
     this.name = replacement.name;
     this.mode = replacement.mode;
+    this.grid = replacement.grid ?? DEFAULT_TILE_GRID;
     this.extensions = replacement.extensions ?? {};
-    this.saved = savedStateOf(editor, replacement.mode);
+    this.saved = savedStateOf(editor, replacement.mode, this.grid);
     if (replacement.inNoFile) this.saved = { ...this.saved, marker: {} };
     if (!replacement.keepCopy) void this.copy.remove();
   }

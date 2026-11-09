@@ -7,14 +7,15 @@
 //
 // document.json:
 //   { "format": "didi", "version": 1, "width": 2048, "height": 2048, "mode": "pixel",
-//     "activeLayer": 1,
+//     "grid": { "width": 16, "height": 16, "shown": false }, "activeLayer": 1,
 //     "layers": [{ "name": "Background", "file": "layers/1.png", "visible": true,
 //                  "locked": false, "alphaLocked": false, "opacity": 1,
 //                  "blendMode": "normal" }, …],
 //     "extensions": {} }
 //
 // `mode` is the editor mode the document is drawn in (e.g. "pixel"), chosen by the app;
-// it may be missing (files from before modes). `extensions` holds data of other modules (e.g. the Godot link): kept as is, even when
+// it may be missing (files from before modes). `grid` is the tiles' grid over the drawing:
+// its size, and whether it is shown (when missing: 16 × 16, hidden). `extensions` holds data of other modules (e.g. the Godot link): kept as is, even when
 // not understood. Older versions are migrated when read; newer ones are refused.
 
 import { m } from "#lib/paraglide/messages.js";
@@ -41,8 +42,32 @@ export interface DocumentData {
   active: number;
   /** The editor mode, e.g. "pixel". Null if the file has none. */
   mode: string | null;
+  /** The tiles' grid over the drawing. */
+  grid: TileGrid;
   /** Data of other modules, kept as is. */
   extensions: Record<string, unknown>;
+}
+
+/** A grid of tiles (e.g. 16 × 16 pixels), to draw tiles or sprites for a game. */
+export interface TileGrid {
+  width: number;
+  height: number;
+  /** Hidden, it keeps its size. */
+  shown: boolean;
+}
+
+/** Documents start with it, hidden. */
+export const DEFAULT_TILE_GRID: TileGrid = { width: 16, height: 16, shown: false };
+/** The largest side of a grid's tile, like the largest canvas. */
+export const MAX_TILE_GRID = 4096;
+
+/** A valid grid size: whole numbers from 1 to MAX_TILE_GRID. */
+export function isTileGridSize(value: unknown): value is { width: number; height: number } {
+  if (typeof value !== "object" || value === null) return false;
+  const { width, height } = value as Record<string, unknown>;
+  const valid = (v: unknown) =>
+    Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_TILE_GRID;
+  return valid(width) && valid(height);
 }
 
 /** A file that cannot be read, with a message for the user. */
@@ -58,6 +83,7 @@ interface DocumentJson {
   width: number;
   height: number;
   mode?: string;
+  grid: TileGrid;
   activeLayer: number;
   layers: LayerEntry[];
   extensions: Record<string, unknown>;
@@ -71,6 +97,7 @@ export function documentFromEditor(
   editor: Editor,
   extensions: Record<string, unknown> = {},
   mode: string | null = null,
+  grid: TileGrid = DEFAULT_TILE_GRID,
 ): DocumentData {
   const { drawing } = editor;
   const active = editor.activeLayer;
@@ -90,6 +117,7 @@ export function documentFromEditor(
     })),
     active: active ? drawing.indexOf(active.id) : -1,
     mode,
+    grid,
     extensions,
   };
 }
@@ -195,6 +223,7 @@ export function writeDidi(
     width: data.width,
     height: data.height,
     ...(data.mode !== null && { mode: data.mode }),
+    grid: { width: data.grid.width, height: data.grid.height, shown: data.grid.shown },
     activeLayer: data.active,
     layers,
     extensions: data.extensions,
@@ -282,7 +311,15 @@ export function readDidi(bytes: Uint8Array): DocumentData {
       ? (doc.extensions as Record<string, unknown>)
       : {};
   const mode = typeof doc.mode === "string" && doc.mode !== "" ? doc.mode : null;
-  return { width, height, layers, active, mode, extensions };
+  // Missing (older files) or not understood: the default.
+  const grid: TileGrid = isTileGridSize(doc.grid)
+    ? {
+        width: doc.grid.width,
+        height: doc.grid.height,
+        shown: (doc.grid as { shown?: unknown }).shown === true,
+      }
+    : DEFAULT_TILE_GRID;
+  return { width, height, layers, active, mode, grid, extensions };
 }
 
 function migrate(raw: Record<string, unknown>): Record<string, unknown> {

@@ -15,6 +15,8 @@ export interface Command<Ctx, P = void> {
   readonly needsParams?: boolean;
   /** Whether the command can run now. Defaults to true. */
   enabled?(ctx: Ctx, params: P): boolean;
+  /** A switch (e.g. a grid shown): whether it is on, checked in menus. */
+  checked?(ctx: Ctx): boolean;
   run(ctx: Ctx, params: P): void;
 }
 
@@ -52,6 +54,11 @@ export class CommandRegistry<Ctx> {
   isEnabled(id: string, params?: unknown): boolean {
     const command = this.require(id);
     return command.enabled?.(this.context, params as never) ?? true;
+  }
+
+  /** Whether a switch is on; undefined for a command that is not a switch. */
+  isChecked(id: string): boolean | undefined {
+    return this.require(id).checked?.(this.context);
   }
 
   /** Runs a command. Returns false if it is disabled. Throws if it does not exist. */

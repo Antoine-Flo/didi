@@ -164,12 +164,21 @@ export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuD
         { command: "view.rotateRight" },
         { command: "view.resetRotation" },
         "separator",
-        { command: "view.togglePanels" },
         { command: "view.mirror" },
-        { command: "view.pixelGrid" },
+        { command: "view.gridSettings" },
         "separator",
-        { command: "view.hideInterface" },
         { command: "view.fullScreen" },
+      ],
+    },
+    {
+      // Switches only: what is shown, checked when it is.
+      title: m.menu_show(),
+      items: [
+        { command: "view.hideInterface", label: m.show_interface() },
+        { command: "view.togglePanels", label: m.show_panels() },
+        "separator",
+        { command: "view.pixelGrid", label: m.grid_pixels() },
+        { command: "view.tileGrid", label: m.grid_tiles() },
       ],
     },
     {

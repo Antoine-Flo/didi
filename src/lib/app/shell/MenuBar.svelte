@@ -5,7 +5,7 @@
   // button opens them all, one page at a time: a submenu replaces its menu, with a way back
   // at the top, rather than opening beside it, past the screen's edge.
 
-  import { ChevronLeft, ChevronRight, Menu } from "@lucide/svelte";
+  import { Check, ChevronLeft, ChevronRight, Menu } from "@lucide/svelte";
   import { Menubar } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
@@ -19,6 +19,7 @@
     title,
     shortcut,
     enabled,
+    checked = () => undefined,
     run,
   }: {
     menus: MenuDefinition[];
@@ -31,6 +32,8 @@
     /** A command's first shortcut, e.g. "Ctrl+S", if it has one. */
     shortcut: (command: string) => string | undefined;
     enabled: (command: string, params?: unknown) => boolean;
+    /** Whether a switch is on; undefined for a command that is not a switch. */
+    checked?: (command: string) => boolean | undefined;
     run: (command: string, params?: unknown) => void;
   } = $props();
 
@@ -76,6 +79,22 @@
           {@render entries(entry.items)}
         </Menubar.SubContent>
       </Menubar.Sub>
+    {:else if checked(entry.command) !== undefined}
+      {@const keys = shortcut(entry.command)}
+      {@const on = checked(entry.command) === true}
+      <!-- A switch: a check in front when it is on. -->
+      <Menubar.CheckboxItem
+        class="menu-item"
+        checked={on}
+        disabled={!enabled(entry.command)}
+        onCheckedChange={() => run(entry.command)}
+      >
+        <span class="menu-check"
+          >{#if on}<Check class="icon-small" />{/if}</span
+        >
+        {entry.label ?? title(entry.command)}
+        {#if keys}<span class="menu-item-end">{keys}</span>{/if}
+      </Menubar.CheckboxItem>
     {:else}
       {@const keys = entry.params === undefined ? shortcut(entry.command) : undefined}
       <Menubar.Item
@@ -170,6 +189,14 @@
 
   :global(.menubar-content) {
     min-width: calc(220px * var(--ui-scale));
+  }
+
+  /* A switch's check, in a slot of its own: the names stay aligned, checked or not. */
+  .menu-check {
+    display: inline-flex;
+    flex: none;
+    width: calc(16px * var(--ui-scale));
+    margin-right: calc(var(--space) / 2);
   }
 
   /* The way back to the menu above: its name, muted, like a title. */

@@ -43,8 +43,14 @@ export interface AppHost {
   hand: Hand;
   /** Shows or hides the panels' column. */
   togglePanels(): void;
+  /** What is shown, for the switches of the Show menu. */
+  shown(what: "panels" | "interface" | "pixelGrid" | "tileGrid"): boolean;
+  /** Opens the grids' settings. */
+  openGridSettings(): void;
   /** Shows or hides the pixels' grid. */
   togglePixelGrid(): void;
+  /** Shows or hides the document's tiles' grid. */
+  toggleTileGrid(): void;
   /** Hides every panel and bar, or shows them again: only the canvas. */
   toggleInterface(): void;
   /** Full screen, or back. */
@@ -352,16 +358,30 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     registry.register({
       id: "view.togglePanels",
       title: m.cmd_view_toggle_panels(),
+      checked: () => host.shown("panels"),
       run: () => host.togglePanels(),
     }),
     registry.register({
       id: "view.pixelGrid",
       title: m.cmd_view_pixel_grid(),
+      checked: () => host.shown("pixelGrid"),
       run: () => host.togglePixelGrid(),
+    }),
+    registry.register({
+      id: "view.tileGrid",
+      title: m.cmd_view_tile_grid(),
+      checked: () => host.shown("tileGrid"),
+      run: () => host.toggleTileGrid(),
+    }),
+    registry.register({
+      id: "view.gridSettings",
+      title: m.cmd_view_grid_settings(),
+      run: () => host.openGridSettings(),
     }),
     registry.register({
       id: "view.hideInterface",
       title: m.cmd_view_hide_interface(),
+      checked: () => host.shown("interface"),
       run: () => host.toggleInterface(),
     }),
     registry.register({

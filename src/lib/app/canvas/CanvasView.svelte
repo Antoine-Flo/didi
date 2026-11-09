@@ -68,6 +68,7 @@
     hoverCursor,
     selectionHandles = false,
     pixelGrid = false,
+    tileGrid = null,
     touchRotation = false,
     pixelZoom = false,
     fingerDraws = true,
@@ -93,6 +94,8 @@
     selectionHandles?: boolean;
     /** The pixels' grid shows when zoomed in. */
     pixelGrid?: boolean;
+    /** The tiles' grid, shown with the pixels' grid. Null: none. */
+    tileGrid?: { width: number; height: number } | null;
     /** Two fingers may turn the view. */
     touchRotation?: boolean;
     /** Zoomed out, the zoom keeps to levels where every pixel is the same size (pixel art). */
@@ -513,7 +516,8 @@
   });
   $effect(() => {
     const shown = pixelGrid;
-    untrack(() => view?.setGridShown(shown, camera, viewSize()));
+    const tiles = tileGrid;
+    untrack(() => view?.setGridShown(shown, tiles, camera, viewSize()));
   });
   // The background follows the theme when it changes (Preferences).
   $effect(() => {
@@ -544,7 +548,7 @@
         if (destroyed) return pixi.destroy();
         app = pixi;
         view = new DrawingView(editor.drawing);
-        view.setGridShown(pixelGrid, camera, viewSize());
+        view.setGridShown(pixelGrid, tileGrid, camera, viewSize());
         pixi.stage.addChild(view.root);
         fitView();
         syncSelection();
