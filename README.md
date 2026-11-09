@@ -6,11 +6,6 @@ A drawing app for pixel art and painting, with lessons built in (coming soon) to
 
 **[Try it in your browser](https://didipaint.com/app)** · [Website](https://didipaint.com) · [Documentation](https://didipaint.com/doc/) · [Devlog](https://didipaint.com/devlog/)
 
-## AI disclosure
-
-- Didi never sends your art anywhere: your drawings stay on your device. No AI will ever be trained on them through Didi, and no AI will ever be integrated into the tool or any future related tool. If anything, I plan to add some tools to help artists prove more easily that their work is legitimate, because sadly, this is where we are now.
-- AI is used for coding. To me, generative AI for art and AI for programming are two different things. Of course, it comes with questions too, but different ones. If you're against the use of AI to create software, I totally respect that. I'm not, and this is where I decided to draw the line for this project.
-
 ## Features
 
 - **Two modes**, Pixel art and Painting, each with its own tools and shortcuts. Every document remembers its mode.
@@ -22,6 +17,11 @@ A drawing app for pixel art and painting, with lessons built in (coming soon) to
 - **Open files**: a `.didi` file is a plain zip, with one standard PNG per layer.
 
 Coming next: animation, then drawing lessons for both painting and pixel art.
+
+## AI disclosure
+
+- Your art stays on your device. No AI will ever train on it through Didi, or be built into Didi.
+- AI is used to write code. To me, art and code are different questions, if you see it differently, I respect that. This is where I draw the line for this project
 
 ## Platforms
 

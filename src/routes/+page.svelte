@@ -19,7 +19,9 @@
 <main style={tokens}>
   <h1>Didi</h1>
   <p>{m.about_description()}</p>
-  <a class="open" href={resolve("/(app)/app")}>{m.site_open()}</a>
+  <!-- Loaded as a new page: preloading the editor on hover added its global styles (ui.css)
+       to this page, which moved the text. -->
+  <a class="open" href={resolve("/(app)/app")} data-sveltekit-reload>{m.site_open()}</a>
   <!-- Not SvelteKit pages but the website (website/): no resolve(), the browser loads them. -->
   <nav class="links">
     <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
@@ -67,8 +69,6 @@
   .open {
     padding: var(--space) calc(var(--space) * 3);
     border-radius: var(--radius);
-    /* Transparent, colored on hover: the button keeps its size, nothing moves. */
-    border: 1px solid transparent;
     background: var(--selected);
     color: var(--text);
     font-size: 16px;
@@ -76,7 +76,7 @@
   }
 
   .open:hover {
-    border-color: var(--text-faint);
+    outline: 1px solid var(--text-faint);
   }
 
   .links {
