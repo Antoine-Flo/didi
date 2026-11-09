@@ -1,3 +1,5 @@
+import type { KeyInput } from "#lib/app/commands/keymap.js";
+
 /** Whether a keyboard event comes from a text field, where shortcuts must not apply. */
 export function isTyping(e: Event): boolean {
   // The target can be the window or the document, which are not elements.
@@ -29,4 +31,16 @@ export function takesText(tagName: string, type: string | null): boolean {
   }
   // Like browsers, a missing or unknown type is a text field.
   return !NOT_TEXT.has((type ?? "text").toLowerCase());
+}
+
+/** What the keymap needs of a key press. */
+export function keyInput(e: KeyboardEvent): KeyInput {
+  return {
+    key: e.key,
+    ctrlKey: e.ctrlKey,
+    metaKey: e.metaKey,
+    altKey: e.altKey,
+    shiftKey: e.shiftKey,
+    altGraph: e.getModifierState("AltGraph"),
+  };
 }
