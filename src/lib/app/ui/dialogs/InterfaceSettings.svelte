@@ -13,11 +13,11 @@
   import {
     type CompactMode,
     type Hand,
-    type LayoutPrefs,
     UI_SCALE_MAX,
     UI_SCALE_MIN,
     UI_SCALE_STEP,
-  } from "#lib/app/prefs/layout-prefs.svelte.js";
+  } from "#lib/app/prefs/layout-prefs.js";
+  import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let { layout }: { layout: LayoutPrefs } = $props();

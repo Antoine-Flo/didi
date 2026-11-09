@@ -3,7 +3,8 @@
   // touch-gestures). Kept by layout-prefs.
 
   import Segmented from "#lib/app/ui/widgets/Segmented.svelte";
-  import type { FingerDrawing, LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
+  import type { FingerDrawing } from "#lib/app/prefs/layout-prefs.js";
+  import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let { layout }: { layout: LayoutPrefs } = $props();

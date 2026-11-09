@@ -10,22 +10,16 @@ import {
 } from "#lib/core/file/didi-file.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
+import { canUseFiles } from "#lib/platform/storage.js";
 import {
-  canUseFiles,
-  chooseBrowserFile,
-  chooseFileToOpen,
-  chooseFileToSave,
-} from "#lib/platform/storage.js";
-import {
-  documentName,
-  exportPng,
-  renderPng,
-  fileName,
-  openDocument,
-  pngDataUrl,
-  saveDocument,
-} from "#lib/app/files/files.js";
+  chooseDidiToOpen,
+  chooseDidiToSave,
+  choosePngExport,
+  recentFile,
+} from "#lib/app/files/document-files.js";
+import { documentName, fileName, openDocument, saveDocument } from "#lib/app/files/files.js";
 import { newEditor, type Background } from "#lib/app/files/new-drawing.js";
+import { sameGrid, savedStateOf, type SavedState } from "#lib/app/files/saved-state.js";
 import { DEFAULT_MODE } from "#lib/app/modes/mode.js";
 import { loadRecent, saveRecent, withRecent, type RecentFile } from "#lib/app/files/recent.js";
 import {
@@ -48,29 +42,6 @@ export interface SessionHost {
   /** Asks what to do with the unsaved changes of a document. */
   askUnsaved(name: string): Promise<UnsavedChoice>;
 }
-
-const didiFilter = () => [{ name: m.files_didi_filter(), extensions: ["didi"] }];
-const sameGrid = (a: TileGrid, b: TileGrid) =>
-  a.width === b.width && a.height === b.height && a.shown === b.shown;
-
-const pngFilter = () => [{ name: m.files_png_filter(), extensions: ["png"] }];
-
-/** The document as last saved, to tell whether it has changed since. */
-interface SavedState {
-  /** See History.marker. */
-  marker: unknown;
-  mode: string;
-  grid: TileGrid;
-  /** Visibility is saved, but is not in the history. */
-  hidden: ReadonlySet<string>;
-}
-
-const savedStateOf = (editor: Editor, mode: string, grid: TileGrid): SavedState => ({
-  marker: editor.history.marker,
-  mode,
-  grid,
-  hidden: new Set(editor.drawing.layers.filter((l) => !l.visible).map((l) => l.id)),
-});
 
 /** What a document replacing the open one is. */
 interface Replacement {
@@ -237,7 +208,7 @@ export class Session {
     if (!this.checkFiles() || !(await this.confirmDiscard())) {
       return;
     }
-    path ??= (await chooseFileToOpen(didiFilter())) ?? undefined;
+    path ??= (await chooseDidiToOpen()) ?? undefined;
     if (!path) {
       return;
     }
@@ -267,48 +238,24 @@ export class Session {
     if (!this.checkFiles()) {
       return false;
     }
-    let path = await chooseFileToSave(this.path ?? `${this.name}.didi`, didiFilter());
+    const path = await chooseDidiToSave(this.path ?? `${this.name}.didi`);
     if (!path) {
       return false;
-    }
-    if (!/\.didi$/i.test(path)) {
-      path += ".didi";
     }
     return this.saveTo(path);
   }
 
   async exportPng() {
-    if (!canUseFiles()) {
-      return this.downloadPng();
-    }
-    let path = await chooseFileToSave(`${this.name}.png`, pngFilter());
-    if (!path) {
-      return;
-    }
-    if (!/\.png$/i.test(path)) {
-      path += ".png";
-    }
-    const doc = documentFromEditor(this.editor);
-    const name = fileName(path);
-    await this.run(
-      m.files_exporting({ name }),
-      (error) => m.files_export_failed({ name, error }),
-      () => exportPng(path, doc),
-    );
-  }
-
-  /** In a browser, which has no paths: it writes where the user chose. */
-  private async downloadPng() {
-    const name = `${this.name}.png`;
-    const write = await chooseBrowserFile(name, "image/png", ".png");
-    if (!write) {
+    const target = await choosePngExport(this.name);
+    if (!target) {
       return;
     }
     const doc = documentFromEditor(this.editor);
+    const { name } = target;
     await this.run(
       m.files_exporting({ name }),
       (error) => m.files_export_failed({ name, error }),
-      async () => write(await renderPng(doc)),
+      () => target.write(doc),
     );
   }
 
@@ -434,13 +381,7 @@ export class Session {
   }
 
   private async addRecent(path: string, thumbnail: Uint8Array) {
-    this.recent = withRecent(this.recent, {
-      path,
-      name: documentName(path),
-      thumbnail: pngDataUrl(thumbnail),
-      time: Date.now(),
-      mode: this.mode,
-    });
+    this.recent = withRecent(this.recent, recentFile(path, thumbnail, this.mode));
     await saveRecent(this.recent);
   }
 }

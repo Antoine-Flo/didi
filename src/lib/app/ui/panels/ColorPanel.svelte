@@ -12,7 +12,7 @@
     type ColorPanelPrefs,
     type Hand,
     type ColorSelector,
-  } from "#lib/app/prefs/layout-prefs.svelte.js";
+  } from "#lib/app/prefs/layout-prefs.js";
   import PanelMenu from "#lib/app/ui/widgets/PanelMenu.svelte";
   import ColorPicker from "#lib/app/ui/panels/ColorPicker.svelte";
   import ShadeBars from "#lib/app/ui/panels/ShadeBars.svelte";

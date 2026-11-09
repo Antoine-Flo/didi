@@ -14,7 +14,7 @@
     type HSV,
     type RGB,
   } from "#lib/core/color/color.js";
-  import type { ColorSelector } from "#lib/app/prefs/layout-prefs.svelte.js";
+  import type { ColorSelector } from "#lib/app/prefs/layout-prefs.js";
   import { pointerDrag } from "#lib/app/shared/pointer-drag.js";
   import { paintTriangle, triangleColor, trianglePoint } from "#lib/core/color/color-triangle.js";
   import { m } from "#lib/paraglide/messages.js";
