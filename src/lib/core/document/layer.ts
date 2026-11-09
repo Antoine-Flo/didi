@@ -1,5 +1,5 @@
 import { m } from "#lib/paraglide/messages.js";
-import type { TileStore } from "./tiles";
+import type { TileStore } from "#lib/core/document/tiles.js";
 
 // Only the modes the GPU renders exactly like the CPU reference. Others (multiply,
 // overlay…) can come back once they are implemented on both sides.

@@ -3,8 +3,8 @@
 // left, a little more on the right. Computed in OKLCH: a lighter or darker shade keeps its
 // hue, a more or less saturated one its lightness.
 
-import type { RGB } from "./color";
-import { oklchToRgb, rgbToOklch } from "./oklch";
+import type { RGB } from "#lib/core/color/color.js";
+import { oklchToRgb, rgbToOklch } from "#lib/core/color/oklch.js";
 
 export type ShadeKind = "hue" | "chroma" | "lightness";
 export const SHADE_KINDS: readonly ShadeKind[] = ["hue", "chroma", "lightness"];

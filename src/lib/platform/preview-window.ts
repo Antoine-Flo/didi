@@ -2,7 +2,7 @@
 // screen. A browser has none (see capabilities.windows): the preview stays over the canvas.
 
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { capabilities } from "./capabilities";
+import { capabilities } from "#lib/platform/capabilities.js";
 import { m } from "#lib/paraglide/messages.js";
 
 const LABEL = "preview";

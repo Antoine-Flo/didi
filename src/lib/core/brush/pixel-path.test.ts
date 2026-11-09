@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { PixelPathBuilder, pixelLine, type Pixel } from "./pixel-path";
+import { PixelPathBuilder, pixelLine, type Pixel } from "#lib/core/brush/pixel-path.js";
 
 describe("pixel paths", () => {
   const key = (p: Pixel) => `${p.x},${p.y}`;

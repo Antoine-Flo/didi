@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { newEditor } from "#lib/app/files/new-drawing.js";
-import { registerAppCommands, type AppHost } from "./app-commands";
-import { availableMenus, defaultMenus, type MenuEntry } from "./default-menus";
+import { registerAppCommands, type AppHost } from "#lib/app/commands/app-commands.js";
+import { availableMenus, defaultMenus, type MenuEntry } from "#lib/app/commands/default-menus.js";
 
 const commandsOf = (items: MenuEntry[]): string[] =>
   items.flatMap((e) => (e === "separator" ? [] : "items" in e ? commandsOf(e.items) : [e.command]));

@@ -3,13 +3,13 @@
 // removed first, in the same step: its place would no longer mean anything.
 
 import { m } from "#lib/paraglide/messages.js";
-import type { CanvasContent, Drawing } from "../document/drawing";
-import { contentBounds } from "../document/layer-thumbnail";
-import { TileStore, type TileSnapshot } from "../document/tiles";
-import type { Edit } from "../history/edits";
-import { appliedState } from "../selection/selection";
-import type { Rect } from "../geometry";
-import type { Editor } from "./editor";
+import type { CanvasContent, Drawing } from "#lib/core/document/drawing.js";
+import { contentBounds } from "#lib/core/document/layer-thumbnail.js";
+import { TileStore, type TileSnapshot } from "#lib/core/document/tiles.js";
+import type { Edit } from "#lib/core/history/edits.js";
+import { appliedState } from "#lib/core/selection/selection.js";
+import type { Rect } from "#lib/core/geometry.js";
+import type { Editor } from "#lib/core/editor/editor.js";
 
 /** The largest canvas side, as when creating a document. */
 export const MAX_CANVAS_SIZE = 8192;

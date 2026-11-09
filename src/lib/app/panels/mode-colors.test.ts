@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseModeColors, RECENT_COLORS_MAX, withRecent } from "./mode-colors.svelte";
+import {
+  parseModeColors,
+  RECENT_COLORS_MAX,
+  withRecent,
+} from "#lib/app/panels/mode-colors.svelte.js";
 
 describe("mode colors", () => {
   it("puts the latest recent color first, once", () => {

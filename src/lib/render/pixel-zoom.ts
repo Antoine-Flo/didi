@@ -8,7 +8,7 @@
 //
 // Zooms here are camera zooms (CSS pixels per canvas pixel); `dpr` is the device pixel ratio.
 
-import { MAX_ZOOM, MIN_ZOOM } from "./camera";
+import { MAX_ZOOM, MIN_ZOOM } from "#lib/render/camera.js";
 
 /** From this many device pixels per canvas pixel, the zoom is free. */
 export const FREE_FROM = 8;

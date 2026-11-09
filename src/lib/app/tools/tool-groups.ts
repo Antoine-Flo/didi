@@ -2,7 +2,7 @@
 // tools are always grouped (the rectangle and the ellipse), others only when the column
 // does not fit in the window's height (the painting brushes, the line).
 
-import type { Tool, ToolGroup } from "./tool";
+import type { Tool, ToolGroup } from "#lib/app/tools/tool.js";
 
 /** A button of the tool column: one tool, or a group of them. */
 export type ToolEntry =

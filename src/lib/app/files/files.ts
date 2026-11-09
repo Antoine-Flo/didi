@@ -4,7 +4,7 @@
 import * as Comlink from "comlink";
 import type { DocumentData } from "#lib/core/file/didi-file.js";
 import { readFile, writeFile } from "#lib/platform/storage.js";
-import type { FileWorker } from "./file-worker";
+import type { FileWorker } from "#lib/app/files/file-worker.js";
 
 let worker: Comlink.Remote<FileWorker> | null = null;
 

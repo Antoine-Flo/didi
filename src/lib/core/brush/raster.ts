@@ -9,12 +9,12 @@
 // The stroke owns copies of the touched tiles and changes them in place; `flush` shows
 // them in the drawing, `finish` returns the whole stroke as one undo step.
 
-import type { Drawing } from "../document/drawing";
-import { replaceTiles, type Edit } from "../history/edits";
-import { intersect, type Rect } from "../geometry";
-import { keepAlpha } from "../document/pixels";
-import { TILE_SIZE, tileKey, type TileSnapshot } from "../document/tiles";
-import type { Pixel } from "./pixel-path";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
+import { intersect, type Rect } from "#lib/core/geometry.js";
+import { keepAlpha } from "#lib/core/document/pixels.js";
+import { TILE_SIZE, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
+import type { Pixel } from "#lib/core/brush/pixel-path.js";
 
 export interface StrokeStyle {
   /** Straight (not premultiplied) RGB, 0-255. */

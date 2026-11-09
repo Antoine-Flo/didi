@@ -3,7 +3,7 @@ import type { RGB } from "#lib/core/color/color.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { History } from "#lib/core/history/history.js";
 import { PaletteLibrary } from "#lib/core/color/palette.js";
-import { PaletteColorSync } from "./palette-sync.js";
+import { PaletteColorSync } from "#lib/app/panels/palette-sync.js";
 
 const red: RGB = [255, 0, 0];
 const green: RGB = [0, 255, 0];

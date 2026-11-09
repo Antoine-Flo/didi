@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { placeDabs } from "./dabs";
+import { placeDabs } from "#lib/lab/dabs.js";
 
 describe("placeDabs", () => {
   it("places dabs at regular intervals", () => {

@@ -3,9 +3,9 @@ import type { RGB } from "#lib/core/color/color.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
 import { fill } from "#lib/core/test-utils.js";
-import { createToolRegistry } from "./builtin";
-import { applyPicked, pickerTool } from "./picker-tool";
-import type { Picked, ToolContext } from "./tool";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
+import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
+import type { Picked, ToolContext } from "#lib/app/tools/tool.js";
 
 const RECT = { x: 0, y: 0, width: 4, height: 4 };
 

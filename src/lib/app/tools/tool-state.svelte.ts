@@ -3,8 +3,15 @@
 // again.
 
 import type { Mode } from "#lib/app/modes/mode.js";
-import { applyPicked, pickerTool } from "./picker-tool";
-import type { BrushCursor, Picked, Tool, ToolOptions, ToolRegistry, ToolSettings } from "./tool";
+import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
+import type {
+  BrushCursor,
+  Picked,
+  Tool,
+  ToolOptions,
+  ToolRegistry,
+  ToolSettings,
+} from "#lib/app/tools/tool.js";
 
 export class ToolState {
   /** The current color and the settings of every tool. */

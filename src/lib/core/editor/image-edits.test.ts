@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Drawing } from "../document/drawing";
-import { Editor } from "./editor";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { Editor } from "#lib/core/editor/editor.js";
 
 /**
  * A canvas from rows of letters, one layer: "r" red, "b" blue, "." transparent. Pixels are

@@ -9,7 +9,7 @@
   import type { Snippet } from "svelte";
   import { appWindow } from "#lib/platform/window.js";
   import { m } from "#lib/paraglide/messages.js";
-  import WindowButtons from "./WindowButtons.svelte";
+  import WindowButtons from "#lib/app/shell/WindowButtons.svelte";
 
   let {
     title,

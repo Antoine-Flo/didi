@@ -4,8 +4,8 @@
 // on top without knowing the internals. Every mutation is also notified to subscribers,
 // precisely enough for a renderer to update only what changed.
 
-import { Emitter } from "../emitter";
-import type { Rect } from "../geometry";
+import { Emitter } from "#lib/core/emitter.js";
+import type { Rect } from "#lib/core/geometry.js";
 import {
   DEFAULT_LAYER_PROPS,
   LAYER_PROP_KEYS,
@@ -13,7 +13,7 @@ import {
   type Layer,
   type LayerProps,
   type ReadonlyLayer,
-} from "./layer";
+} from "#lib/core/document/layer.js";
 import {
   TILE_SIZE,
   TileStore,
@@ -21,7 +21,7 @@ import {
   tileKey,
   type TileData,
   type TileSnapshot,
-} from "./tiles";
+} from "#lib/core/document/tiles.js";
 
 export interface RemovedLayer {
   layer: Layer;

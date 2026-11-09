@@ -5,10 +5,10 @@
 // separable blend modes. "add" is plus-lighter (sum, clamped), like additive blending on
 // the GPU. Each layer is rounded to 8 bits after blending, like a GPU render target.
 
-import type { Drawing } from "./drawing";
-import { intersect, isIntegerRect, type Rect } from "../geometry";
-import type { BlendMode } from "./layer";
-import { TILE_SIZE } from "./tiles";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import { intersect, isIntegerRect, type Rect } from "#lib/core/geometry.js";
+import type { BlendMode } from "#lib/core/document/layer.js";
+import { TILE_SIZE } from "#lib/core/document/tiles.js";
 
 /** Blend function on non-premultiplied channels in [0, 1]: backdrop, source. */
 type BlendFn = (cb: number, cs: number) => number;

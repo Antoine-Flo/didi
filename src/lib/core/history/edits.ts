@@ -4,10 +4,10 @@
 // `revert` must only be called after `apply`, and calls must alternate.
 
 import { m } from "#lib/paraglide/messages.js";
-import type { Drawing } from "../document/drawing";
-import type { Rect } from "../geometry";
-import type { Layer, LayerProps } from "../document/layer";
-import { TILE_SIZE, type TileSnapshot } from "../document/tiles";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import type { Rect } from "#lib/core/geometry.js";
+import type { Layer, LayerProps } from "#lib/core/document/layer.js";
+import { TILE_SIZE, type TileSnapshot } from "#lib/core/document/tiles.js";
 
 export interface Edit {
   /** Shown in the history, e.g. "Add layer". */

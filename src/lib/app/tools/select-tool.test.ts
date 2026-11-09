@@ -5,7 +5,7 @@ import { Editor } from "#lib/core/editor/editor.js";
 import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
 import { selectionClip } from "#lib/core/selection/selection.js";
 import { shapeMask } from "#lib/core/selection/shape.js";
-import { createToolRegistry } from "./builtin";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
 
 const tools = createToolRegistry();
 const ZOOM = 8;

@@ -24,10 +24,10 @@ import {
   openDocument,
   pngDataUrl,
   saveDocument,
-} from "./files";
-import { newEditor, type Background } from "./new-drawing";
+} from "#lib/app/files/files.js";
+import { newEditor, type Background } from "#lib/app/files/new-drawing.js";
 import { DEFAULT_MODE } from "#lib/app/modes/mode.js";
-import { loadRecent, saveRecent, withRecent, type RecentFile } from "./recent";
+import { loadRecent, saveRecent, withRecent, type RecentFile } from "#lib/app/files/recent.js";
 import {
   discardSetAsideCopy,
   readLeftCopy,
@@ -35,10 +35,10 @@ import {
   RecoveryCopy,
   setAsideLeftCopy,
   type RecoveryInfo,
-} from "./recovery-copy.svelte";
+} from "#lib/app/files/recovery-copy.svelte.js";
 import { m } from "#lib/paraglide/messages.js";
 
-export type { RecoveryInfo } from "./recovery-copy.svelte";
+export type { RecoveryInfo } from "#lib/app/files/recovery-copy.svelte.js";
 
 export type UnsavedChoice = "save" | "discard" | "cancel";
 

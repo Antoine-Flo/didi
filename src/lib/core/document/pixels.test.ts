@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { keepAlpha, premultiply, unpremultiply } from "./pixels";
+import { keepAlpha, premultiply, unpremultiply } from "#lib/core/document/pixels.js";
 
 const pixels = fc
   .array(fc.integer({ min: 0, max: 255 }), { minLength: 4, maxLength: 400 })

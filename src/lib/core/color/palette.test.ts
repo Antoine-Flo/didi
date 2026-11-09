@@ -1,8 +1,13 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { toHex, type RGB } from "./color";
-import { BUILTIN_PALETTES } from "./builtin-palettes";
-import { PaletteLibrary, parseHexPalette, parsePaletteFile, type Palette } from "./palette";
+import { toHex, type RGB } from "#lib/core/color/color.js";
+import { BUILTIN_PALETTES } from "#lib/core/color/builtin-palettes.js";
+import {
+  PaletteLibrary,
+  parseHexPalette,
+  parsePaletteFile,
+  type Palette,
+} from "#lib/core/color/palette.js";
 
 const red: RGB = [255, 0, 0];
 const blue: RGB = [0, 0, 255];

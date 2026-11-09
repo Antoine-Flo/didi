@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Pixel } from "./pixel-path";
+import type { Pixel } from "#lib/core/brush/pixel-path.js";
 import {
   ellipseOutline,
   ellipseSpans,
@@ -8,7 +8,7 @@ import {
   snapLineEnd,
   squareEnd,
   type PixelBox,
-} from "./shapes";
+} from "#lib/core/brush/shapes.js";
 
 const keys = (pixels: Pixel[]) => new Set(pixels.map((p) => `${p.x},${p.y}`));
 

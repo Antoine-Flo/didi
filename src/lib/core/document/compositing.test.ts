@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { composite } from "./compositing";
-import { Drawing } from "./drawing";
-import { BLEND_MODES, type BlendMode, type LayerProps } from "./layer";
-import { fill, firstDifference, pattern } from "../test-utils";
+import { composite } from "#lib/core/document/compositing.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
+import { fill, firstDifference, pattern } from "#lib/core/test-utils.js";
 
 type RGBA = [number, number, number, number];
 const px = { x: 0, y: 0, width: 1, height: 1 };

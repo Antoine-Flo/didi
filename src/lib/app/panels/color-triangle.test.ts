@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { hsvToRgb } from "#lib/core/color/color.js";
-import { paintTriangle, triangleColor, triangleCorners, trianglePoint } from "./color-triangle";
+import {
+  paintTriangle,
+  triangleColor,
+  triangleCorners,
+  trianglePoint,
+} from "#lib/app/panels/color-triangle.js";
 
 const R = 0.43;
 

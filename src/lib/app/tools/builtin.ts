@@ -1,12 +1,12 @@
 // The tools that come with Didi, registered like any other.
 
-import { MYPAINT_TOOLS } from "./mypaint-tools";
-import { fillTool } from "./fill-tool";
-import { pickerTool } from "./picker-tool";
-import { selectTool, smoothSelectTool } from "./select-tool";
-import { ellipseTool, lineTool, rectangleTool } from "./shape-tools";
-import { pixelBrushTool, pixelEraserTool } from "./pixel-tools";
-import { ToolRegistry } from "./tool";
+import { MYPAINT_TOOLS } from "#lib/app/tools/mypaint-tools.js";
+import { fillTool } from "#lib/app/tools/fill-tool.js";
+import { pickerTool } from "#lib/app/tools/picker-tool.js";
+import { selectTool, smoothSelectTool } from "#lib/app/tools/select-tool.js";
+import { ellipseTool, lineTool, rectangleTool } from "#lib/app/tools/shape-tools.js";
+import { pixelBrushTool, pixelEraserTool } from "#lib/app/tools/pixel-tools.js";
+import { ToolRegistry } from "#lib/app/tools/tool.js";
 
 export const BUILTIN_TOOLS = [
   ...MYPAINT_TOOLS,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Emitter } from "./emitter";
+import { Emitter } from "#lib/core/emitter.js";
 
 describe("Emitter", () => {
   afterEach(() => vi.restoreAllMocks());

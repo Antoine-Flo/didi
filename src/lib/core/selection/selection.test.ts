@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { Drawing } from "../document/drawing";
-import { Editor } from "../editor/editor";
-import { capture, expectSameState, fill } from "../test-utils";
-import { moveEdge, scaleRect, selectionHandles, zoneAt } from "./handles";
-import { lift, showFloating } from "./selection";
-import { maskOutline, shapeFrom, shapeMask } from "./shape";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { Editor } from "#lib/core/editor/editor.js";
+import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
+import { moveEdge, scaleRect, selectionHandles, zoneAt } from "#lib/core/selection/handles.js";
+import { lift, showFloating } from "#lib/core/selection/selection.js";
+import { maskOutline, shapeFrom, shapeMask } from "#lib/core/selection/shape.js";
 
 const CANVAS = { x: 0, y: 0, width: 100, height: 100 };
 

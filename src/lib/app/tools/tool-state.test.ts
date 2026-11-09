@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createModeRegistry } from "#lib/app/modes/builtin.js";
-import { createToolRegistry } from "./builtin";
-import { ToolState } from "./tool-state.svelte";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
+import { ToolState } from "#lib/app/tools/tool-state.svelte.js";
 
 const modes = createModeRegistry();
 const pixel = modes.get("pixel");

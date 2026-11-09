@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Drawing } from "../document/drawing";
-import { Editor } from "./editor";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { Editor } from "#lib/core/editor/editor.js";
 
 function setup(names: string[] = []) {
   const editor = new Editor(new Drawing(100, 100));

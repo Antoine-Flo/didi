@@ -4,9 +4,9 @@
 // the cost depends on the preview's size, not the layer's, so it stays cheap on large
 // canvases.
 
-import type { Rect } from "../geometry";
-import type { ReadonlyTileStore } from "./layer";
-import { TILE_SIZE, tileCoord } from "./tiles";
+import type { Rect } from "#lib/core/geometry.js";
+import type { ReadonlyTileStore } from "#lib/core/document/layer.js";
+import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
 
 /** Samples per preview pixel, on each axis. */
 const SAMPLES = 3;

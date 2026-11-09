@@ -14,7 +14,7 @@ import {
   writeDataBytes,
   writeDataFile,
 } from "#lib/platform/storage.js";
-import { decodeDocument, encodeDocument } from "./files";
+import { decodeDocument, encodeDocument } from "#lib/app/files/files.js";
 import { m } from "#lib/paraglide/messages.js";
 
 export interface RecoveryInfo {

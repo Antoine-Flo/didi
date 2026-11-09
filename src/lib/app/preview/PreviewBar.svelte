@@ -5,7 +5,7 @@
 
   import { GripHorizontal, Maximize, ZoomIn, ZoomOut } from "@lucide/svelte";
   import type { Snippet } from "svelte";
-  import type PreviewImage from "./PreviewImage.svelte";
+  import type PreviewImage from "#lib/app/preview/PreviewImage.svelte";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

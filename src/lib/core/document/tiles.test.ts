@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import type { Rect } from "../geometry";
-import { TILE_SIZE, TileStore, isTransparent, tileCoord, tileKey } from "./tiles";
-import { fill, firstDifference, pattern } from "../test-utils";
+import type { Rect } from "#lib/core/geometry.js";
+import {
+  TILE_SIZE,
+  TileStore,
+  isTransparent,
+  tileCoord,
+  tileKey,
+} from "#lib/core/document/tiles.js";
+import { fill, firstDifference, pattern } from "#lib/core/test-utils.js";
 
 /** Naive reference: a flat pixel array the size of the canvas. */
 class FlatImage {

@@ -20,13 +20,13 @@
 
 import { m } from "#lib/paraglide/messages.js";
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
-import { composite } from "../document/compositing";
-import { Drawing } from "../document/drawing";
-import { Editor } from "../editor/editor";
-import { BLEND_MODES, DEFAULT_LAYER_PROPS, type LayerProps } from "../document/layer";
-import { premultiply, unpremultiply } from "../document/pixels";
-import { decodePng, encodePng } from "./png";
-import { assertCanvasSize, TileStore, type TileSnapshot } from "../document/tiles";
+import { composite } from "#lib/core/document/compositing.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { Editor } from "#lib/core/editor/editor.js";
+import { BLEND_MODES, DEFAULT_LAYER_PROPS, type LayerProps } from "#lib/core/document/layer.js";
+import { premultiply, unpremultiply } from "#lib/core/document/pixels.js";
+import { decodePng, encodePng } from "#lib/core/file/png.js";
+import { assertCanvasSize, TileStore, type TileSnapshot } from "#lib/core/document/tiles.js";
 
 export const DIDI_VERSION = 1;
 export const DIDI_MIME = "application/x-didi";

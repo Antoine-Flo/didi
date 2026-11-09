@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Drawing } from "./drawing";
-import { contentBounds, layerThumbnail } from "./layer-thumbnail";
-import { fill } from "../test-utils";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { contentBounds, layerThumbnail } from "#lib/core/document/layer-thumbnail.js";
+import { fill } from "#lib/core/test-utils.js";
 
 describe("layer thumbnails", () => {
   it("keeps the aspect ratio and shows where the pixels are", () => {

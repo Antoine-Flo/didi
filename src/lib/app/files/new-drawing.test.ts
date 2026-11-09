@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newEditor } from "./new-drawing";
+import { newEditor } from "#lib/app/files/new-drawing.js";
 
 describe("newEditor", () => {
   it("has a white background and an empty active layer above it, with no history", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { TILE_SIZE, tileKey } from "#lib/core/document/tiles.js";
-import { changedRect } from "./preview-link";
+import { changedRect } from "#lib/app/preview/preview-link.js";
 
 describe("changedRect", () => {
   const drawing = new Drawing(600, 300);

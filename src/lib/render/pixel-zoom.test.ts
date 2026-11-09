@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { MAX_ZOOM, MIN_ZOOM } from "./camera";
-import { FREE_FROM, isFreeZoom, snapZoomDown, snapZoomNearest, stepZoom } from "./pixel-zoom";
+import { MAX_ZOOM, MIN_ZOOM } from "#lib/render/camera.js";
+import {
+  FREE_FROM,
+  isFreeZoom,
+  snapZoomDown,
+  snapZoomNearest,
+  stepZoom,
+} from "#lib/render/pixel-zoom.js";
 
 const dprs = fc.constantFrom(1, 1.25, 1.5, 2, 3);
 const zooms = fc.double({ min: MIN_ZOOM, max: MAX_ZOOM, noNaN: true });

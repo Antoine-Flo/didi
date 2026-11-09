@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { RGB } from "./color";
-import { Drawing } from "../document/drawing";
-import { History } from "../history/history";
-import { PaletteLibrary } from "./palette";
-import { addPaletteColor, changePaletteColor, removePaletteColor } from "./palette-edits";
+import type { RGB } from "#lib/core/color/color.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { History } from "#lib/core/history/history.js";
+import { PaletteLibrary } from "#lib/core/color/palette.js";
+import {
+  addPaletteColor,
+  changePaletteColor,
+  removePaletteColor,
+} from "#lib/core/color/palette-edits.js";
 
 const red: RGB = [255, 0, 0];
 const green: RGB = [0, 255, 0];

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "./default-keymap";
-import { chordOf, formatChord, KeymapIndex, normalizeChord, type KeyInput } from "./keymap";
+import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
+import {
+  chordOf,
+  formatChord,
+  KeymapIndex,
+  normalizeChord,
+  type KeyInput,
+} from "#lib/app/commands/keymap.js";
 
 const press = (key: string, mods: Partial<KeyInput> = {}): KeyInput => ({
   key,

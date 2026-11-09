@@ -6,7 +6,7 @@
 
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { capabilities } from "./capabilities";
+import { capabilities } from "#lib/platform/capabilities.js";
 
 const PREFIX = "didi:";
 

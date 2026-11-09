@@ -13,7 +13,7 @@ import {
   zoomAt,
   type Camera,
   type Point,
-} from "./camera";
+} from "#lib/render/camera.js";
 
 const coord = fc.double({ min: -5000, max: 5000, noNaN: true });
 const point = fc.record({ x: coord, y: coord });

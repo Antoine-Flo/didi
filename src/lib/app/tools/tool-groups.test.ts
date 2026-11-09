@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createToolRegistry } from "./builtin";
-import { shownTool, toolEntries, type ToolEntry } from "./tool-groups";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
+import { shownTool, toolEntries, type ToolEntry } from "#lib/app/tools/tool-groups.js";
 
 const registry = createToolRegistry();
 const tools = (ids: string[]) => ids.map((id) => registry.get(id)!);

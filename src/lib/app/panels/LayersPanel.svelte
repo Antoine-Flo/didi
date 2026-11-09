@@ -11,8 +11,8 @@
   import PanelMenu from "#lib/app/widgets/PanelMenu.svelte";
   import Select from "#lib/app/widgets/Select.svelte";
   import Slider from "#lib/app/widgets/Slider.svelte";
-  import AlphaLockIcon from "./AlphaLockIcon.svelte";
-  import LayerThumb from "./LayerThumb.svelte";
+  import AlphaLockIcon from "#lib/app/panels/AlphaLockIcon.svelte";
+  import LayerThumb from "#lib/app/panels/LayerThumb.svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
   import { m } from "#lib/paraglide/messages.js";

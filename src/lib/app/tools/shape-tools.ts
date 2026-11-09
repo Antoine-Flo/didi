@@ -18,7 +18,7 @@ import {
   type PixelBox,
 } from "#lib/core/brush/shapes.js";
 import type { Rect } from "#lib/core/geometry.js";
-import { MAX_PIXEL_SIZE } from "./pixel-tools";
+import { MAX_PIXEL_SIZE } from "#lib/app/tools/pixel-tools.js";
 import {
   defineTool,
   type Modifiers,
@@ -29,7 +29,7 @@ import {
   type ToolGroup,
   type ToolMenu,
   type ToolStroke,
-} from "./tool";
+} from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 type ShapeSettings = {

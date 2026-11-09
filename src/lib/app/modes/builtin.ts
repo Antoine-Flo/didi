@@ -1,7 +1,7 @@
 // The modes that come with Didi.
 
 import { Grid3x3, Paintbrush } from "@lucide/svelte";
-import { ModeRegistry, type Mode } from "./mode";
+import { ModeRegistry, type Mode } from "#lib/app/modes/mode.js";
 import { m } from "#lib/paraglide/messages.js";
 
 export const PIXEL_MODE: Mode = {

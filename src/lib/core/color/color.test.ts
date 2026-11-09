@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { fromHex, hsvToRgb, rgbToHsv, toHex, type RGB } from "./color";
+import { fromHex, hsvToRgb, rgbToHsv, toHex, type RGB } from "#lib/core/color/color.js";
 
 const rgb = fc.tuple(
   fc.integer({ min: 0, max: 255 }),

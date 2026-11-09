@@ -4,10 +4,10 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BUNDLED_BRUSHES, curvesSizeFactor } from "./brushes";
-import MEASURED_SIZES from "./brush-sizes.json";
-import { measureSizeFactor } from "./brush-size";
-import { loadMyPaint } from "./engine";
+import { BUNDLED_BRUSHES, curvesSizeFactor } from "#lib/mypaint/brushes.js";
+import MEASURED_SIZES from "#lib/mypaint/brush-sizes.json";
+import { measureSizeFactor } from "#lib/mypaint/brush-size.js";
+import { loadMyPaint } from "#lib/mypaint/engine.js";
 
 const measuring = process.env.DIDI_MEASURE === "1";
 

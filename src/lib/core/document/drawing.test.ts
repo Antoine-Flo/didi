@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { Drawing } from "./drawing";
-import { BLEND_MODES, type LayerProps } from "./layer";
-import { TileStore } from "./tiles";
-import { capture, expectSameState, fill, pattern } from "../test-utils";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { BLEND_MODES, type LayerProps } from "#lib/core/document/layer.js";
+import { TileStore } from "#lib/core/document/tiles.js";
+import { capture, expectSameState, fill, pattern } from "#lib/core/test-utils.js";
 
 const W = 300;
 const H = 260;

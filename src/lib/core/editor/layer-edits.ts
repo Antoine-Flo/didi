@@ -3,12 +3,18 @@
 // or remove.
 
 import { m } from "#lib/paraglide/messages.js";
-import { composite } from "../document/compositing";
-import { Drawing } from "../document/drawing";
-import type { Layer, ReadonlyLayer } from "../document/layer";
-import { addLayer, group, removeLayer, replaceTiles, writePixels } from "../history/edits";
-import { layerTiles } from "../selection/selection";
-import type { Editor } from "./editor";
+import { composite } from "#lib/core/document/compositing.js";
+import { Drawing } from "#lib/core/document/drawing.js";
+import type { Layer, ReadonlyLayer } from "#lib/core/document/layer.js";
+import {
+  addLayer,
+  group,
+  removeLayer,
+  replaceTiles,
+  writePixels,
+} from "#lib/core/history/edits.js";
+import { layerTiles } from "#lib/core/selection/selection.js";
+import type { Editor } from "#lib/core/editor/editor.js";
 
 /** Runs `change` as one undo step, floating content laid first. */
 function step(editor: Editor, label: string, change: () => void) {

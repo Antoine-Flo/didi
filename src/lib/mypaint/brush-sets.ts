@@ -3,7 +3,7 @@
 // the other brushes of that kind, offered under "More brushes". Every bundled brush is in
 // exactly one set; erasers only in the eraser set.
 
-import { bundledBrush, type BundledBrush } from "./brushes";
+import { bundledBrush, type BundledBrush } from "#lib/mypaint/brushes.js";
 
 export interface BrushSet {
   /** Also the id of its tool, e.g. "pencil". */

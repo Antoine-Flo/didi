@@ -6,7 +6,7 @@
 
   import { sameColor, toHex, type RGB } from "#lib/core/color/color.js";
   import { shade, SHADE_KINDS, type ShadeKind } from "#lib/core/color/shades.js";
-  import { pointerDrag } from "./pointer-drag.js";
+  import { pointerDrag } from "#lib/app/panels/pointer-drag.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

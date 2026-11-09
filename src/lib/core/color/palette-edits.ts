@@ -5,9 +5,9 @@
 // left alone.
 
 import { m } from "#lib/paraglide/messages.js";
-import type { Edit } from "../history/edits";
-import type { RGB } from "./color";
-import type { Palette, PaletteLibrary } from "./palette";
+import type { Edit } from "#lib/core/history/edits.js";
+import type { RGB } from "#lib/core/color/color.js";
+import type { Palette, PaletteLibrary } from "#lib/core/color/palette.js";
 
 function paletteEdit(
   label: string,

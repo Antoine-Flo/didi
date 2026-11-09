@@ -1,7 +1,7 @@
 // Well-known game art palettes, offered with the app. Colors as on Lospec.
 
-import { fromHex } from "./color";
-import type { Palette } from "./palette";
+import { fromHex } from "#lib/core/color/color.js";
+import type { Palette } from "#lib/core/color/palette.js";
 
 const palette = (name: string, hex: string): Palette => ({
   name,

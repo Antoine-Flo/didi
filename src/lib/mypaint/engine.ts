@@ -11,8 +11,8 @@ import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
 import { TILE_SIZE, isTransparent, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
 import { keepAlpha } from "#lib/core/document/pixels.js";
 import { intersect, union, type Rect } from "#lib/core/geometry.js";
-import createLibMyPaint, { type LibMyPaint } from "./libmypaint.mjs";
-import type { MybBrush } from "./myb";
+import createLibMyPaint, { type LibMyPaint } from "#lib/mypaint/libmypaint.mjs";
+import type { MybBrush } from "#lib/mypaint/myb.js";
 
 /** Size of libmypaint's tiles, in pixels. */
 const MP_TILE = 64;

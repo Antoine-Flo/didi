@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLayoutPrefs } from "./layout-prefs.svelte";
+import { parseLayoutPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
 
 describe("layout preferences", () => {
   it("reads the hand, whether the panels are open and their sizes", () => {

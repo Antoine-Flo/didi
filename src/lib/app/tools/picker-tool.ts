@@ -6,7 +6,7 @@ import { composite } from "#lib/core/document/compositing.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
 import type { Rect } from "#lib/core/geometry.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import { defineTool, type Picked, type ToolOptions } from "./tool";
+import { defineTool, type Picked, type ToolOptions } from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 interface Source {

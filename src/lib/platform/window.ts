@@ -2,7 +2,7 @@
 // has its own (see capabilities.ownWindow).
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { capabilities } from "./capabilities";
+import { capabilities } from "#lib/platform/capabilities.js";
 
 export const appWindow = capabilities.ownWindow ? getCurrentWindow() : null;
 

@@ -35,7 +35,13 @@ import type { TileSnapshot } from "#lib/core/document/tiles.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { intersect, type Rect } from "#lib/core/geometry.js";
 import type { Edit } from "#lib/core/history/edits.js";
-import { defineTool, type Sample, type Tool, type ToolContext, type ToolStroke } from "./tool";
+import {
+  defineTool,
+  type Sample,
+  type Tool,
+  type ToolContext,
+  type ToolStroke,
+} from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 const SNAP_ANGLE = Math.PI / 12;

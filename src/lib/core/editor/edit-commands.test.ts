@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Drawing } from "../document/drawing";
-import { shapeFrom, shapeMask } from "../selection/shape";
-import { Editor } from "./editor";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { shapeFrom, shapeMask } from "#lib/core/selection/shape.js";
+import { Editor } from "#lib/core/editor/editor.js";
 
 const RED = [255, 0, 0, 255];
 const BLUE = [0, 0, 255, 255];

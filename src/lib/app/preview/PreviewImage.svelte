@@ -6,7 +6,7 @@
   // preview-link).
 
   import { onMount, untrack } from "svelte";
-  import type { ToPreview } from "./preview-link";
+  import type { ToPreview } from "#lib/app/preview/preview-link.js";
 
   const MAX_ZOOM = 64;
   /** Out down to this part of the fitted size: room around it, e.g. out of the bar's way. */

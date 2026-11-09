@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { documentFromEditor } from "#lib/core/file/didi-file.js";
-import { newEditor } from "./new-drawing";
+import { newEditor } from "#lib/app/files/new-drawing.js";
 
 const data = new Map<string, Uint8Array | string>();
 /** Holds binary writes until released, to see what happens meanwhile. */
@@ -17,11 +17,11 @@ vi.mock("#lib/platform/storage.js", () => ({
   removeDataFile: async (name: string) => void data.delete(name),
 }));
 
-vi.mock("./files", () => ({
+vi.mock("#lib/app/files/files.js", () => ({
   encodeDocument: async () => ({ file: new Uint8Array([1]), thumbnail: new Uint8Array() }),
 }));
 
-const { RecoveryCopy } = await import("./recovery-copy.svelte");
+const { RecoveryCopy } = await import("#lib/app/files/recovery-copy.svelte.js");
 
 describe("RecoveryCopy", () => {
   it("removes the copy after a write in progress, not before: it does not come back", async () => {

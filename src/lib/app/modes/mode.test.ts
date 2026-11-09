@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
-import { createModeRegistry } from "./builtin";
-import { DEFAULT_MODE } from "./mode";
+import { createModeRegistry } from "#lib/app/modes/builtin.js";
+import { DEFAULT_MODE } from "#lib/app/modes/mode.js";
 
 describe("modes", () => {
   const modes = createModeRegistry();

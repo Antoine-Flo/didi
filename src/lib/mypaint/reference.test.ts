@@ -11,8 +11,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 import { Drawing } from "#lib/core/document/drawing.js";
-import { bundledBrush } from "./brushes";
-import { loadMyPaint, MyPaintStroke } from "./engine";
+import { bundledBrush } from "#lib/mypaint/brushes.js";
+import { loadMyPaint, MyPaintStroke } from "#lib/mypaint/engine.js";
 
 const ROOT = resolve(__dirname, "../../..");
 const TOOL = join(ROOT, "tools/brush-compare");

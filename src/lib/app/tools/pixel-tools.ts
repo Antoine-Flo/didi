@@ -4,7 +4,13 @@ import { selectionClip } from "#lib/core/selection/selection.js";
 import { Circle, Eraser, Pencil, Square } from "@lucide/svelte";
 import { PixelPathBuilder } from "#lib/core/brush/pixel-path.js";
 import { StrokeRaster, type StampShape } from "#lib/core/brush/raster.js";
-import { defineTool, type Sample, type Tool, type ToolMenu, type ToolStroke } from "./tool";
+import {
+  defineTool,
+  type Sample,
+  type Tool,
+  type ToolMenu,
+  type ToolStroke,
+} from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 export const MAX_PIXEL_SIZE = 64;

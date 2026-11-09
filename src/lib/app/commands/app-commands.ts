@@ -14,7 +14,7 @@ import type { ToolOptions, ToolRegistry } from "#lib/app/tools/tool.js";
 import type { Hand } from "#lib/app/shell/layout-prefs.svelte.js";
 import { movable } from "#lib/core/editor/editor-commands.js";
 import { errorMessage } from "#lib/app/error-message.js";
-import { copy, toPaste } from "./clipboard";
+import { copy, toPaste } from "#lib/app/commands/clipboard.js";
 import { m } from "#lib/paraglide/messages.js";
 
 /** The view controls of the canvas, once it is mounted. */

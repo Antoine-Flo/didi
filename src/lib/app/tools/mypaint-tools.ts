@@ -29,7 +29,7 @@ import {
   type ToolContext,
   type ToolGroup,
   type ToolStroke,
-} from "./tool";
+} from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 export type MyPaintSettings = {

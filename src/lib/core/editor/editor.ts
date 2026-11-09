@@ -4,15 +4,15 @@
 // kept valid after every history change.
 
 import { m } from "#lib/paraglide/messages.js";
-import { CommandRegistry } from "./commands";
-import type { Drawing } from "../document/drawing";
-import { Emitter } from "../emitter";
-import { History, type HistoryOptions } from "../history/history";
-import type { ReadonlyLayer } from "../document/layer";
-import { addLayer, group, writePixels } from "../history/edits";
-import { intersect, type Rect } from "../geometry";
-import { mirrored } from "../selection/placement";
-import { shapeMask, shapeOf } from "../selection/shape";
+import { CommandRegistry } from "#lib/core/editor/commands.js";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import { Emitter } from "#lib/core/emitter.js";
+import { History, type HistoryOptions } from "#lib/core/history/history.js";
+import type { ReadonlyLayer } from "#lib/core/document/layer.js";
+import { addLayer, group, writePixels } from "#lib/core/history/edits.js";
+import { intersect, type Rect } from "#lib/core/geometry.js";
+import { mirrored } from "#lib/core/selection/placement.js";
+import { shapeMask, shapeOf } from "#lib/core/selection/shape.js";
 import {
   NO_SELECTION,
   Selection,
@@ -29,7 +29,7 @@ import {
   showFloating,
   type Floating,
   type SelectionState,
-} from "../selection/selection";
+} from "#lib/core/selection/selection.js";
 
 /** Pixels taken from or put in a layer: premultiplied RGBA, row by row. */
 export interface Image {
@@ -37,7 +37,7 @@ export interface Image {
   readonly height: number;
   readonly pixels: Uint8ClampedArray;
 }
-import { registerEditorCommands } from "./editor-commands";
+import { registerEditorCommands } from "#lib/core/editor/editor-commands.js";
 
 export class Editor {
   readonly history: History;

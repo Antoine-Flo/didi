@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PenEvent } from "#lib/platform/pen.js";
-import { DEVICE_SWITCH_MS, PenInput } from "./pen-input.svelte";
+import { DEVICE_SWITCH_MS, PenInput } from "#lib/app/canvas/pen-input.svelte.js";
 
 function setup() {
   const calls: string[] = [];

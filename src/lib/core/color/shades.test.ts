@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { rgbToOklch } from "./oklch";
-import { shade } from "./shades";
-import type { RGB } from "./color";
+import { rgbToOklch } from "#lib/core/color/oklch.js";
+import { shade } from "#lib/core/color/shades.js";
+import type { RGB } from "#lib/core/color/color.js";
 
 const base: RGB = [180, 90, 60];
 

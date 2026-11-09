@@ -15,10 +15,10 @@
   import type { Mode } from "#lib/app/modes/mode.js";
   import Segmented from "#lib/app/widgets/Segmented.svelte";
   import Splitter from "#lib/app/widgets/Splitter.svelte";
-  import ColorPanel from "./ColorPanel.svelte";
-  import LayersPanel from "./LayersPanel.svelte";
-  import PalettePanel from "./PalettePanel.svelte";
-  import { PaletteColorSync } from "./palette-sync.js";
+  import ColorPanel from "#lib/app/panels/ColorPanel.svelte";
+  import LayersPanel from "#lib/app/panels/LayersPanel.svelte";
+  import PalettePanel from "#lib/app/panels/PalettePanel.svelte";
+  import { PaletteColorSync } from "#lib/app/panels/palette-sync.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

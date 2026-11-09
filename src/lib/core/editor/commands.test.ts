@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CommandRegistry } from "./commands";
+import { CommandRegistry } from "#lib/core/editor/commands.js";
 
 function setup() {
   const ctx = { value: 0 };

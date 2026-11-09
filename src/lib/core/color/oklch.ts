@@ -2,7 +2,7 @@
 // hue. Changing the lightness keeps the hue, unlike HSV (a darker yellow stays yellow).
 // https://bottosson.github.io/posts/oklab/
 
-import type { RGB } from "./color";
+import type { RGB } from "#lib/core/color/color.js";
 
 /** Lightness 0-1, chroma 0 to about 0.37 in sRGB, hue 0-360 degrees. */
 export interface Oklch {

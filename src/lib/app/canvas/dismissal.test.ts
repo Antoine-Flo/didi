@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { consumeDismissal, popupClosed, popupOpened } from "./dismissal";
+import { consumeDismissal, popupClosed, popupOpened } from "#lib/app/canvas/dismissal.js";
 
 describe("dismissal clicks", () => {
   it("draws normally without popups", () => {

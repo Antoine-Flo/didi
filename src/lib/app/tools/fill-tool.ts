@@ -5,7 +5,7 @@ import { selectionClip } from "#lib/core/selection/selection.js";
 import { PaintBucket } from "@lucide/svelte";
 import { fillArea } from "#lib/core/brush/flood-fill.js";
 import { StrokeRaster } from "#lib/core/brush/raster.js";
-import { defineTool, type ToolStroke } from "./tool";
+import { defineTool, type ToolStroke } from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 type FillSettings = {

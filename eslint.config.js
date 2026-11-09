@@ -79,6 +79,8 @@ export default ts.config(
                 "$app/*",
                 // Escaped: a leading # starts a comment in these patterns.
                 "\\#lib/*",
+                // Itself, like everywhere else: "#lib/core/…".
+                "!\\#lib/core",
                 // Its texts are messages, like everywhere else.
                 "!\\#lib/paraglide",
                 "\\#lib/paraglide/*",

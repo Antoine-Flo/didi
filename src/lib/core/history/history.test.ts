@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import fc from "fast-check";
-import { Drawing } from "../document/drawing";
-import { addLayer, updateLayer, writePixels } from "./edits";
-import { History } from "./history";
-import { TILE_SIZE } from "../document/tiles";
-import { capture, expectSameState, fill, randomEdit, type DrawingState } from "../test-utils";
+import { Drawing } from "#lib/core/document/drawing.js";
+import { addLayer, updateLayer, writePixels } from "#lib/core/history/edits.js";
+import { History } from "#lib/core/history/history.js";
+import { TILE_SIZE } from "#lib/core/document/tiles.js";
+import {
+  capture,
+  expectSameState,
+  fill,
+  randomEdit,
+  type DrawingState,
+} from "#lib/core/test-utils.js";
 
 function setup(options = {}) {
   const drawing = new Drawing(512, 512);

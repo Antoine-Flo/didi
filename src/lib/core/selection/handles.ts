@@ -11,7 +11,7 @@
 // Sizes are in screen pixels, so that the handles look the same at any zoom. The view draws
 // the rectangles given here, and the hit test uses them: they cannot disagree.
 
-import type { Rect } from "../geometry";
+import type { Rect } from "#lib/core/geometry.js";
 import {
   centerOf,
   contains,
@@ -21,7 +21,7 @@ import {
   toCanvas,
   type Placement,
   type Point,
-} from "./placement";
+} from "#lib/core/selection/placement.js";
 
 export type Side = "n" | "e" | "s" | "w";
 export type HandleId = Side | "ne" | "se" | "sw" | "nw";

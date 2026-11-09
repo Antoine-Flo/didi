@@ -5,9 +5,15 @@ import type { Rect } from "#lib/core/geometry.js";
 import { History } from "#lib/core/history/history.js";
 import { capture, expectSameState, fill, firstDifference } from "#lib/core/test-utils.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
-import { BUNDLED_BRUSHES, bundledBrush } from "./brushes";
-import { loadMyPaint, MyPaintStroke, rgbToHsv, type Brush, type MyPaint } from "./engine";
-import { parseMyb } from "./myb";
+import { BUNDLED_BRUSHES, bundledBrush } from "#lib/mypaint/brushes.js";
+import {
+  loadMyPaint,
+  MyPaintStroke,
+  rgbToHsv,
+  type Brush,
+  type MyPaint,
+} from "#lib/mypaint/engine.js";
+import { parseMyb } from "#lib/mypaint/myb.js";
 
 let mp: MyPaint;
 beforeAll(async () => {

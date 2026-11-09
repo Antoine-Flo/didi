@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { documentFromEditor, readDidi, writeDidi } from "#lib/core/file/didi-file.js";
-import { newEditor } from "./new-drawing";
-import type { UnsavedChoice } from "./session.svelte";
+import { newEditor } from "#lib/app/files/new-drawing.js";
+import type { UnsavedChoice } from "#lib/app/files/session.svelte.js";
 
 // Files and app data in memory, and the worker's work done directly.
 const disk = new Map<string, Uint8Array>();
@@ -36,8 +36,8 @@ vi.mock("#lib/platform/storage.js", () => ({
   removeDataFile: async (name: string) => void data.delete(name),
 }));
 
-vi.mock("./files", async (original) => {
-  const actual = await original<typeof import("./files")>();
+vi.mock("#lib/app/files/files.js", async (original) => {
+  const actual = await original<typeof import("#lib/app/files/files.js")>();
   const png = new Uint8Array([1, 2, 3]);
   return {
     ...actual,
@@ -61,7 +61,7 @@ vi.mock("./files", async (original) => {
   };
 });
 
-const { Session } = await import("./session.svelte");
+const { Session } = await import("#lib/app/files/session.svelte.js");
 
 function setup(choice: UnsavedChoice = "cancel") {
   const host = { notify: vi.fn(), askUnsaved: vi.fn(async () => choice) };

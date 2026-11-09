@@ -2,11 +2,11 @@
 // active layer, so they can be bound to shortcuts or the quick wheel without params.
 
 import { m } from "#lib/paraglide/messages.js";
-import type { CommandRegistry } from "./commands";
-import type { Drawing } from "../document/drawing";
-import { addLayer, moveLayer, removeLayer, updateLayer } from "../history/edits";
-import type { Editor } from "./editor";
-import type { LayerProps } from "../document/layer";
+import type { CommandRegistry } from "#lib/core/editor/commands.js";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import { addLayer, moveLayer, removeLayer, updateLayer } from "#lib/core/history/edits.js";
+import type { Editor } from "#lib/core/editor/editor.js";
+import type { LayerProps } from "#lib/core/document/layer.js";
 import {
   crop,
   flipImage,
@@ -15,7 +15,7 @@ import {
   scaleImage,
   selectionBounds,
   trim,
-} from "./image-edits";
+} from "#lib/core/editor/image-edits.js";
 import {
   clearLayer,
   duplicateLayer,
@@ -23,7 +23,7 @@ import {
   flipLayer,
   mergeDown,
   mergeTarget,
-} from "./layer-edits";
+} from "#lib/core/editor/layer-edits.js";
 
 const exists = (d: Drawing, id: string | undefined): id is string =>
   id !== undefined && d.layers.some((l) => l.id === id);

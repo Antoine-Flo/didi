@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { columnTops, edgeOnSide, nearestSide, positionOnEdge, sideOfEdge } from "./edge-columns";
+import {
+  columnTops,
+  edgeOnSide,
+  nearestSide,
+  positionOnEdge,
+  sideOfEdge,
+} from "#lib/app/panels/edge-columns.js";
 
 describe("columns along an edge", () => {
   it("puts a column where its place says, in whole pixels", () => {

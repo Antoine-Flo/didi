@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { takesText } from "./keyboard";
+import { takesText } from "#lib/app/commands/keyboard.js";
 
 describe("takesText", () => {
   it("is true for fields where text is typed", () => {

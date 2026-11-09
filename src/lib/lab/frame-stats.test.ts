@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FrameStats } from "./frame-stats";
+import { FrameStats } from "#lib/lab/frame-stats.js";
 
 describe("FrameStats", () => {
   it("reports zeros when empty", () => {

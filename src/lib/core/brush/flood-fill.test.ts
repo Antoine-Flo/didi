@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillArea } from "./flood-fill";
+import { fillArea } from "#lib/core/brush/flood-fill.js";
 
 // 5 × 3: a vertical wall of red at x = 2 splits two transparent areas.
 function image(): Uint8ClampedArray {

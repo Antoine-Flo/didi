@@ -3,7 +3,7 @@ import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
 import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
 import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
-import { Painter } from "./painter";
+import { Painter } from "#lib/app/canvas/painter.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import type { Picked } from "#lib/app/tools/tool.js";
 import type { RGB } from "#lib/core/color/color.js";

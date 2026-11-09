@@ -6,9 +6,9 @@
 // so the interface can refresh and save it.
 
 import { m } from "#lib/paraglide/messages.js";
-import { fromHex, sameColor, toHex, type RGB } from "./color";
-import { Emitter } from "../emitter";
-import { BUILTIN_PALETTES } from "./builtin-palettes";
+import { fromHex, sameColor, toHex, type RGB } from "#lib/core/color/color.js";
+import { Emitter } from "#lib/core/emitter.js";
+import { BUILTIN_PALETTES } from "#lib/core/color/builtin-palettes.js";
 
 export interface Palette {
   name: string;

@@ -1,8 +1,8 @@
 // Brushes bundled with Didi: the whole MyPaint brush collection (CC0, see
 // brushes/LICENSE-mypaint-brushes), one folder per pack. Previews are in static/brushes/.
 
-import { parseMyb, type MybBrush } from "./myb";
-import MEASURED_SIZES from "./brush-sizes.json";
+import { parseMyb, type MybBrush } from "#lib/mypaint/myb.js";
+import MEASURED_SIZES from "#lib/mypaint/brush-sizes.json";
 
 export interface BundledBrush {
   /** "pack/name", e.g. "deevad/2B_pencil". */

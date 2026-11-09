@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_RECENT, parseRecent, withRecent, type RecentFile } from "./recent";
+import { MAX_RECENT, parseRecent, withRecent, type RecentFile } from "#lib/app/files/recent.js";
 
 const file = (path: string, time = 1): RecentFile => ({ path, name: path, thumbnail: "", time });
 

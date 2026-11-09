@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { modifiersAfter } from "./modifiers.svelte";
+import { modifiersAfter } from "#lib/app/canvas/modifiers.svelte.js";
 
 const event = (type: string, key: string, flags: { alt?: boolean; shift?: boolean } = {}) => ({
   type,

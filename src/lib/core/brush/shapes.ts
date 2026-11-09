@@ -2,7 +2,7 @@
 // one pixel to another, without anti-aliasing. Shift constrains the shape (pixel-art line
 // angles, squares, circles); drawing from the center makes the first pixel the middle.
 
-import { pixelLine, type Pixel } from "./pixel-path";
+import { pixelLine, type Pixel } from "#lib/core/brush/pixel-path.js";
 
 /** A rectangle of whole pixels, both corners included. */
 export interface PixelBox {

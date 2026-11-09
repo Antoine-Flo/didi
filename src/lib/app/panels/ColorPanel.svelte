@@ -14,8 +14,8 @@
     type ColorSelector,
   } from "#lib/app/shell/layout-prefs.svelte.js";
   import PanelMenu from "#lib/app/widgets/PanelMenu.svelte";
-  import ColorPicker from "./ColorPicker.svelte";
-  import ShadeBars from "./ShadeBars.svelte";
+  import ColorPicker from "#lib/app/panels/ColorPicker.svelte";
+  import ShadeBars from "#lib/app/panels/ShadeBars.svelte";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BRUSH_SETS, setOfBrush } from "./brush-sets";
-import { BUNDLED_BRUSHES, findBundledBrush } from "./brushes";
+import { BRUSH_SETS, setOfBrush } from "#lib/mypaint/brush-sets.js";
+import { BUNDLED_BRUSHES, findBundledBrush } from "#lib/mypaint/brushes.js";
 
 describe("brush sets", () => {
   it("hold every bundled brush exactly once", () => {

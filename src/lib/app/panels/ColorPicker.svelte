@@ -15,8 +15,8 @@
     type RGB,
   } from "#lib/core/color/color.js";
   import type { ColorSelector } from "#lib/app/shell/layout-prefs.svelte.js";
-  import { pointerDrag } from "./pointer-drag.js";
-  import { paintTriangle, triangleColor, trianglePoint } from "./color-triangle.js";
+  import { pointerDrag } from "#lib/app/panels/pointer-drag.js";
+  import { paintTriangle, triangleColor, trianglePoint } from "#lib/app/panels/color-triangle.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

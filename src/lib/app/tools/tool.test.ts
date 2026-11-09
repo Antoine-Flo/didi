@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Pipette } from "@lucide/svelte";
-import { createToolRegistry } from "./builtin";
+import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import {
   defineTool,
   MAX_SIZE,
@@ -8,7 +8,7 @@ import {
   sizeFromSlider,
   sliderFromSize,
   ToolRegistry,
-} from "./tool";
+} from "#lib/app/tools/tool.js";
 
 const dummy = (id: string) =>
   defineTool({

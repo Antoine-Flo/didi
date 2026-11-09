@@ -23,8 +23,8 @@ import { union, type Rect } from "#lib/core/geometry.js";
 import { selectionHandles } from "#lib/core/selection/handles.js";
 import { corners, toCanvas, type Placement, type Point } from "#lib/core/selection/placement.js";
 import type { OutlineRun } from "#lib/core/selection/shape.js";
-import { toScreen, visibleRect, type Camera } from "./camera";
-import { CONTRAST_BLEND } from "./contrast-blend";
+import { toScreen, visibleRect, type Camera } from "#lib/render/camera.js";
+import { CONTRAST_BLEND } from "#lib/render/contrast-blend.js";
 
 const PIXI_BLEND: Record<BlendMode, PixiBlendMode> = {
   normal: "normal",

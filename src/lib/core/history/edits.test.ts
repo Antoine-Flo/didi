@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { Drawing } from "../document/drawing";
+import { Drawing } from "#lib/core/document/drawing.js";
 import {
   addLayer,
   group,
@@ -9,8 +9,8 @@ import {
   updateLayer,
   writePixels,
   type Edit,
-} from "./edits";
-import { capture, expectSameState, fill, pattern, randomEdit } from "../test-utils";
+} from "#lib/core/history/edits.js";
+import { capture, expectSameState, fill, pattern, randomEdit } from "#lib/core/test-utils.js";
 
 describe("edits", () => {
   it("add, update, move and remove layers, and undo them", () => {

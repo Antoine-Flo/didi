@@ -7,13 +7,25 @@
 // A state is never changed, only replaced, and an undo step keeps the states and the tiles
 // on both sides. Tiles are shared, not copied (see tiles.ts), which makes this cheap.
 
-import type { Drawing } from "../document/drawing";
-import { tileKey, type TileSnapshot } from "../document/tiles";
-import { Emitter } from "../emitter";
-import { intersect, type Rect } from "../geometry";
-import { replaceTiles, type Edit } from "../history/edits";
-import { boundsOf, toBox, type Placement, type Point, type Transform } from "./placement";
-import { maskOutline, shapeMask, shapeOf, type OutlineRun, type SelectionShape } from "./shape";
+import type { Drawing } from "#lib/core/document/drawing.js";
+import { tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
+import { Emitter } from "#lib/core/emitter.js";
+import { intersect, type Rect } from "#lib/core/geometry.js";
+import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
+import {
+  boundsOf,
+  toBox,
+  type Placement,
+  type Point,
+  type Transform,
+} from "#lib/core/selection/placement.js";
+import {
+  maskOutline,
+  shapeMask,
+  shapeOf,
+  type OutlineRun,
+  type SelectionShape,
+} from "#lib/core/selection/shape.js";
 
 /** Content lifted from a layer. */
 export interface Floating {

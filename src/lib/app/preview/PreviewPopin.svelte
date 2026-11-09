@@ -7,9 +7,9 @@
   import { SquareArrowOutUpRight, X } from "@lucide/svelte";
   import { onMount } from "svelte";
   import type { Drawing } from "#lib/core/document/drawing.js";
-  import PreviewBar from "./PreviewBar.svelte";
-  import PreviewImage from "./PreviewImage.svelte";
-  import { PreviewSender } from "./preview-link";
+  import PreviewBar from "#lib/app/preview/PreviewBar.svelte";
+  import PreviewImage from "#lib/app/preview/PreviewImage.svelte";
+  import { PreviewSender } from "#lib/app/preview/preview-link.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

@@ -2,8 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
 import { PaletteLibrary } from "#lib/core/color/palette.js";
-import { registerAppCommands, type AppHost, type ViewControls } from "./app-commands";
-import { DEFAULT_KEYMAP } from "./default-keymap";
+import {
+  registerAppCommands,
+  type AppHost,
+  type ViewControls,
+} from "#lib/app/commands/app-commands.js";
+import { DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
 import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 

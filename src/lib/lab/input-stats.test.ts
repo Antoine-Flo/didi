@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InputStats, type InputSample } from "./input-stats";
+import { InputStats, type InputSample } from "#lib/lab/input-stats.js";
 
 const sample = (time: number, pressure = 0.5, tiltX = 0, tiltY = 0): InputSample => ({
   time,

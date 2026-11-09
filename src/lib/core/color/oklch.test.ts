@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { RGB } from "./color";
-import { oklchToRgb, rgbToOklch } from "./oklch";
+import type { RGB } from "#lib/core/color/color.js";
+import { oklchToRgb, rgbToOklch } from "#lib/core/color/oklch.js";
 
 describe("OKLCH", () => {
   it("goes there and back", () => {

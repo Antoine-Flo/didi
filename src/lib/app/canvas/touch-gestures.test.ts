@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { toCanvas, toScreen, type Camera } from "#lib/render/camera.js";
-import { GESTURE_GRACE_MS, ROTATE_START, TAP_MS, TAP_SLOP, TouchGestures } from "./touch-gestures";
+import {
+  GESTURE_GRACE_MS,
+  ROTATE_START,
+  TAP_MS,
+  TAP_SLOP,
+  TouchGestures,
+} from "#lib/app/canvas/touch-gestures.js";
 
 function setup(options: { fingerDraws?: boolean; mayRotate?: boolean; refuse?: boolean } = {}) {
   const calls: string[] = [];
