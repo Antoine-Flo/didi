@@ -9,7 +9,7 @@ import {
   type TileGrid,
 } from "#lib/core/file/didi-file.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import { errorMessage } from "#lib/app/error-message.js";
+import { errorMessage } from "#lib/app/shared/error-message.js";
 import {
   canUseFiles,
   chooseBrowserFile,

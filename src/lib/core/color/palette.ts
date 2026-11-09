@@ -7,7 +7,7 @@
 
 import { m } from "#lib/paraglide/messages.js";
 import { fromHex, sameColor, toHex, type RGB } from "#lib/core/color/color.js";
-import { Emitter } from "#lib/core/emitter.js";
+import { Emitter } from "#lib/core/shared/emitter.js";
 import { BUILTIN_PALETTES } from "#lib/core/color/builtin-palettes.js";
 
 export interface Palette {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { Painter } from "#lib/app/canvas/painter.js";
+import { Painter } from "#lib/app/input/painter.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
+import { capture, expectSameState, fill } from "#lib/core/testing/test-utils.js";
 import { selectionClip } from "#lib/core/selection/selection.js";
 import { shapeMask } from "#lib/core/selection/shape.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";

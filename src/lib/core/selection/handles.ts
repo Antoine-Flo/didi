@@ -11,7 +11,7 @@
 // Sizes are in screen pixels, so that the handles look the same at any zoom. The view draws
 // the rectangles given here, and the hit test uses them: they cannot disagree.
 
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import {
   centerOf,
   contains,

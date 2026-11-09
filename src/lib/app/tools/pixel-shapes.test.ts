@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { Painter } from "#lib/app/canvas/painter.js";
+import { Painter } from "#lib/app/input/painter.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import type { Modifiers } from "#lib/app/tools/tool.js";
 

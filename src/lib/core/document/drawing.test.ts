@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { BLEND_MODES, type LayerProps } from "#lib/core/document/layer.js";
 import { TileStore } from "#lib/core/document/tiles.js";
-import { capture, expectSameState, fill, pattern } from "#lib/core/test-utils.js";
+import { capture, expectSameState, fill, pattern } from "#lib/core/testing/test-utils.js";
 
 const W = 300;
 const H = 260;

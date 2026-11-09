@@ -6,7 +6,7 @@
 // the GPU. Each layer is rounded to 8 bits after blending, like a GPU render target.
 
 import type { Drawing } from "#lib/core/document/drawing.js";
-import { intersect, isIntegerRect, type Rect } from "#lib/core/geometry.js";
+import { intersect, isIntegerRect, type Rect } from "#lib/core/shared/geometry.js";
 import type { BlendMode } from "#lib/core/document/layer.js";
 import { TILE_SIZE } from "#lib/core/document/tiles.js";
 

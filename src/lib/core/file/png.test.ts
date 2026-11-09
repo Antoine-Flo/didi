@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { decodePng, encodePng } from "#lib/core/file/png.js";
-import { PNG_FIXTURES } from "#lib/core/file/png-fixtures.js";
+import { PNG_FIXTURES } from "#lib/core/testing/png-fixtures.js";
 
 const image = (width: number, height: number, fill: (i: number) => number) => ({
   width,

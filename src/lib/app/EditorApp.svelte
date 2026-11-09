@@ -22,14 +22,14 @@
     type OpenWindow,
   } from "#lib/platform/preview-window.js";
   import { sendToWindow } from "#lib/app/preview/preview-link.js";
-  import PreviewPopin from "#lib/app/preview/PreviewPopin.svelte";
-  import { errorMessage } from "#lib/app/error-message.js";
-  import "#lib/app/shell/ui.css";
-  import CanvasView, { type Insets } from "#lib/app/canvas/CanvasView.svelte";
-  import CommandPalette from "#lib/app/dialogs/CommandPalette.svelte";
-  import PanelColumn, { type PanelTab } from "#lib/app/panels/PanelColumn.svelte";
-  import DocumentInfo from "#lib/app/panels/DocumentInfo.svelte";
-  import NavColumn from "#lib/app/panels/NavColumn.svelte";
+  import PreviewPopin from "#lib/app/ui/preview/PreviewPopin.svelte";
+  import { errorMessage } from "#lib/app/shared/error-message.js";
+  import "#lib/app/styles/ui.css";
+  import CanvasView, { type Insets } from "#lib/app/ui/canvas/CanvasView.svelte";
+  import CommandPalette from "#lib/app/ui/dialogs/CommandPalette.svelte";
+  import PanelColumn, { type PanelTab } from "#lib/app/ui/panels/PanelColumn.svelte";
+  import DocumentInfo from "#lib/app/ui/panels/DocumentInfo.svelte";
+  import NavColumn from "#lib/app/ui/panels/NavColumn.svelte";
   import {
     columnTops,
     edgeOnSide,
@@ -37,34 +37,34 @@
     positionOnEdge,
     sideOfEdge,
     type ColumnEdge,
-  } from "#lib/app/panels/edge-columns.js";
-  import ToolBar from "#lib/app/panels/ToolBar.svelte";
-  import ToolColumn from "#lib/app/panels/ToolColumn.svelte";
-  import Splitter from "#lib/app/widgets/Splitter.svelte";
-  import { LayoutPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
-  import LayoutMenu from "#lib/app/shell/LayoutMenu.svelte";
-  import StartScreen from "#lib/app/dialogs/StartScreen.svelte";
-  import UnsavedDialog from "#lib/app/dialogs/UnsavedDialog.svelte";
-  import ConfirmDialog from "#lib/app/dialogs/ConfirmDialog.svelte";
-  import ImageSizeDialog, { type SizeKind } from "#lib/app/dialogs/ImageSizeDialog.svelte";
-  import GridDialog from "#lib/app/dialogs/GridDialog.svelte";
-  import ShortcutsDialog from "#lib/app/dialogs/ShortcutsDialog.svelte";
-  import AboutDialog from "#lib/app/dialogs/AboutDialog.svelte";
-  import PreferencesDialog from "#lib/app/dialogs/PreferencesDialog.svelte";
-  import { themePrefs } from "#lib/app/shell/theme-prefs.svelte.js";
+  } from "#lib/app/layout/edge-columns.js";
+  import ToolBar from "#lib/app/ui/panels/ToolBar.svelte";
+  import ToolColumn from "#lib/app/ui/panels/ToolColumn.svelte";
+  import Splitter from "#lib/app/ui/widgets/Splitter.svelte";
+  import { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
+  import LayoutMenu from "#lib/app/ui/shell/LayoutMenu.svelte";
+  import StartScreen from "#lib/app/ui/dialogs/StartScreen.svelte";
+  import UnsavedDialog from "#lib/app/ui/dialogs/UnsavedDialog.svelte";
+  import ConfirmDialog from "#lib/app/ui/dialogs/ConfirmDialog.svelte";
+  import ImageSizeDialog, { type SizeKind } from "#lib/app/ui/dialogs/ImageSizeDialog.svelte";
+  import GridDialog from "#lib/app/ui/dialogs/GridDialog.svelte";
+  import ShortcutsDialog from "#lib/app/ui/dialogs/ShortcutsDialog.svelte";
+  import AboutDialog from "#lib/app/ui/dialogs/AboutDialog.svelte";
+  import PreferencesDialog from "#lib/app/ui/dialogs/PreferencesDialog.svelte";
+  import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
   import { registerAppCommands } from "#lib/app/commands/app-commands.js";
   import { runCommand } from "#lib/app/commands/run-command.js";
   import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
   import { decodeImage, importImage } from "#lib/app/files/import-image.js";
   import { isTyping } from "#lib/app/commands/keyboard.js";
   import { formatChord, KeymapIndex } from "#lib/app/commands/keymap.js";
-  import { Painter } from "#lib/app/canvas/painter.js";
-  import { held, heldModifiers } from "#lib/app/canvas/modifiers.svelte.js";
+  import { Painter } from "#lib/app/input/painter.js";
+  import { held, heldModifiers } from "#lib/app/input/modifiers.svelte.js";
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
-  import { ModeColors } from "#lib/app/panels/mode-colors.svelte.js";
+  import { ModeColors } from "#lib/app/prefs/mode-colors.svelte.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
-  import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
-  import MenuBar from "#lib/app/shell/MenuBar.svelte";
+  import { windowTitle } from "#lib/app/layout/window-title.svelte.js";
+  import MenuBar from "#lib/app/ui/shell/MenuBar.svelte";
   import { availableMenus, defaultMenus } from "#lib/app/commands/default-menus.js";
   import { createModeRegistry } from "#lib/app/modes/builtin.js";
   import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";

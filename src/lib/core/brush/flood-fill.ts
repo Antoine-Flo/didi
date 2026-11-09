@@ -1,7 +1,7 @@
 // The paint bucket's area: the pixels of the same color as the clicked one, like Aseprite.
 // Colors are compared on the layer's own pixels (premultiplied RGBA), channel by channel.
 
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 
 export interface FillOptions {
   /** Largest difference allowed on each channel, 0 (exact color) to 255. */

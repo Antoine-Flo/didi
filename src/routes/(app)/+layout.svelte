@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Titlebar from "#lib/app/shell/Titlebar.svelte";
-  import { applyTheme } from "#lib/app/shell/theme.js";
-  import { themePrefs } from "#lib/app/shell/theme-prefs.svelte.js";
-  import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
+  import Titlebar from "#lib/app/ui/shell/Titlebar.svelte";
+  import { applyTheme } from "#lib/app/prefs/theme.js";
+  import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
+  import { windowTitle } from "#lib/app/layout/window-title.svelte.js";
   import { getLocale } from "#lib/paraglide/runtime.js";
 
   let { children }: { children: Snippet } = $props();

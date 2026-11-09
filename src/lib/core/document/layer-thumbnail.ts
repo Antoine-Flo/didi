@@ -4,7 +4,7 @@
 // the cost depends on the preview's size, not the layer's, so it stays cheap on large
 // canvases.
 
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import type { ReadonlyTileStore } from "#lib/core/document/layer.js";
 import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
 

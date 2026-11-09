@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RGB } from "#lib/core/color/color.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { fill } from "#lib/core/test-utils.js";
+import { fill } from "#lib/core/testing/test-utils.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
 import type { Picked, ToolContext } from "#lib/app/tools/tool.js";

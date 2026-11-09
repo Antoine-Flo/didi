@@ -8,7 +8,7 @@ import { contentBounds } from "#lib/core/document/layer-thumbnail.js";
 import { TileStore, type TileSnapshot } from "#lib/core/document/tiles.js";
 import type { Edit } from "#lib/core/history/edits.js";
 import { appliedState } from "#lib/core/selection/selection.js";
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 
 /** The largest canvas side, as when creating a document. */

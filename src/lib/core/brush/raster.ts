@@ -11,7 +11,7 @@
 
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
-import { intersect, type Rect } from "#lib/core/geometry.js";
+import { intersect, type Rect } from "#lib/core/shared/geometry.js";
 import { keepAlpha } from "#lib/core/document/pixels.js";
 import { TILE_SIZE, tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
 import type { Pixel } from "#lib/core/brush/pixel-path.js";

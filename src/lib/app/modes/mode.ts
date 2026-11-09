@@ -9,8 +9,8 @@
 import type { Component } from "svelte";
 import type { Binding } from "#lib/app/commands/keymap.js";
 import type { Background } from "#lib/app/files/new-drawing.js";
-import type { ColorPanelPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
-import { Registry } from "#lib/app/registry.js";
+import type { ColorPanelPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
+import { Registry } from "#lib/app/shared/registry.js";
 
 /** What the start screen offers to create a document in a mode. */
 export interface NewDocumentOptions {

@@ -5,7 +5,7 @@
 
 import { m } from "#lib/paraglide/messages.js";
 import type { Drawing } from "#lib/core/document/drawing.js";
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import type { Layer, LayerProps } from "#lib/core/document/layer.js";
 import { TILE_SIZE, type TileSnapshot } from "#lib/core/document/tiles.js";
 

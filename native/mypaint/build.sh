@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds libmypaint for WebAssembly into src/lib/mypaint/libmypaint.mjs.
+# Builds libmypaint for WebAssembly into src/lib/mypaint/wasm/libmypaint.mjs.
 #
 # Requires Emscripten (https://emscripten.org): `source ~/emsdk/emsdk_env.sh` first.
 # The output is committed, so only needed when changing this folder.
@@ -13,7 +13,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/didi/libmypaint"
 SRC="$CACHE/libmypaint-$VERSION"
-OUT="$ROOT/src/lib/mypaint/libmypaint.mjs"
+OUT="$ROOT/src/lib/mypaint/wasm/libmypaint.mjs"
 
 command -v emcc > /dev/null || { echo "emcc not found: source ~/emsdk/emsdk_env.sh" >&2; exit 1; }
 

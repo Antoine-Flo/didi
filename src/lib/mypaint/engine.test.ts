@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { Drawing, type DrawingChange } from "#lib/core/document/drawing.js";
 import { TILE_SIZE, tileKey } from "#lib/core/document/tiles.js";
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import { History } from "#lib/core/history/history.js";
-import { capture, expectSameState, fill, firstDifference } from "#lib/core/test-utils.js";
+import { capture, expectSameState, fill, firstDifference } from "#lib/core/testing/test-utils.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
 import { BUNDLED_BRUSHES, bundledBrush } from "#lib/mypaint/brushes.js";
 import {

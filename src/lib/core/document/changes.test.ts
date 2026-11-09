@@ -11,7 +11,7 @@ import {
   fill,
   randomEdit,
   type DrawingState,
-} from "#lib/core/test-utils.js";
+} from "#lib/core/testing/test-utils.js";
 
 function record(d: Drawing) {
   const changes: DrawingChange[] = [];

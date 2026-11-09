@@ -16,7 +16,7 @@ export default ts.config(
       ".svelte-kit/",
       "src-tauri/",
       "node_modules/",
-      "src/lib/mypaint/libmypaint.mjs",
+      "src/lib/mypaint/wasm/libmypaint.mjs",
       "src/lib/paraglide/",
     ],
   },

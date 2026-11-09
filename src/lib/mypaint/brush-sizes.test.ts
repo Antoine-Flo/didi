@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BUNDLED_BRUSHES, curvesSizeFactor } from "#lib/mypaint/brushes.js";
-import MEASURED_SIZES from "#lib/mypaint/brush-sizes.json";
+import MEASURED_SIZES from "#lib/mypaint/data/brush-sizes.json";
 import { measureSizeFactor } from "#lib/mypaint/brush-size.js";
 import { loadMyPaint } from "#lib/mypaint/engine.js";
 
@@ -21,7 +21,10 @@ describe("brush sizes", () => {
         const factor = measureSizeFactor(mp, b.myb, curvesSizeFactor(b.myb));
         sizes[b.id] = Math.round(factor * 100) / 100;
       }
-      writeFileSync(join(__dirname, "brush-sizes.json"), JSON.stringify(sizes, null, 2) + "\n");
+      writeFileSync(
+        join(__dirname, "data", "brush-sizes.json"),
+        JSON.stringify(sizes, null, 2) + "\n",
+      );
     },
     600_000,
   );

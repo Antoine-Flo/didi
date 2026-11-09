@@ -10,7 +10,13 @@ import {
   writePixels,
   type Edit,
 } from "#lib/core/history/edits.js";
-import { capture, expectSameState, fill, pattern, randomEdit } from "#lib/core/test-utils.js";
+import {
+  capture,
+  expectSameState,
+  fill,
+  pattern,
+  randomEdit,
+} from "#lib/core/testing/test-utils.js";
 
 describe("edits", () => {
   it("add, update, move and remove layers, and undo them", () => {

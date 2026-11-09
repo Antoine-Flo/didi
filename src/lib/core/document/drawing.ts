@@ -4,8 +4,8 @@
 // on top without knowing the internals. Every mutation is also notified to subscribers,
 // precisely enough for a renderer to update only what changed.
 
-import { Emitter } from "#lib/core/emitter.js";
-import type { Rect } from "#lib/core/geometry.js";
+import { Emitter } from "#lib/core/shared/emitter.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import {
   DEFAULT_LAYER_PROPS,
   LAYER_PROP_KEYS,

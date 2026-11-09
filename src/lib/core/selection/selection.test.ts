@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { capture, expectSameState, fill } from "#lib/core/test-utils.js";
+import { capture, expectSameState, fill } from "#lib/core/testing/test-utils.js";
 import { moveEdge, scaleRect, selectionHandles, zoneAt } from "#lib/core/selection/handles.js";
 import { lift, showFloating } from "#lib/core/selection/selection.js";
 import { maskOutline, shapeFrom, shapeMask } from "#lib/core/selection/shape.js";

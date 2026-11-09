@@ -17,7 +17,7 @@ import {
   snapLineEnd,
   type PixelBox,
 } from "#lib/core/brush/shapes.js";
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import { MAX_PIXEL_SIZE } from "#lib/app/tools/pixel-tools.js";
 import {
   defineTool,

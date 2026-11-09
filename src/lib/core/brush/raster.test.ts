@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { History } from "#lib/core/history/history.js";
-import { capture, expectSameState, fill, pattern } from "#lib/core/test-utils.js";
+import { capture, expectSameState, fill, pattern } from "#lib/core/testing/test-utils.js";
 import { PixelPathBuilder, type Pixel } from "#lib/core/brush/pixel-path.js";
 import { StrokeRaster, pixelStamp, type StrokeStyle } from "#lib/core/brush/raster.js";
 

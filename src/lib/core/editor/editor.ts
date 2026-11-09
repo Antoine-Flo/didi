@@ -6,11 +6,11 @@
 import { m } from "#lib/paraglide/messages.js";
 import { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Drawing } from "#lib/core/document/drawing.js";
-import { Emitter } from "#lib/core/emitter.js";
+import { Emitter } from "#lib/core/shared/emitter.js";
 import { History, type HistoryOptions } from "#lib/core/history/history.js";
 import type { ReadonlyLayer } from "#lib/core/document/layer.js";
 import { addLayer, group, writePixels } from "#lib/core/history/edits.js";
-import { intersect, type Rect } from "#lib/core/geometry.js";
+import { intersect, type Rect } from "#lib/core/shared/geometry.js";
 import { mirrored } from "#lib/core/selection/placement.js";
 import { shapeMask, shapeOf } from "#lib/core/selection/shape.js";
 import {

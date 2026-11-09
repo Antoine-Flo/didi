@@ -70,7 +70,7 @@ To build a standalone executable: `npm run tauri build -- --no-bundle`.
 | `npm run check`     | Checks types (TypeScript, Svelte).                        |
 | `npm run format`    | Formats all the code.                                     |
 
-The compiled libmypaint (`src/lib/mypaint/libmypaint.mjs`) is committed, so you don't need Emscripten unless you change it. To rebuild it: `source ~/emsdk/emsdk_env.sh`, then `native/mypaint/build.sh`.
+The compiled libmypaint (`src/lib/mypaint/wasm/libmypaint.mjs`) is committed, so you don't need Emscripten unless you change it. To rebuild it: `source ~/emsdk/emsdk_env.sh`, then `native/mypaint/build.sh`.
 
 ### Documentation and devlog
 

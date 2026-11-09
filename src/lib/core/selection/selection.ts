@@ -9,8 +9,8 @@
 
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { tileKey, type TileSnapshot } from "#lib/core/document/tiles.js";
-import { Emitter } from "#lib/core/emitter.js";
-import { intersect, type Rect } from "#lib/core/geometry.js";
+import { Emitter } from "#lib/core/shared/emitter.js";
+import { intersect, type Rect } from "#lib/core/shared/geometry.js";
 import { replaceTiles, type Edit } from "#lib/core/history/edits.js";
 import {
   boundsOf,

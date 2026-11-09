@@ -4,7 +4,7 @@
 // selected. When an edge of the rectangle moves, or the content is scaled, the mask is
 // stretched to the new size, each pixel taking the one under its center.
 
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import type { Point } from "#lib/core/selection/placement.js";
 
 export interface SelectionShape {

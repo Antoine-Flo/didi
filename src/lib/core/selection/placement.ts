@@ -5,7 +5,7 @@
 // on the canvas. Without a transform, the frame is the canvas. Keeping the box apart from the
 // transform lets a handle scale along the sides of rotated content, in whole pixels.
 
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 
 export interface Transform {
   readonly a: number;
@@ -16,7 +16,7 @@ export interface Transform {
   readonly ty: number;
 }
 
-import type { Point } from "#lib/core/geometry.js";
+import type { Point } from "#lib/core/shared/geometry.js";
 
 export type { Point };
 

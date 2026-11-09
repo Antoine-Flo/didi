@@ -33,7 +33,7 @@ import {
 import { pathSelection, shapeMask } from "#lib/core/selection/shape.js";
 import type { TileSnapshot } from "#lib/core/document/tiles.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import { intersect, type Rect } from "#lib/core/geometry.js";
+import { intersect, type Rect } from "#lib/core/shared/geometry.js";
 import type { Edit } from "#lib/core/history/edits.js";
 import {
   defineTool,

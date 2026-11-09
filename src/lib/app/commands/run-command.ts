@@ -1,7 +1,7 @@
 // Running a command from the interface. Buttons, shortcuts, menus and the command palette all
 // go through here, so that the rules below hold wherever a command comes from.
 
-import type { Painter } from "#lib/app/canvas/painter.js";
+import type { Painter } from "#lib/app/input/painter.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 
 /** Runs a command, unless the pen is down. Returns whether it ran. */

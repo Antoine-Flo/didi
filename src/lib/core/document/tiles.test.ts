@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import type { Rect } from "#lib/core/geometry.js";
+import type { Rect } from "#lib/core/shared/geometry.js";
 import {
   TILE_SIZE,
   TileStore,
@@ -8,7 +8,7 @@ import {
   tileCoord,
   tileKey,
 } from "#lib/core/document/tiles.js";
-import { fill, firstDifference, pattern } from "#lib/core/test-utils.js";
+import { fill, firstDifference, pattern } from "#lib/core/testing/test-utils.js";
 
 /** Naive reference: a flat pixel array the size of the canvas. */
 class FlatImage {

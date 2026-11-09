@@ -19,7 +19,7 @@ import type { Drawing, DrawingChange } from "#lib/core/document/drawing.js";
 import type { BlendMode, ReadonlyLayer } from "#lib/core/document/layer.js";
 import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
 import { pixelStamp } from "#lib/core/brush/raster.js";
-import { union, type Rect } from "#lib/core/geometry.js";
+import { union, type Rect } from "#lib/core/shared/geometry.js";
 import { selectionHandles } from "#lib/core/selection/handles.js";
 import { corners, toCanvas, type Placement, type Point } from "#lib/core/selection/placement.js";
 import type { OutlineRun } from "#lib/core/selection/shape.js";

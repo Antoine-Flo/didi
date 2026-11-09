@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { Painter } from "#lib/app/canvas/painter.js";
+import { Painter } from "#lib/app/input/painter.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { fill } from "#lib/core/test-utils.js";
+import { fill } from "#lib/core/testing/test-utils.js";
 import { runCommand } from "#lib/app/commands/run-command.js";
 
 /** Two layers, with floating content moved on the top one. */

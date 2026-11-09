@@ -7,7 +7,7 @@ import type { Drawing, DrawingChange } from "#lib/core/document/drawing.js";
 import { composite } from "#lib/core/document/compositing.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
 import { TILE_SIZE, tileCoord } from "#lib/core/document/tiles.js";
-import { intersect, union, type Rect } from "#lib/core/geometry.js";
+import { intersect, union, type Rect } from "#lib/core/shared/geometry.js";
 
 const CHANNEL = "didi-preview";
 

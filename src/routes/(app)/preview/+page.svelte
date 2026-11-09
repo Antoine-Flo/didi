@@ -5,12 +5,12 @@
   // over the channel (see preview-link).
 
   import { onMount } from "svelte";
-  import "#lib/app/shell/ui.css";
-  import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
-  import WindowButtons from "#lib/app/shell/WindowButtons.svelte";
+  import "#lib/app/styles/ui.css";
+  import { windowTitle } from "#lib/app/layout/window-title.svelte.js";
+  import WindowButtons from "#lib/app/ui/shell/WindowButtons.svelte";
   import { appWindow } from "#lib/platform/window.js";
-  import PreviewBar from "#lib/app/preview/PreviewBar.svelte";
-  import PreviewImage from "#lib/app/preview/PreviewImage.svelte";
+  import PreviewBar from "#lib/app/ui/preview/PreviewBar.svelte";
+  import PreviewImage from "#lib/app/ui/preview/PreviewImage.svelte";
   import {
     previewChannel,
     type FromPreview,

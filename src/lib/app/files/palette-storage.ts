@@ -1,7 +1,7 @@
 // Loads the user's palettes from the app data folder, and saves them after every change.
 
 import { PaletteLibrary, parsePaletteFile } from "#lib/core/color/palette.js";
-import { errorMessage } from "#lib/app/error-message.js";
+import { errorMessage } from "#lib/app/shared/error-message.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 import { m } from "#lib/paraglide/messages.js";
 

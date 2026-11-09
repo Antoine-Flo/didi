@@ -4,7 +4,7 @@
 // (the mirror flips the canvas's x: the drawing is seen reversed, not changed).
 // Pure math, no rendering, so it can be tested on its own.
 
-import type { Point } from "#lib/core/geometry.js";
+import type { Point } from "#lib/core/shared/geometry.js";
 
 export type { Point };
 

@@ -6,7 +6,7 @@
 
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { group, type Edit } from "#lib/core/history/edits.js";
-import { Emitter } from "#lib/core/emitter.js";
+import { Emitter } from "#lib/core/shared/emitter.js";
 
 export interface HistoryOptions {
   /** Maximum number of undo steps. */
