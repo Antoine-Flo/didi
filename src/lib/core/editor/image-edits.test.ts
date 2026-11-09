@@ -13,8 +13,12 @@ function setup(...rows: string[]) {
   editor.commands.execute("layer.add");
   const data = new Uint8ClampedArray(width * height * 4);
   [...rows.join("")].forEach((c, i) => {
-    if (c === "r") data.set([255, 0, 0, 255], i * 4);
-    if (c === "b") data.set([0, 0, 255, 255], i * 4);
+    if (c === "r") {
+      data.set([255, 0, 0, 255], i * 4);
+    }
+    if (c === "b") {
+      data.set([0, 0, 255, 255], i * 4);
+    }
   });
   editor.drawing.writePixels(editor.activeLayer!.id, { x: 0, y: 0, width, height }, data);
   return editor;

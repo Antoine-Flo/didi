@@ -22,7 +22,9 @@ export function fillArea(
   y: number,
   { tolerance, contiguous }: FillOptions,
 ): { mask: Uint8Array; bounds: Rect } | null {
-  if (x < 0 || y < 0 || x >= width || y >= height) return null;
+  if (x < 0 || y < 0 || x >= width || y >= height) {
+    return null;
+  }
   const start = (y * width + x) * 4;
   const target = [data[start], data[start + 1], data[start + 2], data[start + 3]];
   const matches = (i: number) => {
@@ -44,30 +46,52 @@ export function fillArea(
     mask[i] = 1;
     const px = i % width;
     const py = (i - px) / width;
-    if (px < minX) minX = px;
-    if (px > maxX) maxX = px;
-    if (py < minY) minY = py;
-    if (py > maxY) maxY = py;
+    if (px < minX) {
+      minX = px;
+    }
+    if (px > maxX) {
+      maxX = px;
+    }
+    if (py < minY) {
+      minY = py;
+    }
+    if (py > maxY) {
+      maxY = py;
+    }
   };
 
   if (!contiguous) {
-    for (let i = 0; i < width * height; i++) if (matches(i)) mark(i);
+    for (let i = 0; i < width * height; i++) {
+      if (matches(i)) {
+        mark(i);
+      }
+    }
   } else {
     // Scanline fill: each popped pixel fills its whole row segment, then queues the rows
     // above and below.
     const stack = [y * width + x];
     while (stack.length > 0) {
       const i = stack.pop()!;
-      if (mask[i] || !matches(i)) continue;
+      if (mask[i] || !matches(i)) {
+        continue;
+      }
       const row = i - (i % width);
       let left = i;
-      while (left > row && !mask[left - 1] && matches(left - 1)) left--;
+      while (left > row && !mask[left - 1] && matches(left - 1)) {
+        left--;
+      }
       let right = i;
-      while (right < row + width - 1 && !mask[right + 1] && matches(right + 1)) right++;
+      while (right < row + width - 1 && !mask[right + 1] && matches(right + 1)) {
+        right++;
+      }
       for (let j = left; j <= right; j++) {
         mark(j);
-        if (j >= width && !mask[j - width]) stack.push(j - width);
-        if (j < width * (height - 1) && !mask[j + width]) stack.push(j + width);
+        if (j >= width && !mask[j - width]) {
+          stack.push(j - width);
+        }
+        if (j < width * (height - 1) && !mask[j + width]) {
+          stack.push(j + width);
+        }
       }
     }
   }

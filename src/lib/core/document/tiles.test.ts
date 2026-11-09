@@ -18,7 +18,9 @@ class FlatImage {
       for (let x = 0; x < rect.width; x++) {
         const cx = rect.x + x;
         const cy = rect.y + y;
-        if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height) continue;
+        if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height) {
+          continue;
+        }
         const from = (y * rect.width + x) * 4;
         this.pixels.set(data.subarray(from, from + 4), (cy * this.width + cx) * 4);
       }

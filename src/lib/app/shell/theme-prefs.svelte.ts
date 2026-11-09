@@ -21,11 +21,15 @@ const SAVE_DELAY_MS = 300;
 export function parseThemeChoice(text: string): Partial<ThemeChoice> {
   const choice: Partial<ThemeChoice> = {};
   const data: unknown = JSON.parse(text);
-  if (typeof data !== "object" || data === null) return choice;
+  if (typeof data !== "object" || data === null) {
+    return choice;
+  }
   if ("mode" in data && THEME_MODES.includes(data.mode as ThemeMode)) {
     choice.mode = data.mode as ThemeMode;
   }
-  if ("tint" in data && typeof data.tint === "boolean") choice.tint = data.tint;
+  if ("tint" in data && typeof data.tint === "boolean") {
+    choice.tint = data.tint;
+  }
   if ("canvas" in data) {
     const canvas = data.canvas;
     if (canvas === null || (typeof canvas === "string" && /^#[0-9a-f]{6}$/.test(canvas))) {
@@ -44,9 +48,13 @@ export class ThemePrefs {
   private onError: (message: string) => void = () => {};
 
   set<K extends keyof ThemeChoice>(key: K, value: ThemeChoice[K]) {
-    if (this.choice[key] === value) return;
+    if (this.choice[key] === value) {
+      return;
+    }
     this.choice[key] = value;
-    if (!this.loaded) this.changedBeforeLoad = true;
+    if (!this.loaded) {
+      this.changedBeforeLoad = true;
+    }
     this.scheduleSave();
   }
 
@@ -70,20 +78,26 @@ export class ThemePrefs {
 
   /** Saves now the changes waiting for the delay, if any: call before the app closes. */
   async flush(): Promise<void> {
-    if (this.timer === null) return;
+    if (this.timer === null) {
+      return;
+    }
     clearTimeout(this.timer);
     await this.save();
   }
 
   private scheduleSave() {
-    if (this.timer !== null) clearTimeout(this.timer);
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+    }
     this.timer = setTimeout(() => void this.save(), SAVE_DELAY_MS);
   }
 
   private async save() {
     this.timer = null;
     // Before loading, saving would overwrite the file: try again later.
-    if (!this.loaded) return this.scheduleSave();
+    if (!this.loaded) {
+      return this.scheduleSave();
+    }
     const text = JSON.stringify({ version: VERSION, ...this.choice }, null, 2) + "\n";
     try {
       await writeDataFile(FILE, text);

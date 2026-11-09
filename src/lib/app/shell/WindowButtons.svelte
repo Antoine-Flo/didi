@@ -11,7 +11,9 @@
   const appWindow = ownWindow;
 
   onMount(() => {
-    if (!appWindow) return;
+    if (!appWindow) {
+      return;
+    }
     const update = async () => (maximized = await appWindow.isMaximized());
     update();
     const unlisten = appWindow.onResized(update);

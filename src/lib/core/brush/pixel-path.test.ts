@@ -24,16 +24,18 @@ describe("pixel paths", () => {
       [1, 1],
       [2, 1],
       [2, 2],
-    ])
+    ]) {
       path.add(x, y);
+    }
     expect(path.pixels.map(key)).toEqual(["0,0", "1,1", "2,2"]);
     const raw = new PixelPathBuilder(false);
     for (const [x, y] of [
       [0, 0],
       [1, 0],
       [1, 1],
-    ])
+    ]) {
       raw.add(x, y);
+    }
     expect(raw.pixels.map(key)).toEqual(["0,0", "1,0", "1,1"]);
   });
 
@@ -62,15 +64,18 @@ describe("pixel paths", () => {
     fc.assert(
       fc.property(samples, fc.boolean(), (points, pixelPerfect) => {
         const path = new PixelPathBuilder(pixelPerfect);
-        for (const p of points) path.add(p.x, p.y);
+        for (const p of points) {
+          path.add(p.x, p.y);
+        }
         const pixels = path.pixels;
         expect(key(pixels[0])).toBe(
           key({ x: Math.floor(points[0].x), y: Math.floor(points[0].y) }),
         );
         const last = points.at(-1)!;
         expect(key(pixels.at(-1)!)).toBe(key({ x: Math.floor(last.x), y: Math.floor(last.y) }));
-        for (let i = 1; i < pixels.length; i++)
+        for (let i = 1; i < pixels.length; i++) {
           expect(touches(pixels[i - 1], pixels[i])).toBe(true);
+        }
         if (pixelPerfect) {
           for (let i = 2; i < pixels.length; i++) {
             const [a, b, c] = [pixels[i - 2], pixels[i - 1], pixels[i]];
@@ -89,8 +94,12 @@ describe("pixel paths", () => {
         const painted = new Map<string, number>();
         for (const p of points) {
           const { paint, unpaint } = path.add(p.x, p.y);
-          for (const q of paint) painted.set(key(q), (painted.get(key(q)) ?? 0) + 1);
-          for (const q of unpaint) painted.set(key(q), (painted.get(key(q)) ?? 0) - 1);
+          for (const q of paint) {
+            painted.set(key(q), (painted.get(key(q)) ?? 0) + 1);
+          }
+          for (const q of unpaint) {
+            painted.set(key(q), (painted.get(key(q)) ?? 0) - 1);
+          }
         }
         const expected = new Set(path.pixels.map(key));
         const actual = new Set([...painted].filter(([, n]) => n > 0).map(([k]) => k));

@@ -21,7 +21,9 @@
 
   // While it is open, a contact on the canvas only closes it.
   $effect(() => {
-    if (!request) return;
+    if (!request) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });
@@ -31,7 +33,9 @@
   open={request !== null}
   onOpenChange={(open) => {
     // Closed with Escape: the safe answer. (After a button, the answer is already given.)
-    if (!open) answer("cancel");
+    if (!open) {
+      answer("cancel");
+    }
   }}
 >
   <AlertDialog.Portal>

@@ -95,14 +95,24 @@ function measure(mp: MyPaint, myb: MybBrush, down: boolean): number | null {
     for (let s = 0; s < side; s++) {
       const i = (down ? a * width + s : s * width + a) * 4;
       let changed = false;
-      for (let c = 0; c < 4; c++) changed ||= Math.abs(after[i + c] - before[i + c]) > CHANGED;
-      if (!changed) continue;
-      if (first < 0) first = s;
+      for (let c = 0; c < 4; c++) {
+        changed ||= Math.abs(after[i + c] - before[i + c]) > CHANGED;
+      }
+      if (!changed) {
+        continue;
+      }
+      if (first < 0) {
+        first = s;
+      }
       last = s;
     }
-    if (first >= 0) widths.push(last - first + 1);
+    if (first >= 0) {
+      widths.push(last - first + 1);
+    }
   }
-  if (widths.length === 0) return null;
+  if (widths.length === 0) {
+    return null;
+  }
   widths.sort((a, b) => a - b);
   const size = widths[Math.floor((widths.length - 1) * PERCENTILE)];
   return size > 1 ? size / BASE : null;

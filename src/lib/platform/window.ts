@@ -13,10 +13,17 @@ export async function isFullScreen(): Promise<boolean> {
 
 /** Full screen or not: the app's window, or the browser's page. */
 export async function setFullScreen(on: boolean): Promise<void> {
-  if (appWindow) return appWindow.setFullscreen(on);
-  if (on === (document.fullscreenElement !== null)) return;
-  if (on) await document.documentElement.requestFullscreen();
-  else await document.exitFullscreen();
+  if (appWindow) {
+    return appWindow.setFullscreen(on);
+  }
+  if (on === (document.fullscreenElement !== null)) {
+    return;
+  }
+  if (on) {
+    await document.documentElement.requestFullscreen();
+  } else {
+    await document.exitFullscreen();
+  }
 }
 
 /** Full screen, or back. */

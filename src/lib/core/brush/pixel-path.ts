@@ -20,7 +20,9 @@ export function pixelLine(a: Pixel, b: Pixel): Pixel[] {
   let err = dx + dy;
   for (;;) {
     pixels.push({ x, y });
-    if (x === b.x && y === b.y) return pixels;
+    if (x === b.x && y === b.y) {
+      return pixels;
+    }
     const e2 = 2 * err;
     if (e2 >= dy) {
       err += dy;
@@ -46,7 +48,9 @@ export class PixelPathBuilder {
   add(x: number, y: number): { paint: Pixel[]; unpaint: Pixel[] } {
     const target = { x: Math.floor(x), y: Math.floor(y) };
     const last = this.path.at(-1);
-    if (last && last.x === target.x && last.y === target.y) return { paint: [], unpaint: [] };
+    if (last && last.x === target.x && last.y === target.y) {
+      return { paint: [], unpaint: [] };
+    }
     const line = last ? pixelLine(last, target).slice(1) : [target];
     const paint: Pixel[] = [];
     const unpaint: Pixel[] = [];
@@ -57,8 +61,11 @@ export class PixelPathBuilder {
         // Remove the middle pixel of the last three.
         const [corner] = this.path.splice(this.path.length - 2, 1);
         const index = paint.findIndex((q) => q.x === corner.x && q.y === corner.y);
-        if (index >= 0) paint.splice(index, 1);
-        else unpaint.push(corner);
+        if (index >= 0) {
+          paint.splice(index, 1);
+        } else {
+          unpaint.push(corner);
+        }
       }
     }
     return { paint, unpaint };
@@ -71,7 +78,9 @@ export class PixelPathBuilder {
 
   private isCorner(): boolean {
     const n = this.path.length;
-    if (n < 3) return false;
+    if (n < 3) {
+      return false;
+    }
     const [a, b, c] = [this.path[n - 3], this.path[n - 2], this.path[n - 1]];
     const side = (p: Pixel, q: Pixel) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y) === 1;
     const diagonal = (p: Pixel, q: Pixel) => Math.abs(p.x - q.x) === 1 && Math.abs(p.y - q.y) === 1;

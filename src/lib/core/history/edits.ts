@@ -27,7 +27,11 @@ const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 
 function snapshotBytes(snapshot: TileSnapshot | undefined): number {
   let count = 0;
-  for (const tile of snapshot?.values() ?? []) if (tile) count++;
+  for (const tile of snapshot?.values() ?? []) {
+    if (tile) {
+      count++;
+    }
+  }
   return count * TILE_BYTES;
 }
 
@@ -36,10 +40,14 @@ export function group(label: string, edits: readonly Edit[]): Edit {
   return {
     label,
     apply(d) {
-      for (const edit of edits) edit.apply(d);
+      for (const edit of edits) {
+        edit.apply(d);
+      }
     },
     revert(d) {
-      for (let i = edits.length - 1; i >= 0; i--) edits[i].revert(d);
+      for (let i = edits.length - 1; i >= 0; i--) {
+        edits[i].revert(d);
+      }
     },
     bytes: () => edits.reduce((sum, edit) => sum + (edit.bytes?.() ?? 0), 0),
     outsideDrawing: edits.every((edit) => edit.outsideDrawing),

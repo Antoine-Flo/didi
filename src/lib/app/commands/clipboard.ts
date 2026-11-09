@@ -13,7 +13,9 @@ let copied: (Image & { x: number; y: number }) | null = null;
 /** Copies the selected pixels, or the whole active layer. False if there is none. */
 export async function copy(editor: Editor): Promise<boolean> {
   const image = editor.copyImage();
-  if (!image) return false;
+  if (!image) {
+    return false;
+  }
   const { rect, ...pixels } = image;
   copied = { ...pixels, x: rect.x, y: rect.y };
   const { width, height } = image;
@@ -31,15 +33,18 @@ export async function toPaste(
   let image: Image | null = null;
   try {
     const system = await readClipboardImage();
-    if (system)
+    if (system) {
       image = { width: system.width, height: system.height, pixels: premultiply(system.data) };
+    }
   } catch {
     // Refused or unavailable: Didi's own copy.
   }
   if (copied && (!image || (image.width === copied.width && image.height === copied.height))) {
     return { image: copied, at: { x: copied.x, y: copied.y } };
   }
-  if (!image) return null;
+  if (!image) {
+    return null;
+  }
   const { drawing } = editor;
   const at = {
     x: Math.floor((drawing.width - image.width) / 2),

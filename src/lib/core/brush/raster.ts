@@ -47,7 +47,9 @@ export function pixelStamp(size: number, shape: StampShape = "round"): Pixel[] {
       const dy = y + 0.5 - r;
       // A small tolerance keeps the shape full on its axes for small sizes.
       const inside = shape === "square" || n <= 2 || dx * dx + dy * dy <= r * r + 0.25;
-      if (inside) offsets.push({ x: x - shift, y: y - shift });
+      if (inside) {
+        offsets.push({ x: x - shift, y: y - shift });
+      }
     }
   }
   return offsets;
@@ -69,10 +71,16 @@ export class StrokeRaster {
     private readonly style: StrokeStyle,
   ) {
     const layer = drawing.getLayer(layerId);
-    if (layer.locked) throw new Error(`Layer ${layerId} is locked`);
+    if (layer.locked) {
+      throw new Error(`Layer ${layerId} is locked`);
+    }
     this.alphaLocked = layer.alphaLocked;
-    if (!(style.opacity >= 0 && style.opacity <= 1)) throw new RangeError("Invalid opacity");
-    if (style.color.some((c) => !(c >= 0 && c <= 255))) throw new RangeError("Invalid color");
+    if (!(style.opacity >= 0 && style.opacity <= 1)) {
+      throw new RangeError("Invalid opacity");
+    }
+    if (style.color.some((c) => !(c >= 0 && c <= 255))) {
+      throw new RangeError("Invalid color");
+    }
     const canvas = { x: 0, y: 0, width: drawing.width, height: drawing.height };
     // Nothing is painted when the clip is entirely off the canvas.
     this.bounds = style.clip ? (intersect(canvas, style.clip) ?? { ...canvas, width: 0 }) : canvas;
@@ -104,7 +112,9 @@ export class StrokeRaster {
     this.assertActive();
     const value = covered ? 1 : 0;
     this.forEachPixel(box, (x, y, cov, i) => {
-      if (cov[i] === value || !inside(x, y)) return false;
+      if (cov[i] === value || !inside(x, y)) {
+        return false;
+      }
       cov[i] = value;
       return true;
     });
@@ -112,9 +122,13 @@ export class StrokeRaster {
 
   /** Shows the changes in the drawing. Call once per frame, or after each batch of input. */
   flush() {
-    if (this.dirty.size === 0) return;
+    if (this.dirty.size === 0) {
+      return;
+    }
     const changed: TileSnapshot = new Map();
-    for (const key of this.dirty) changed.set(key, this.working.get(key));
+    for (const key of this.dirty) {
+      changed.set(key, this.working.get(key));
+    }
     this.dirty.clear();
     this.drawing.restorePixels(this.layerId, changed);
   }
@@ -124,7 +138,9 @@ export class StrokeRaster {
     this.assertActive();
     this.flush();
     this.finished = true;
-    if (this.original.size === 0) return null;
+    if (this.original.size === 0) {
+      return null;
+    }
     // The tiles as the drawing stores them now (fully transparent ones are dropped).
     const after = this.drawing.getLayer(this.layerId).tiles.snapshot(this.original.keys());
     return replaceTiles(this.layerId, this.original, after, label);
@@ -138,7 +154,9 @@ export class StrokeRaster {
   }
 
   private assertActive() {
-    if (this.finished) throw new Error("The stroke is finished");
+    if (this.finished) {
+      throw new Error("The stroke is finished");
+    }
   }
 
   /**
@@ -150,7 +168,9 @@ export class StrokeRaster {
     update: (x: number, y: number, coverage: Float32Array, index: number) => boolean,
   ) {
     const area = intersect(box, this.bounds);
-    if (!area) return;
+    if (!area) {
+      return;
+    }
     const tx0 = Math.floor(area.x / TILE_SIZE);
     const ty0 = Math.floor(area.y / TILE_SIZE);
     const tx1 = Math.floor((area.x + area.width - 1) / TILE_SIZE);
@@ -168,7 +188,9 @@ export class StrokeRaster {
         let changed = false;
         for (let y = part.y; y < part.y + part.height; y++) {
           for (let x = part.x; x < part.x + part.width; x++) {
-            if (this.outsideMask(x, y)) continue;
+            if (this.outsideMask(x, y)) {
+              continue;
+            }
             const i = (y - ty * TILE_SIZE) * TILE_SIZE + (x - tx * TILE_SIZE);
             if (update(x, y, cov, i)) {
               this.recompose(src, out, cov[i], i * 4);
@@ -176,7 +198,9 @@ export class StrokeRaster {
             }
           }
         }
-        if (changed) this.dirty.add(key);
+        if (changed) {
+          this.dirty.add(key);
+        }
       }
     }
   }
@@ -227,9 +251,17 @@ export class StrokeRaster {
     }
     // Rounding must not break the premultiplied invariant (no channel above alpha).
     const a = out[j + 3];
-    if (out[j] > a) out[j] = a;
-    if (out[j + 1] > a) out[j + 1] = a;
-    if (out[j + 2] > a) out[j + 2] = a;
-    if (this.alphaLocked) keepAlpha(out, j, src);
+    if (out[j] > a) {
+      out[j] = a;
+    }
+    if (out[j + 1] > a) {
+      out[j + 1] = a;
+    }
+    if (out[j + 2] > a) {
+      out[j + 2] = a;
+    }
+    if (this.alphaLocked) {
+      keepAlpha(out, j, src);
+    }
   }
 }

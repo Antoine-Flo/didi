@@ -33,16 +33,28 @@ export function contentBounds(tiles: ReadonlyTileStore): Rect | null {
     const top = ty * TILE_SIZE;
     const right = Math.min(left + TILE_SIZE, tiles.width);
     const bottom = Math.min(top + TILE_SIZE, tiles.height);
-    if (left >= x0 && top >= y0 && right <= x1 && bottom <= y1) continue;
+    if (left >= x0 && top >= y0 && right <= x1 && bottom <= y1) {
+      continue;
+    }
     const tile = tiles.getTile(tx, ty)!;
     for (let y = top; y < bottom; y++) {
       const row = (y - top) * TILE_SIZE;
       for (let x = left; x < right; x++) {
-        if (tile[(row + x - left) * 4 + 3] === 0) continue;
-        if (x < x0) x0 = x;
-        if (x + 1 > x1) x1 = x + 1;
-        if (y < y0) y0 = y;
-        if (y + 1 > y1) y1 = y + 1;
+        if (tile[(row + x - left) * 4 + 3] === 0) {
+          continue;
+        }
+        if (x < x0) {
+          x0 = x;
+        }
+        if (x + 1 > x1) {
+          x1 = x + 1;
+        }
+        if (y < y0) {
+          y0 = y;
+        }
+        if (y + 1 > y1) {
+          y1 = y + 1;
+        }
       }
     }
   }
@@ -77,7 +89,9 @@ export function layerThumbnail(
         for (let sx = 0; sx < SAMPLES; sx++) {
           const px = Math.min(maxX, area.x + Math.floor((x + (sx + 0.5) / SAMPLES) * stepX));
           const tile = tiles.getTile(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
-          if (!tile) continue;
+          if (!tile) {
+            continue;
+          }
           const i = ((py % TILE_SIZE) * TILE_SIZE + (px % TILE_SIZE)) * 4;
           // Premultiplied: the color sums are already weighted by alpha.
           r += tile[i];
@@ -86,7 +100,9 @@ export function layerThumbnail(
           a += tile[i + 3];
         }
       }
-      if (a === 0) continue;
+      if (a === 0) {
+        continue;
+      }
       const o = (y * width + x) * 4;
       data[o] = Math.round((r * 255) / a);
       data[o + 1] = Math.round((g * 255) / a);

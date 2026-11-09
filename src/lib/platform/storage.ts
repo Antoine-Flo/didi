@@ -37,12 +37,16 @@ function binaryStore<T>(
 
 /** The contents of a data file, or null if it does not exist yet. */
 export async function readDataFile(name: string): Promise<string | null> {
-  if (isTauri()) return invoke<string | null>("data_read", { name });
+  if (isTauri()) {
+    return invoke<string | null>("data_read", { name });
+  }
   return localStorage.getItem(PREFIX + name);
 }
 
 export async function writeDataFile(name: string, contents: string): Promise<void> {
-  if (isTauri()) return invoke("data_write", { name, contents });
+  if (isTauri()) {
+    return invoke("data_write", { name, contents });
+  }
   localStorage.setItem(PREFIX + name, contents);
 }
 
@@ -54,7 +58,9 @@ export async function readDataBytes(name: string): Promise<Uint8Array | null> {
   try {
     return new Uint8Array(await invoke<ArrayBuffer>("data_read_bytes", { name }));
   } catch (e) {
-    if (e === "NotFound") return null;
+    if (e === "NotFound") {
+      return null;
+    }
     throw e;
   }
 }
@@ -68,7 +74,9 @@ export async function writeDataBytes(name: string, bytes: Uint8Array): Promise<v
 }
 
 export async function removeDataFile(name: string): Promise<void> {
-  if (isTauri()) return invoke("data_remove", { name });
+  if (isTauri()) {
+    return invoke("data_remove", { name });
+  }
   localStorage.removeItem(PREFIX + name);
   await binaryStore("readwrite", (s) => s.delete(name));
 }
@@ -96,7 +104,9 @@ export async function chooseBrowserFile(
   extension: string,
 ): Promise<BrowserFile | null> {
   const picker = (window as unknown as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
-  if (!picker) return async (bytes) => download(name, bytes, type);
+  if (!picker) {
+    return async (bytes) => download(name, bytes, type);
+  }
   try {
     const handle = await picker({
       suggestedName: name,
@@ -108,7 +118,9 @@ export async function chooseBrowserFile(
       await file.close();
     };
   } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") return null;
+    if (e instanceof DOMException && e.name === "AbortError") {
+      return null;
+    }
     return async (bytes) => download(name, bytes, type);
   }
 }

@@ -39,7 +39,9 @@ describe("pixel zoom", () => {
 
   it("steps through the levels, then freely", () => {
     const up: number[] = [];
-    for (let zoom = 0.25; zoom < 12; zoom = stepZoom(zoom, 1, 1)) up.push(zoom);
+    for (let zoom = 0.25; zoom < 12; zoom = stepZoom(zoom, 1, 1)) {
+      up.push(zoom);
+    }
     expect(up).toEqual([0.25, 1 / 3, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 10]);
     expect(stepZoom(9.5, 1, -1)).toBe(8);
     expect(stepZoom(8, 1, -1)).toBe(7);
@@ -60,7 +62,9 @@ describe("pixel zoom", () => {
         ]) {
           expect(z).toBeGreaterThanOrEqual(MIN_ZOOM);
           expect(z).toBeLessThanOrEqual(MAX_ZOOM);
-          if (!isFreeZoom(z, dpr) && z > MIN_ZOOM) expect(isLevel(z, dpr)).toBe(true);
+          if (!isFreeZoom(z, dpr) && z > MIN_ZOOM) {
+            expect(isLevel(z, dpr)).toBe(true);
+          }
         }
       }),
     );
@@ -70,8 +74,12 @@ describe("pixel zoom", () => {
     fc.assert(
       fc.property(zooms, dprs, (zoom, dpr) => {
         expect(snapZoomDown(zoom, dpr)).toBeLessThanOrEqual(zoom);
-        if (zoom < MAX_ZOOM) expect(stepZoom(zoom, dpr, 1)).toBeGreaterThan(zoom);
-        if (zoom > MIN_ZOOM * 1.01) expect(stepZoom(zoom, dpr, -1)).toBeLessThan(zoom);
+        if (zoom < MAX_ZOOM) {
+          expect(stepZoom(zoom, dpr, 1)).toBeGreaterThan(zoom);
+        }
+        if (zoom > MIN_ZOOM * 1.01) {
+          expect(stepZoom(zoom, dpr, -1)).toBeLessThan(zoom);
+        }
       }),
     );
   });

@@ -8,7 +8,9 @@ describe("FrameStats", () => {
 
   it("computes average, fps and max", () => {
     const stats = new FrameStats();
-    for (const v of [10, 20, 30]) stats.push(v);
+    for (const v of [10, 20, 30]) {
+      stats.push(v);
+    }
     const r = stats.report();
     expect(r.avg).toBe(20);
     expect(r.fps).toBe(50);
@@ -17,13 +19,17 @@ describe("FrameStats", () => {
 
   it("computes the 95th percentile", () => {
     const stats = new FrameStats();
-    for (let i = 1; i <= 100; i++) stats.push(i);
+    for (let i = 1; i <= 100; i++) {
+      stats.push(i);
+    }
     expect(stats.report().p95).toBe(95);
   });
 
   it("only keeps the most recent values", () => {
     const stats = new FrameStats(3);
-    for (const v of [100, 1, 2, 3]) stats.push(v);
+    for (const v of [100, 1, 2, 3]) {
+      stats.push(v);
+    }
     expect(stats.report().max).toBe(3);
   });
 

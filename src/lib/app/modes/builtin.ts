@@ -99,6 +99,8 @@ export const BUILTIN_MODES = [PIXEL_MODE, PAINTING_MODE];
 /** A registry with the built-in modes. */
 export function createModeRegistry(): ModeRegistry {
   const registry = new ModeRegistry();
-  for (const mode of BUILTIN_MODES) registry.register(mode);
+  for (const mode of BUILTIN_MODES) {
+    registry.register(mode);
+  }
   return registry;
 }

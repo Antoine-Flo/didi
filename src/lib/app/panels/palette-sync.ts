@@ -30,10 +30,14 @@ export class PaletteColorSync {
   /** The picker changes the current color from `previous` to `next`. */
   change(previous: RGB | null, next: RGB) {
     const library = this.library();
-    if (!library) return;
+    if (!library) {
+      return;
+    }
     if (this.dragged) {
       const { palette, index } = this.dragged;
-      if (library.indexOf(palette) >= 0) library.setColor(index, next, palette);
+      if (library.indexOf(palette) >= 0) {
+        library.setColor(index, next, palette);
+      }
       return;
     }
     // Not a drag (e.g. the hex code): one step.
@@ -50,9 +54,13 @@ export class PaletteColorSync {
     const target = this.dragged;
     this.dragged = null;
     const library = this.library();
-    if (!target || !library || library.indexOf(target.palette) < 0) return;
+    if (!target || !library || library.indexOf(target.palette) < 0) {
+      return;
+    }
     const after = target.palette.colors[target.index];
-    if (sameColor(after, target.before)) return;
+    if (sameColor(after, target.before)) {
+      return;
+    }
     this.history().push(
       changePaletteColor(library, target.palette, target.index, target.before, [...after] as RGB),
     );
@@ -60,7 +68,9 @@ export class PaletteColorSync {
 
   private find(color: RGB | null): Target | null {
     const palette = this.library()?.editable;
-    if (!palette || !color) return null;
+    if (!palette || !color) {
+      return null;
+    }
     const index = palette.colors.findIndex((c) => sameColor(c, color));
     return index < 0 ? null : { palette, index, before: [...color] as RGB };
   }

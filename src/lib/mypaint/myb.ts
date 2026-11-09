@@ -19,12 +19,16 @@ export interface MybBrush {
 /** Parses a .myb file. Throws if it is not a valid version 3 brush. */
 export function parseMyb(text: string): MybBrush {
   const data = JSON.parse(text) as Partial<MybBrush> & { version?: unknown };
-  if (data.version !== 3) throw new Error(`Unsupported brush version: ${String(data.version)}`);
-  if (!data.settings || typeof data.settings !== "object")
+  if (data.version !== 3) {
+    throw new Error(`Unsupported brush version: ${String(data.version)}`);
+  }
+  if (!data.settings || typeof data.settings !== "object") {
     throw new Error("Brush without settings");
+  }
   for (const [name, setting] of Object.entries(data.settings)) {
-    if (typeof setting?.base_value !== "number")
+    if (typeof setting?.base_value !== "number") {
       throw new Error(`Setting ${name} has no base value`);
+    }
     if (!setting.inputs || typeof setting.inputs !== "object") {
       throw new Error(`Setting ${name} has no inputs`);
     }
@@ -32,7 +36,9 @@ export function parseMyb(text: string): MybBrush {
       const valid =
         Array.isArray(points) &&
         points.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite));
-      if (!valid) throw new Error(`Invalid curve for ${name} / ${input}`);
+      if (!valid) {
+        throw new Error(`Invalid curve for ${name} / ${input}`);
+      }
     }
   }
   return data as MybBrush;

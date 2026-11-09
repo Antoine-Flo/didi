@@ -40,7 +40,9 @@ export class InputStats {
 
   /** Records one dispatched event and the samples it carries. */
   record(samples: InputSample[], handledAt: number, dispatchedAt: number) {
-    if (samples.length === 0) return;
+    if (samples.length === 0) {
+      return;
+    }
     this.dispatched++;
     const latency = Math.max(0, handledAt - dispatchedAt);
     this.latencySum += latency;

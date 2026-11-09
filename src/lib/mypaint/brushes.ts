@@ -75,6 +75,8 @@ export function findBundledBrush(id: string): BundledBrush | undefined {
 
 export function bundledBrush(id: string): BundledBrush {
   const brush = byId.get(id);
-  if (!brush) throw new Error(`Unknown brush ${id}`);
+  if (!brush) {
+    throw new Error(`Unknown brush ${id}`);
+  }
   return brush;
 }

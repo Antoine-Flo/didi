@@ -102,7 +102,9 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
   const editable = () => host.palettes?.editable ?? null;
   const resize = (direction: 1 | -1) => {
     const settings = host.options.tools[host.tool];
-    if (settings) current().resize?.(settings, direction);
+    if (settings) {
+      current().resize?.(settings, direction);
+    }
   };
 
   /** Tells the user a clipboard operation failed. */
@@ -264,7 +266,9 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
           action: m.common_delete(),
         });
         const index = palettes.indexOf(palette);
-        if (confirmed && index >= 0) palettes.remove(index);
+        if (confirmed && index >= 0) {
+          palettes.remove(index);
+        }
       },
     }),
 
@@ -292,8 +296,12 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       run: (editor) =>
         void toPaste(editor)
           .then((paste) => {
-            if (!paste) return host.notify(m.app_nothing_to_paste());
-            if (editor.paste(paste.image, paste.at)) selectionTool();
+            if (!paste) {
+              return host.notify(m.app_nothing_to_paste());
+            }
+            if (editor.paste(paste.image, paste.at)) {
+              selectionTool();
+            }
           })
           .catch(failed(m.error_paste_failed)),
     }),
@@ -303,7 +311,9 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       run: (editor) =>
         void toPaste(editor)
           .then((paste) => {
-            if (!paste) return host.notify(m.app_nothing_to_paste());
+            if (!paste) {
+              return host.notify(m.app_nothing_to_paste());
+            }
             editor.pasteAsLayer(paste.image, paste.at);
           })
           .catch(failed(m.error_paste_failed)),
@@ -313,8 +323,11 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       title: m.cmd_edit_transform(),
       enabled: movable,
       run(editor) {
-        if (editor.transform()) selectionTool();
-        else host.notify(m.app_nothing_to_transform());
+        if (editor.transform()) {
+          selectionTool();
+        } else {
+          host.notify(m.app_nothing_to_transform());
+        }
       },
     }),
 
@@ -421,7 +434,8 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
     );
   }
   const { quit } = host;
-  if (quit)
+  if (quit) {
     unregister.push(registry.register({ id: "app.quit", title: m.cmd_app_quit(), run: quit }));
+  }
   return () => unregister.forEach((fn) => fn());
 }

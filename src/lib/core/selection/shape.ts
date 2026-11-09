@@ -43,7 +43,9 @@ export function shapeFrom(points: readonly Point[], rect: Rect): SelectionShape 
 export function pathSelection(
   path: readonly Point[],
 ): { rect: Rect; shape: SelectionShape } | null {
-  if (path.length < 2) return null;
+  if (path.length < 2) {
+    return null;
+  }
   const xs = path.map((p) => p.x);
   const ys = path.map((p) => p.y);
   const x = Math.floor(Math.min(...xs));
@@ -69,7 +71,9 @@ function markLine(
   for (let i = 0; i <= steps; i++) {
     const x = Math.floor(a.x + ((b.x - a.x) * i) / steps);
     const y = Math.floor(a.y + ((b.y - a.y) * i) / steps);
-    if (x >= 0 && y >= 0 && x < width && y < height) mask[y * width + x] = 1;
+    if (x >= 0 && y >= 0 && x < width && y < height) {
+      mask[y * width + x] = 1;
+    }
   }
 }
 
@@ -85,7 +89,9 @@ function pathMask(local: readonly Point[], width: number, height: number): Uint8
     const last = Math.min(height - 1, Math.floor(Math.max(a.y, b.y) - 0.5));
     for (let y = first; y <= last; y++) {
       const center = y + 0.5;
-      if (a.y <= center === b.y <= center) continue;
+      if (a.y <= center === b.y <= center) {
+        continue;
+      }
       rows[y].push(a.x + ((center - a.y) * (b.x - a.x)) / (b.y - a.y));
     }
   });
@@ -94,7 +100,9 @@ function pathMask(local: readonly Point[], width: number, height: number): Uint8
     for (let i = 0; i + 1 < crossings.length; i += 2) {
       const from = Math.max(0, Math.ceil(crossings[i] - 0.5));
       const to = Math.min(width - 1, Math.floor(crossings[i + 1] - 0.5));
-      if (to >= from) mask.fill(1, y * width + from, y * width + to + 1);
+      if (to >= from) {
+        mask.fill(1, y * width + from, y * width + to + 1);
+      }
     }
   }
   // What it goes through.
@@ -113,9 +121,13 @@ const stretched = new WeakMap<
  */
 export function shapeMask(rect: Rect, shape: SelectionShape): Uint8Array {
   const { width, height } = rect;
-  if (width === shape.width && height === shape.height) return shape.mask;
+  if (width === shape.width && height === shape.height) {
+    return shape.mask;
+  }
   const known = stretched.get(shape);
-  if (known && known.width === width && known.height === height) return known.mask;
+  if (known && known.width === width && known.height === height) {
+    return known.mask;
+  }
   const mask = new Uint8Array(width * height);
   const columns = Array.from({ length: width }, (_, x) =>
     Math.min(shape.width - 1, Math.floor(((x + 0.5) * shape.width) / width)),
@@ -123,7 +135,9 @@ export function shapeMask(rect: Rect, shape: SelectionShape): Uint8Array {
   for (let y = 0; y < height; y++) {
     const row = Math.min(shape.height - 1, Math.floor(((y + 0.5) * shape.height) / height));
     const from = row * shape.width;
-    for (let x = 0; x < width; x++) mask[y * width + x] = shape.mask[from + columns[x]];
+    for (let x = 0; x < width; x++) {
+      mask[y * width + x] = shape.mask[from + columns[x]];
+    }
   }
   stretched.set(shape, { width, height, mask });
   return mask;
@@ -138,7 +152,9 @@ export function maskOutline(mask: Uint8Array, width: number, height: number): Ou
     let start = -1;
     for (let x = 0; x <= width; x++) {
       const edge = x < width && at(x, y - 1) !== at(x, y);
-      if (edge && start < 0) start = x;
+      if (edge && start < 0) {
+        start = x;
+      }
       if (!edge && start >= 0) {
         runs.push({ x0: start, y0: y, x1: x, y1: y });
         start = -1;
@@ -149,7 +165,9 @@ export function maskOutline(mask: Uint8Array, width: number, height: number): Ou
     let start = -1;
     for (let y = 0; y <= height; y++) {
       const edge = y < height && at(x - 1, y) !== at(x, y);
-      if (edge && start < 0) start = y;
+      if (edge && start < 0) {
+        start = y;
+      }
       if (!edge && start >= 0) {
         runs.push({ x0: x, y0: start, x1: x, y1: y });
         start = -1;

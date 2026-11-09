@@ -36,7 +36,9 @@ describe("TouchGestures", () => {
     gestures.down(2, { x: 50, y: 0 }, 1010);
     gestures.down(3, { x: 100, y: 0 }, 1020);
     gestures.move(3, { x: 103, y: 2 }, 1050);
-    for (const id of [1, 2, 3]) gestures.up(id, 1100);
+    for (const id of [1, 2, 3]) {
+      gestures.up(id, 1100);
+    }
     expect(calls).toEqual(["undo", "redo"]);
   });
 

@@ -51,11 +51,17 @@ const DEFAULT_TOOLS_POSITION = 0;
 export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   const prefs: Partial<LayoutPrefsData> = {};
   const data: unknown = JSON.parse(text);
-  if (typeof data !== "object" || data === null) return prefs;
-  if ("hand" in data && (data.hand === "right" || data.hand === "left")) prefs.hand = data.hand;
+  if (typeof data !== "object" || data === null) {
+    return prefs;
+  }
+  if ("hand" in data && (data.hand === "right" || data.hand === "left")) {
+    prefs.hand = data.hand;
+  }
   if ("toolsPosition" in data) {
     const p = data.toolsPosition;
-    if (typeof p === "number" && p >= 0 && p <= 1) prefs.toolsPosition = p;
+    if (typeof p === "number" && p >= 0 && p <= 1) {
+      prefs.toolsPosition = p;
+    }
   }
   if ("uiScale" in data) {
     const s = data.uiScale;
@@ -80,11 +86,15 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   if ("fingerDrawing" in data && FINGER_DRAWINGS.includes(data.fingerDrawing as FingerDrawing)) {
     prefs.fingerDrawing = data.fingerDrawing as FingerDrawing;
   }
-  if ("penSeen" in data && typeof data.penSeen === "boolean") prefs.penSeen = data.penSeen;
+  if ("penSeen" in data && typeof data.penSeen === "boolean") {
+    prefs.penSeen = data.penSeen;
+  }
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};
     for (const [id, size] of Object.entries(data.sizes)) {
-      if (typeof size === "number" && Number.isFinite(size) && size > 0) sizes[id] = size;
+      if (typeof size === "number" && Number.isFinite(size) && size > 0) {
+        sizes[id] = size;
+      }
     }
     prefs.sizes = sizes;
   }
@@ -124,9 +134,13 @@ export class LayoutPrefs {
   }
 
   set hand(hand: Hand) {
-    if (hand === this.data.hand) return;
+    if (hand === this.data.hand) {
+      return;
+    }
     this.data.hand = hand;
-    if (!this.loaded) this.changed.hand = true;
+    if (!this.loaded) {
+      this.changed.hand = true;
+    }
     this.scheduleSave();
   }
 
@@ -136,9 +150,13 @@ export class LayoutPrefs {
 
   set toolsPosition(position: number) {
     const p = Math.min(1, Math.max(0, position));
-    if (p === this.data.toolsPosition) return;
+    if (p === this.data.toolsPosition) {
+      return;
+    }
     this.data.toolsPosition = p;
-    if (!this.loaded) this.changed.toolsPosition = true;
+    if (!this.loaded) {
+      this.changed.toolsPosition = true;
+    }
     this.scheduleSave();
   }
 
@@ -152,9 +170,13 @@ export class LayoutPrefs {
   }
 
   set uiScale(scale: number) {
-    if (scale === this.data.uiScale) return;
+    if (scale === this.data.uiScale) {
+      return;
+    }
     this.data.uiScale = scale;
-    if (!this.loaded) this.changed.uiScale = true;
+    if (!this.loaded) {
+      this.changed.uiScale = true;
+    }
     this.scheduleSave();
   }
 
@@ -163,9 +185,13 @@ export class LayoutPrefs {
   }
 
   set panelsOpen(open: boolean) {
-    if (open === this.data.panelsOpen) return;
+    if (open === this.data.panelsOpen) {
+      return;
+    }
     this.data.panelsOpen = open;
-    if (!this.loaded) this.changed.panelsOpen = true;
+    if (!this.loaded) {
+      this.changed.panelsOpen = true;
+    }
     this.scheduleSave();
   }
 
@@ -174,9 +200,13 @@ export class LayoutPrefs {
   }
 
   set pixelGrid(shown: boolean) {
-    if (shown === this.data.pixelGrid) return;
+    if (shown === this.data.pixelGrid) {
+      return;
+    }
     this.data.pixelGrid = shown;
-    if (!this.loaded) this.changed.pixelGrid = true;
+    if (!this.loaded) {
+      this.changed.pixelGrid = true;
+    }
     this.scheduleSave();
   }
 
@@ -185,9 +215,13 @@ export class LayoutPrefs {
   }
 
   set compact(mode: CompactMode) {
-    if (mode === this.data.compact) return;
+    if (mode === this.data.compact) {
+      return;
+    }
     this.data.compact = mode;
-    if (!this.loaded) this.changed.compact = true;
+    if (!this.loaded) {
+      this.changed.compact = true;
+    }
     this.scheduleSave();
   }
 
@@ -196,9 +230,13 @@ export class LayoutPrefs {
   }
 
   set fingerDrawing(mode: FingerDrawing) {
-    if (mode === this.data.fingerDrawing) return;
+    if (mode === this.data.fingerDrawing) {
+      return;
+    }
     this.data.fingerDrawing = mode;
-    if (!this.loaded) this.changed.fingerDrawing = true;
+    if (!this.loaded) {
+      this.changed.fingerDrawing = true;
+    }
     this.scheduleSave();
   }
 
@@ -208,9 +246,13 @@ export class LayoutPrefs {
 
   /** A pen was used: kept for good. */
   notePen() {
-    if (this.data.penSeen) return;
+    if (this.data.penSeen) {
+      return;
+    }
     this.data.penSeen = true;
-    if (!this.loaded) this.changed.penSeen = true;
+    if (!this.loaded) {
+      this.changed.penSeen = true;
+    }
     this.scheduleSave();
   }
 
@@ -227,15 +269,21 @@ export class LayoutPrefs {
 
   setSize(id: string, size: number) {
     this.data.sizes[id] = Math.round(size);
-    if (!this.loaded) this.changed.sizes.push(id);
+    if (!this.loaded) {
+      this.changed.sizes.push(id);
+    }
     this.scheduleSave();
   }
 
   /** Back to the default size. */
   resetSize(id: string) {
-    if (!(id in this.data.sizes)) return;
+    if (!(id in this.data.sizes)) {
+      return;
+    }
     delete this.data.sizes[id];
-    if (!this.loaded) this.changed.sizes.push(id);
+    if (!this.loaded) {
+      this.changed.sizes.push(id);
+    }
     this.scheduleSave();
   }
 
@@ -246,7 +294,9 @@ export class LayoutPrefs {
       const text = await readDataFile(FILE);
       if (text !== null) {
         const saved = parseLayoutPrefs(text);
-        if (saved.hand && !this.changed.hand) this.data.hand = saved.hand;
+        if (saved.hand && !this.changed.hand) {
+          this.data.hand = saved.hand;
+        }
         if (saved.toolsPosition !== undefined && !this.changed.toolsPosition) {
           this.data.toolsPosition = saved.toolsPosition;
         }
@@ -269,7 +319,9 @@ export class LayoutPrefs {
           this.data.penSeen = saved.penSeen;
         }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {
-          if (!this.changed.sizes.includes(id)) this.data.sizes[id] = size;
+          if (!this.changed.sizes.includes(id)) {
+            this.data.sizes[id] = size;
+          }
         }
       }
     } catch {
@@ -280,20 +332,26 @@ export class LayoutPrefs {
 
   /** Saves now the changes waiting for the delay, if any: call before the app closes. */
   async flush(): Promise<void> {
-    if (this.timer === null) return;
+    if (this.timer === null) {
+      return;
+    }
     clearTimeout(this.timer);
     await this.save();
   }
 
   private scheduleSave() {
-    if (this.timer !== null) clearTimeout(this.timer);
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+    }
     this.timer = setTimeout(() => void this.save(), SAVE_DELAY_MS);
   }
 
   private async save() {
     this.timer = null;
     // Before loading, saving would overwrite the file with the defaults: try again later.
-    if (!this.loaded) return this.scheduleSave();
+    if (!this.loaded) {
+      return this.scheduleSave();
+    }
     const text = JSON.stringify({ version: VERSION, ...this.data }, null, 2) + "\n";
     try {
       await writeDataFile(FILE, text);

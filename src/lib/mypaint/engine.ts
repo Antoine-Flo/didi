@@ -72,8 +72,11 @@ export class MyPaint {
   createBrush(myb?: MybBrush): Brush {
     // Like MyPaint: recent brushes pick a smudge bucket with their "smudge_bucket" setting.
     const brush = new Brush(this, this.mod._mypaint_brush_new_with_buckets(SMUDGE_BUCKETS));
-    if (myb) brush.load(myb);
-    else this.mod._mypaint_brush_from_defaults(brush.ptr);
+    if (myb) {
+      brush.load(myb);
+    } else {
+      this.mod._mypaint_brush_from_defaults(brush.ptr);
+    }
     return brush;
   }
 
@@ -95,7 +98,9 @@ export class MyPaint {
       for (let i = 0; i < n; i++) {
         tiles.push([this.mod.HEAP32[base + 2 * i], this.mod.HEAP32[base + 2 * i + 1]]);
       }
-      if (n < MAX_DIRTY) return tiles;
+      if (n < MAX_DIRTY) {
+        return tiles;
+      }
     }
   }
 
@@ -142,16 +147,22 @@ export class Brush {
     mod._mypaint_brush_from_defaults(this.ptr);
     for (const [name, setting] of Object.entries(myb.settings)) {
       const id = this.mp.settingId(name);
-      if (id < 0) continue;
+      if (id < 0) {
+        continue;
+      }
       mod._mypaint_brush_set_base_value(this.ptr, id, setting.base_value);
       // The file lists all the curves of this setting: clear the others.
       for (const input of INPUTS) {
         const inputId = this.mp.inputId(input);
-        if (inputId >= 0) mod._mypaint_brush_set_mapping_n(this.ptr, id, inputId, 0);
+        if (inputId >= 0) {
+          mod._mypaint_brush_set_mapping_n(this.ptr, id, inputId, 0);
+        }
       }
       for (const [input, points] of Object.entries(setting.inputs)) {
         const inputId = this.mp.inputId(input);
-        if (inputId < 0) continue;
+        if (inputId < 0) {
+          continue;
+        }
         mod._mypaint_brush_set_mapping_n(this.ptr, id, inputId, points.length);
         points.forEach(([x, y], i) => {
           mod._mypaint_brush_set_mapping_point(this.ptr, id, inputId, i, x, y);
@@ -162,13 +173,17 @@ export class Brush {
 
   set(name: string, value: number) {
     const id = this.mp.settingId(name);
-    if (id < 0) throw new Error(`Unknown brush setting ${name}`);
+    if (id < 0) {
+      throw new Error(`Unknown brush setting ${name}`);
+    }
     this.mp.mod._mypaint_brush_set_base_value(this.ptr, id, value);
   }
 
   get(name: string): number {
     const id = this.mp.settingId(name);
-    if (id < 0) throw new Error(`Unknown brush setting ${name}`);
+    if (id < 0) {
+      throw new Error(`Unknown brush setting ${name}`);
+    }
     return this.mp.mod._mypaint_brush_get_base_value(this.ptr, id);
   }
 
@@ -226,10 +241,16 @@ export class MyPaintStroke {
     private readonly limit: StrokeClip = { clip: null, clipMask: null },
   ) {
     const layer = drawing.getLayer(layerId);
-    if (layer.locked) throw new Error(`Layer ${layerId} is locked`);
+    if (layer.locked) {
+      throw new Error(`Layer ${layerId} is locked`);
+    }
     this.alphaLocked = layer.alphaLocked;
-    if (!(opacity >= 0 && opacity <= 1)) throw new RangeError(`Invalid opacity ${opacity}`);
-    if (mp.current) throw new Error("Another stroke is in progress");
+    if (!(opacity >= 0 && opacity <= 1)) {
+      throw new RangeError(`Invalid opacity ${opacity}`);
+    }
+    if (mp.current) {
+      throw new Error("Another stroke is in progress");
+    }
     mp.current = this;
     mp.mod._didi_surface_clear(mp.surface);
     // Smudge sampling uses rand(): same seed, same result for the same stroke.
@@ -313,17 +334,23 @@ export class MyPaintStroke {
    * Only the changed part of each layer tile is notified, so the view uploads just that.
    */
   flush() {
-    if (this.finished) return;
+    if (this.finished) {
+      return;
+    }
     const changed = new Map<number, Uint8ClampedArray>();
     const areas = new Map<number, Rect>();
     for (const [tx, ty] of this.mp.takeDirty()) {
       const area = this.copyBack(tx, ty);
-      if (!area) continue;
+      if (!area) {
+        continue;
+      }
       changed.set(area.key, this.working.get(area.key)!);
       const previous = areas.get(area.key);
       areas.set(area.key, previous ? union(previous, area.rect) : area.rect);
     }
-    if (changed.size > 0) this.drawing.showStrokeTiles(this.layerId, changed, areas);
+    if (changed.size > 0) {
+      this.drawing.showStrokeTiles(this.layerId, changed, areas);
+    }
   }
 
   /** Ends the stroke. Returns it as one undo step, or null if it changed nothing. */
@@ -331,11 +358,19 @@ export class MyPaintStroke {
     this.assertActive();
     this.flush();
     this.release();
-    if (this.original.size === 0) return null;
+    if (this.original.size === 0) {
+      return null;
+    }
     // Tiles left fully transparent (erased) are not kept: the layer stays sparse.
     const empty: TileSnapshot = new Map();
-    for (const [key, tile] of this.working) if (isTransparent(tile)) empty.set(key, undefined);
-    if (empty.size > 0) this.drawing.restorePixels(this.layerId, empty);
+    for (const [key, tile] of this.working) {
+      if (isTransparent(tile)) {
+        empty.set(key, undefined);
+      }
+    }
+    if (empty.size > 0) {
+      this.drawing.restorePixels(this.layerId, empty);
+    }
     const after = this.drawing.getLayer(this.layerId).tiles.snapshot(this.original.keys());
     return replaceTiles(this.layerId, this.original, after, label);
   }
@@ -358,8 +393,12 @@ export class MyPaintStroke {
     const src = outside ? undefined : this.sourceTile(x0, y0);
     const w = Math.min(MP_TILE, width - x0);
     const h = Math.min(MP_TILE, height - y0);
-    if (!src || w < MP_TILE || h < MP_TILE) out.fill(0);
-    if (!src) return;
+    if (!src || w < MP_TILE || h < MP_TILE) {
+      out.fill(0);
+    }
+    if (!src) {
+      return;
+    }
     for (let y = 0; y < h; y++) {
       const i = (((y0 % TILE_SIZE) + y) * TILE_SIZE + (x0 % TILE_SIZE)) * 4;
       const o = y * MP_TILE * 4;
@@ -370,7 +409,9 @@ export class MyPaintStroke {
   /** The layer tile containing a pixel, as it was before the stroke. */
   private sourceTile(px: number, py: number): Uint8ClampedArray | undefined {
     const key = tileKey(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
-    if (this.original.has(key)) return this.original.get(key);
+    if (this.original.has(key)) {
+      return this.original.get(key);
+    }
     return this.drawing.getLayer(this.layerId).tiles.snapshot([key]).get(key);
   }
 
@@ -382,15 +423,21 @@ export class MyPaintStroke {
     const x0 = tx * MP_TILE;
     const y0 = ty * MP_TILE;
     const { width, height } = this.drawing;
-    if (x0 < 0 || y0 < 0 || x0 >= width || y0 >= height) return null;
+    if (x0 < 0 || y0 < 0 || x0 >= width || y0 >= height) {
+      return null;
+    }
     const w = Math.min(MP_TILE, width - x0);
     const h = Math.min(MP_TILE, height - y0);
     const tile = { x: x0, y: y0, width: w, height: h };
     const { clip, clipMask } = this.limit;
     const area = clip ? intersect(tile, clip) : tile;
-    if (!area) return null;
+    if (!area) {
+      return null;
+    }
     const src = this.mp.copyBack(tx, ty, w, h, this.opacity);
-    if (!src) return null;
+    if (!src) {
+      return null;
+    }
 
     const ltx = Math.floor(x0 / TILE_SIZE);
     const lty = Math.floor(y0 / TILE_SIZE);
@@ -413,7 +460,9 @@ export class MyPaintStroke {
       }
       const row = (y - clip.y) * clip.width + (area.x - clip.x);
       for (let i = 0; i < area.width; i++) {
-        if (!clipMask[row + i]) continue;
+        if (!clipMask[row + i]) {
+          continue;
+        }
         out.set(src.subarray(s + i * 4, s + i * 4 + 4), o + i * 4);
       }
     }
@@ -422,14 +471,18 @@ export class MyPaintStroke {
       const before = this.original.get(key);
       for (let y = area.y; y < area.y + area.height; y++) {
         const o = ((y - originY) * TILE_SIZE + (area.x - originX)) * 4;
-        for (let i = 0; i < area.width * 4; i += 4) keepAlpha(out, o + i, before);
+        for (let i = 0; i < area.width * 4; i += 4) {
+          keepAlpha(out, o + i, before);
+        }
       }
     }
     return { key, rect: { ...area, x: area.x - originX, y: area.y - originY } };
   }
 
   private assertActive() {
-    if (this.finished) throw new Error("The stroke is finished");
+    if (this.finished) {
+      throw new Error("The stroke is finished");
+    }
   }
 
   private release() {
@@ -445,11 +498,17 @@ export function rgbToHsv(r: number, g: number, b: number): [number, number, numb
   const d = max - min;
   let h = 0;
   if (d > 0) {
-    if (max === r) h = ((g - b) / d) % 6;
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
+    if (max === r) {
+      h = ((g - b) / d) % 6;
+    } else if (max === g) {
+      h = (b - r) / d + 2;
+    } else {
+      h = (r - g) / d + 4;
+    }
     h /= 6;
-    if (h < 0) h += 1;
+    if (h < 0) {
+      h += 1;
+    }
   }
   return [h, max === 0 ? 0 : d / max, max];
 }

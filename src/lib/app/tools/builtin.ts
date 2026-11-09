@@ -24,6 +24,8 @@ export const BUILTIN_TOOLS = [
 /** A registry with the built-in tools. */
 export function createToolRegistry(): ToolRegistry {
   const registry = new ToolRegistry();
-  for (const tool of BUILTIN_TOOLS) registry.register(tool);
+  for (const tool of BUILTIN_TOOLS) {
+    registry.register(tool);
+  }
   return registry;
 }

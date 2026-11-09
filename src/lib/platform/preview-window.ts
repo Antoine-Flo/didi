@@ -27,7 +27,9 @@ export function openPreviewWindow(onClosed: () => void): OpenWindow {
   });
   let closed = false;
   const done = () => {
-    if (closed) return;
+    if (closed) {
+      return;
+    }
     closed = true;
     onClosed();
   };
@@ -38,5 +40,7 @@ export function openPreviewWindow(onClosed: () => void): OpenWindow {
 
 /** A preview left open by a reload of the editor: the editor no longer knows about it. */
 export async function closeStalePreview() {
-  if (capabilities.windows) await (await WebviewWindow.getByLabel(LABEL))?.destroy();
+  if (capabilities.windows) {
+    await (await WebviewWindow.getByLabel(LABEL))?.destroy();
+  }
 }

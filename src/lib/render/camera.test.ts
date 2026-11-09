@@ -131,7 +131,9 @@ describe("camera", () => {
           // at a single point (a corner of the view, rotated by π/2, on a corner of the
           // canvas), where no pixel is displayed and visibleRect rightly returns null.
           const e = 1e-6;
-          if (p.x < e || p.y < e || p.x >= canvas.width - e || p.y >= canvas.height - e) return;
+          if (p.x < e || p.y < e || p.x >= canvas.width - e || p.y >= canvas.height - e) {
+            return;
+          }
           const r = visibleRect(c, view, canvas)!;
           expect(r).not.toBeNull();
           expect(Math.floor(p.x)).toBeGreaterThanOrEqual(r.x);

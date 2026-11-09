@@ -31,7 +31,9 @@
 
   /** Fitted: by whole steps above 100 %. */
   const fit = $derived.by(() => {
-    if (!image.width || !image.height || !room.width || !room.height) return 0;
+    if (!image.width || !image.height || !room.width || !room.height) {
+      return 0;
+    }
     const scale = Math.min(room.width / image.width, room.height / image.height) * ratio;
     return scale >= 1 ? Math.floor(scale) : scale;
   });
@@ -40,7 +42,9 @@
 
   /** Where the drawing is shown, in CSS pixels, on whole device pixels to stay sharp. */
   const shown = $derived.by(() => {
-    if (!scale) return null;
+    if (!scale) {
+      return null;
+    }
     const snap = (v: number) => Math.round(v * ratio) / ratio;
     return {
       left: snap(room.width / 2 - (middle.x * scale) / ratio),
@@ -63,7 +67,9 @@
   function show(message: ToPreview) {
     if (message.type === "size") {
       // Another drawing: all of it again.
-      if (message.width !== image.width || message.height !== image.height) zoom = null;
+      if (message.width !== image.width || message.height !== image.height) {
+        zoom = null;
+      }
       canvas.width = message.width;
       canvas.height = message.height;
       image = { width: message.width, height: message.height };
@@ -84,11 +90,16 @@
 
   /** One step in or out, keeping the drawing's point at `at` (CSS pixels in the room). */
   function zoomBy(direction: 1 | -1, at = { x: room.width / 2, y: room.height / 2 }) {
-    if (direction > 0 ? !canZoomIn() : !canZoomOut()) return;
+    if (direction > 0 ? !canZoomIn() : !canZoomOut()) {
+      return;
+    }
     const from = scale;
     let to: number;
-    if (direction > 0) to = from < 1 ? Math.min(1, from * STEP) : Math.floor(from) + 1;
-    else to = from > 1 ? Math.ceil(from) - 1 : from / STEP;
+    if (direction > 0) {
+      to = from < 1 ? Math.min(1, from * STEP) : Math.floor(from) + 1;
+    } else {
+      to = from > 1 ? Math.ceil(from) - 1 : from / STEP;
+    }
     const offset = { x: (at.x - room.width / 2) * ratio, y: (at.y - room.height / 2) * ratio };
     const point = { x: middle.x + offset.x / from, y: middle.y + offset.y / from };
     center = clampCenter({ x: point.x - offset.x / to, y: point.y - offset.y / to });
@@ -106,16 +117,22 @@
   function onWheel(e: WheelEvent) {
     e.preventDefault();
     const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * WHEEL_STEP : e.deltaY;
-    if (Math.sign(delta) !== Math.sign(wheel)) wheel = 0;
+    if (Math.sign(delta) !== Math.sign(wheel)) {
+      wheel = 0;
+    }
     wheel += delta;
-    if (Math.abs(wheel) < WHEEL_STEP) return;
+    if (Math.abs(wheel) < WHEEL_STEP) {
+      return;
+    }
     wheel = 0;
     const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
     zoomBy(delta < 0 ? 1 : -1, { x: e.clientX - box.left, y: e.clientY - box.top });
   }
 
   function onPointerDown(down: PointerEvent) {
-    if (zoom === null || (down.button !== 0 && down.button !== 1)) return;
+    if (zoom === null || (down.button !== 0 && down.button !== 1)) {
+      return;
+    }
     down.preventDefault();
     const target = down.currentTarget as HTMLElement;
     target.setPointerCapture(down.pointerId);

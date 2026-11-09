@@ -32,55 +32,77 @@ export const PALETTE_FILE_VERSION = 2;
 export function parseHexPalette(text: string, name: string): Palette {
   const colors: RGB[] = [];
   text.split(/\r?\n/).forEach((line, i) => {
-    if (!line.trim()) return;
+    if (!line.trim()) {
+      return;
+    }
     const color = fromHex(line);
-    if (!color)
+    if (!color) {
       throw new Error(
         m.palette_error_line_not_color({ number: i + 1, text: line.trim().slice(0, 20) }),
       );
+    }
     colors.push(color);
   });
-  if (colors.length === 0) throw new Error(m.palette_error_no_colors());
+  if (colors.length === 0) {
+    throw new Error(m.palette_error_no_colors());
+  }
   return { name, colors };
 }
 
 /**
  * Reads the user's saved palettes, and the name of the palette shown. Throws if the file is
  * not valid.
- *
- * Version 1 files also held copies of the built-in palettes, and the shown one by index:
- * unchanged copies are left out, the built-in palette being there anyway.
  */
 export function parsePaletteFile(text: string): { palettes: Palette[]; active: string | null } {
-  const data = JSON.parse(text) as Partial<Omit<PaletteFile, "version" | "active">> & {
-    version?: unknown;
-    active?: unknown;
-  };
-  if (typeof data !== "object" || data === null)
+  const data: unknown = JSON.parse(text);
+  if (!isObject(data)) {
     throw new Error(m.palette_error_not_palette_file());
+  }
   if (data.version !== 1 && data.version !== PALETTE_FILE_VERSION) {
     throw new Error(m.palette_error_unsupported_version({ version: String(data.version) }));
   }
-  if (!Array.isArray(data.palettes)) throw new Error(m.palette_error_missing_palettes());
-  let palettes = data.palettes.map((p, i) => {
-    if (typeof p?.name !== "string" || !Array.isArray(p.colors)) {
-      throw new Error(m.palette_error_invalid_palette({ number: i + 1 }));
-    }
-    const colors = p.colors.map((hex) => {
-      const color = typeof hex === "string" ? fromHex(hex) : null;
-      if (!color)
-        throw new Error(m.palette_error_invalid_color({ name: p.name, color: String(hex) }));
-      return color;
-    });
-    return { name: p.name, colors };
-  });
-  if (data.version === 1) {
-    const index = Number.isInteger(data.active) ? (data.active as number) : 0;
-    const active = palettes[Math.max(0, Math.min(index, palettes.length - 1))]?.name ?? null;
-    palettes = palettes.filter((p) => !BUILTIN_PALETTES.some((b) => samePalette(b, p)));
-    return { palettes, active };
+  if (!Array.isArray(data.palettes)) {
+    throw new Error(m.palette_error_missing_palettes());
   }
-  return { palettes, active: typeof data.active === "string" ? data.active : null };
+
+  const palettes = data.palettes.map(readPalette);
+  return data.version === 1
+    ? fromVersion1(palettes, data.active)
+    : { palettes, active: typeof data.active === "string" ? data.active : null };
+}
+
+/** A palette of the file, `index` from 0. Throws if it or one of its colors is not valid. */
+function readPalette(p: unknown, index: number): Palette {
+  if (!isObject(p) || typeof p.name !== "string" || !Array.isArray(p.colors)) {
+    throw new Error(m.palette_error_invalid_palette({ number: index + 1 }));
+  }
+  const name = p.name;
+  const colors = p.colors.map((hex: unknown) => {
+    const color = typeof hex === "string" ? fromHex(hex) : null;
+    if (!color) {
+      throw new Error(m.palette_error_invalid_color({ name, color: String(hex) }));
+    }
+    return color;
+  });
+  return { name, colors };
+}
+
+/**
+ * Version 1 files also held copies of the built-in palettes, and the shown one by index:
+ * unchanged copies are left out, the built-in palette being there anyway.
+ */
+function fromVersion1(
+  all: Palette[],
+  active: unknown,
+): { palettes: Palette[]; active: string | null } {
+  const index = typeof active === "number" && Number.isInteger(active) ? active : 0;
+  const shown = all[Math.max(0, Math.min(index, all.length - 1))]?.name ?? null;
+  const palettes = all.filter((p) => !BUILTIN_PALETTES.some((b) => samePalette(b, p)));
+  return { palettes, active: shown };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export class PaletteLibrary {
@@ -140,7 +162,9 @@ export class PaletteLibrary {
   }
 
   set locked(locked: boolean) {
-    if (locked === this.isLocked) return;
+    if (locked === this.isLocked) {
+      return;
+    }
     this.isLocked = locked;
     this.changes.emit();
   }
@@ -152,7 +176,9 @@ export class PaletteLibrary {
 
   select(index: number) {
     this.checkIndex(index);
-    if (index === this.shown) return;
+    if (index === this.shown) {
+      return;
+    }
     this.shown = index;
     this.changes.emit();
   }
@@ -168,15 +194,21 @@ export class PaletteLibrary {
   remove(index = this.shown) {
     this.own(index);
     this.list.splice(index, 1);
-    if (this.shown >= index) this.shown = Math.max(0, this.shown - 1);
+    if (this.shown >= index) {
+      this.shown = Math.max(0, this.shown - 1);
+    }
     this.changes.emit();
   }
 
   rename(index: number, name: string) {
     const palette = this.own(index);
     const trimmed = name.trim();
-    if (!trimmed) throw new RangeError("Palette name must not be empty");
-    if (trimmed === palette.name) return;
+    if (!trimmed) {
+      throw new RangeError("Palette name must not be empty");
+    }
+    if (trimmed === palette.name) {
+      return;
+    }
     palette.name = this.uniqueName(trimmed, index);
     this.changes.emit();
   }
@@ -184,7 +216,9 @@ export class PaletteLibrary {
   /** Adds a color at the end of the shown palette, unless it is already there. */
   addColor(color: RGB): boolean {
     const palette = this.active;
-    if (!palette || palette.colors.some((c) => sameColor(c, color))) return false;
+    if (!palette || palette.colors.some((c) => sameColor(c, color))) {
+      return false;
+    }
     this.own(this.shown).colors.push([...color]);
     this.changes.emit();
     return true;
@@ -205,7 +239,9 @@ export class PaletteLibrary {
   /** Replaces a color of a palette, the shown one by default. */
   setColor(index: number, color: RGB, palette = this.active) {
     const colors = this.colorsOf(palette, index);
-    if (sameColor(colors[index], color)) return;
+    if (sameColor(colors[index], color)) {
+      return;
+    }
     colors[index] = [...color];
     this.changes.emit();
   }
@@ -227,23 +263,31 @@ export class PaletteLibrary {
   private uniqueName(name: string, except = -1): string {
     const all = this.palettes;
     const taken = (n: string) => all.some((p, i) => i !== except && p.name === n);
-    if (!taken(name)) return name;
+    if (!taken(name)) {
+      return name;
+    }
     let i = 2;
-    while (taken(`${name} ${i}`)) i++;
+    while (taken(`${name} ${i}`)) {
+      i++;
+    }
     return `${name} ${i}`;
   }
 
   /** The user's palette at `index`. Throws for a built-in palette. */
   private own(index: number): Palette {
     this.checkIndex(index);
-    if (this.isBuiltin(index)) throw new RangeError("Built-in palettes cannot be changed");
+    if (this.isBuiltin(index)) {
+      throw new RangeError("Built-in palettes cannot be changed");
+    }
     return this.list[index];
   }
 
   /** The colors of `palette`, if `index` is one of them (or the end, with `orEnd`). */
   private colorsOf(palette: Readonly<Palette> | null, index: number, orEnd = false): RGB[] {
     const at = palette ? this.indexOf(palette) : -1;
-    if (at < 0) throw new RangeError("No such palette");
+    if (at < 0) {
+      throw new RangeError("No such palette");
+    }
     const found = this.own(at);
     const end = found.colors.length + (orEnd ? 1 : 0);
     if (!Number.isInteger(index) || index < 0 || index >= end) {

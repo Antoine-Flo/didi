@@ -31,11 +31,17 @@ export class CommandRegistry<Ctx> {
 
   /** Registers a command. Returns a function that unregisters it. */
   register<P>(command: Command<Ctx, P>): () => void {
-    if (!ID_PATTERN.test(command.id)) throw new Error(`Invalid command id "${command.id}"`);
-    if (this.commands.has(command.id)) throw new Error(`Command "${command.id}" already exists`);
+    if (!ID_PATTERN.test(command.id)) {
+      throw new Error(`Invalid command id "${command.id}"`);
+    }
+    if (this.commands.has(command.id)) {
+      throw new Error(`Command "${command.id}" already exists`);
+    }
     this.commands.set(command.id, command as Command<Ctx, never>);
     return () => {
-      if (this.commands.get(command.id) === command) this.commands.delete(command.id);
+      if (this.commands.get(command.id) === command) {
+        this.commands.delete(command.id);
+      }
     };
   }
 
@@ -64,14 +70,18 @@ export class CommandRegistry<Ctx> {
   /** Runs a command. Returns false if it is disabled. Throws if it does not exist. */
   execute(id: string, params?: unknown): boolean {
     const command = this.require(id);
-    if (!(command.enabled?.(this.context, params as never) ?? true)) return false;
+    if (!(command.enabled?.(this.context, params as never) ?? true)) {
+      return false;
+    }
     command.run(this.context, params as never);
     return true;
   }
 
   private require(id: string): Command<Ctx, never> {
     const command = this.commands.get(id);
-    if (!command) throw new Error(`Unknown command "${id}"`);
+    if (!command) {
+      throw new Error(`Unknown command "${id}"`);
+    }
     return command;
   }
 }

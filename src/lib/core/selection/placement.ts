@@ -39,7 +39,9 @@ function directionToCanvas({ transform: m }: Placement, x: number, y: number): P
 
 /** A direction from the canvas to the box. */
 function directionToBox({ transform: m }: Placement, x: number, y: number): Point {
-  if (!m) return { x, y };
+  if (!m) {
+    return { x, y };
+  }
   const det = m.a * m.d - m.b * m.c;
   return { x: (m.d * x - m.b * y) / det, y: (m.a * y - m.c * x) / det };
 }
@@ -94,12 +96,18 @@ export function contains(p: Placement, x: number, y: number): boolean {
 }
 
 export function samePlacement(a: Placement | null, b: Placement | null): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
   const same = a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
   const m = a.transform;
   const n = b.transform;
-  if (!same || !m !== !n) return false;
+  if (!same || !m !== !n) {
+    return false;
+  }
   return (
     !m ||
     !n ||
@@ -121,7 +129,9 @@ const NONE: Transform = { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 };
 
 export function moved(p: Placement, dx: number, dy: number): Placement {
   const m = p.transform;
-  if (!m) return { ...boxOf(p), x: p.x + dx, y: p.y + dy };
+  if (!m) {
+    return { ...boxOf(p), x: p.x + dx, y: p.y + dy };
+  }
   return { ...p, transform: { ...m, tx: m.tx + dx, ty: m.ty + dy } };
 }
 

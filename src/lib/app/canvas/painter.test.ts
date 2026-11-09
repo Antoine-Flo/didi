@@ -37,7 +37,9 @@ function setup(tool = "brush", withEngine = true, now?: () => number) {
     },
     now,
   );
-  if (withEngine) painter.setEngine(engine);
+  if (withEngine) {
+    painter.setEngine(engine);
+  }
   const pixel = (x: number, y: number) => [
     ...editor.activeLayer!.tiles.readRegion({ x, y, width: 1, height: 1 }),
   ];
@@ -105,7 +107,11 @@ describe("Painter", () => {
     painter.end();
     painter.drain();
     let erased = 0;
-    for (let y = 0; y < 200; y++) if (pixel(70, y)[3] < 128) erased++;
+    for (let y = 0; y < 200; y++) {
+      if (pixel(70, y)[3] < 128) {
+        erased++;
+      }
+    }
     expect(erased).toBeGreaterThan(60 * 0.85);
     expect(erased).toBeLessThan(60 * 1.15);
   });
@@ -116,7 +122,9 @@ describe("Painter", () => {
     painter.move([{ x: 14.1, y: 10.9, pressure: 0.3 }]);
     painter.end();
     painter.drain();
-    for (let x = 10; x <= 14; x++) expect(pixel(x, 10)).toEqual([200, 0, 0, 255]);
+    for (let x = 10; x <= 14; x++) {
+      expect(pixel(x, 10)).toEqual([200, 0, 0, 255]);
+    }
     expect(pixel(10, 11)).toEqual([0, 0, 0, 0]);
   });
 
@@ -127,7 +135,9 @@ describe("Painter", () => {
     painter.begin({ x: 10.7, y: 10.2, pressure: 0.3 });
     painter.move([{ x: 14.1, y: 10.9, pressure: 0.3 }]);
     painter.end();
-    for (let x = 10; x <= 14; x++) expect(pixel(x, 10)).toEqual([0, 0, 0, 0]);
+    for (let x = 10; x <= 14; x++) {
+      expect(pixel(x, 10)).toEqual([0, 0, 0, 0]);
+    }
     expect(pixel(10, 11)).toEqual([0, 0, 255, 255]);
     expect(editor.history.undoLabel).toBe("Pixel eraser");
   });
@@ -306,11 +316,18 @@ describe("samples with the same time", () => {
         painter.begin(timed[0]);
         for (const p of timed.slice(1)) {
           painter.move([p]);
-          if (frameByFrame) painter.flush();
+          if (frameByFrame) {
+            painter.flush();
+          }
         }
         painter.end();
-        if (frameByFrame) for (let i = 0; painter.active && i < 1000; i++) painter.flush();
-        else painter.drain();
+        if (frameByFrame) {
+          for (let i = 0; painter.active && i < 1000; i++) {
+            painter.flush();
+          }
+        } else {
+          painter.drain();
+        }
         return editor.activeLayer!.tiles.readRegion(all);
       };
       expect(paint(true)).toEqual(paint(false));

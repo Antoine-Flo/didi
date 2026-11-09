@@ -43,15 +43,23 @@ export function availableMenus(
   const available = (items: MenuEntry[]): MenuEntry[] =>
     items
       .flatMap((e): MenuEntry[] => {
-        if (e === "separator") return [e];
-        if ("command" in e) return has(e.command) ? [e] : [];
-        if (e.requires && !has(e.requires)) return [];
+        if (e === "separator") {
+          return [e];
+        }
+        if ("command" in e) {
+          return has(e.command) ? [e] : [];
+        }
+        if (e.requires && !has(e.requires)) {
+          return [];
+        }
         return [{ ...e, items: available(e.items) }];
       })
       .filter((e, i, all) => e !== "separator" || (i > 0 && all[i - 1] !== "separator"));
   return menus.map((menu) => {
     const items = available(menu.items);
-    if (items.at(-1) === "separator") items.pop();
+    if (items.at(-1) === "separator") {
+      items.pop();
+    }
     return { ...menu, items };
   });
 }

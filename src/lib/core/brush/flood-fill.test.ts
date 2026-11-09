@@ -4,7 +4,9 @@ import { fillArea } from "./flood-fill";
 // 5 × 3: a vertical wall of red at x = 2 splits two transparent areas.
 function image(): Uint8ClampedArray {
   const data = new Uint8ClampedArray(5 * 3 * 4);
-  for (let y = 0; y < 3; y++) data.set([255, 0, 0, 255], (y * 5 + 2) * 4);
+  for (let y = 0; y < 3; y++) {
+    data.set([255, 0, 0, 255], (y * 5 + 2) * 4);
+  }
   return data;
 }
 

@@ -95,8 +95,12 @@ function keepAt(c: Camera, p: Point, screen: Point): Camera {
 function normalizeAngle(a: number): number {
   const turn = 2 * Math.PI;
   let r = a % turn;
-  if (r > Math.PI) r -= turn;
-  if (r <= -Math.PI) r += turn;
+  if (r > Math.PI) {
+    r -= turn;
+  }
+  if (r <= -Math.PI) {
+    r += turn;
+  }
   return r;
 }
 
@@ -119,6 +123,8 @@ export function visibleRect(
   const y0 = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))));
   const x1 = Math.min(canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))));
   const y1 = Math.min(canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))));
-  if (x1 <= x0 || y1 <= y0) return null;
+  if (x1 <= x0 || y1 <= y0) {
+    return null;
+  }
   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
 }

@@ -30,7 +30,9 @@ function brush(id: string, size = 20, color: [number, number, number] = [220, 20
 
 /** A horizontal stroke from x0 to x1 at height y, at full pressure. */
 function draw(stroke: MyPaintStroke, x0: number, x1: number, y: number) {
-  for (let x = x0; x <= x1; x += 2) stroke.strokeTo(x, y, 1, 0, 0, 1 / 120);
+  for (let x = x0; x <= x1; x += 2) {
+    stroke.strokeTo(x, y, 1, 0, 0, 1 / 120);
+  }
 }
 
 const pixel = (d: Drawing, id: string, x: number, y: number) => [
@@ -63,7 +65,11 @@ describe("libmypaint engine", () => {
     draw(stroke, 50, 250, 150);
     stroke.finish("Erase");
     let erased = 0;
-    for (let y = 0; y < 300; y++) if (pixel(drawing, id, 150, y)[3] < 128) erased++;
+    for (let y = 0; y < 300; y++) {
+      if (pixel(drawing, id, 150, y)[3] < 128) {
+        erased++;
+      }
+    }
     const expected = 20 * eraser.sizeFactor;
     expect(erased).toBeGreaterThan(expected * 0.85);
     expect(erased).toBeLessThan(expected * 1.15);
@@ -101,13 +107,19 @@ describe("libmypaint engine", () => {
       fresh.setColor([0, 0, 0]);
       const stroke = new MyPaintStroke(mp, fresh, drawing, id);
       stroke.moveTo(300, 300);
-      for (let x = 300; x <= 380; x += 2) stroke.strokeTo(x, 300, 0.8, 0, 0, 1 / 120);
+      for (let x = 300; x <= 380; x += 2) {
+        stroke.strokeTo(x, 300, 0.8, 0, 0, 1 / 120);
+      }
       stroke.finish("x");
       // Nothing on the way from the brush's previous position (0, 0) to the start.
       const path = drawing.getLayer(id).tiles.readRegion({ x: 0, y: 0, width: 200, height: 200 });
       let painted = 0;
       // Visible pixels only: some brushes add huge, almost transparent halos on purpose.
-      for (let i = 3; i < path.length; i += 4) if (path[i] > 16) painted++;
+      for (let i = 3; i < path.length; i += 4) {
+        if (path[i] > 16) {
+          painted++;
+        }
+      }
       expect(painted, b.id).toBe(0);
       fresh.destroy();
     }
@@ -144,7 +156,9 @@ describe("libmypaint engine", () => {
     const alphaAt = (opacity: number, id: string, background?: boolean) => {
       const { drawing, id: layer } = setup();
       const all = { x: 0, y: 0, width: 300, height: 300 };
-      if (background) drawing.writePixels(layer, all, fill(all, [0, 0, 200, 255]));
+      if (background) {
+        drawing.writePixels(layer, all, fill(all, [0, 0, 200, 255]));
+      }
       const stroke = new MyPaintStroke(mp, brush(id, 30), drawing, layer, opacity);
       draw(stroke, 50, 250, 150);
       stroke.finish("x");
@@ -167,7 +181,9 @@ describe("libmypaint engine", () => {
     const all = drawing.getLayer(id).tiles.readRegion({ x: 0, y: 0, width: 300, height: 300 });
     let invalid = 0;
     for (let i = 0; i < all.length; i += 4) {
-      if (Math.max(all[i], all[i + 1], all[i + 2]) > all[i + 3]) invalid++;
+      if (Math.max(all[i], all[i + 1], all[i + 2]) > all[i + 3]) {
+        invalid++;
+      }
     }
     expect(invalid).toBe(0);
   });
@@ -210,7 +226,9 @@ describe("libmypaint engine", () => {
     const before = capture(drawing);
     const stroke = new MyPaintStroke(mp, brush("deevad/large_hard_eraser", 40), drawing, id);
     stroke.moveTo(-20, 0);
-    for (let y = 0; y <= 40; y += 10) draw(stroke, -20, 60, y);
+    for (let y = 0; y <= 40; y += 10) {
+      draw(stroke, -20, 60, y);
+    }
     stroke.flush();
     // While painting, the emptied tile stays (checking costs a scan of the tile each frame).
     expect(drawing.getLayer(id).tiles.tileCount).toBe(1);
@@ -236,12 +254,16 @@ describe("libmypaint engine", () => {
       stroke.flush();
       expect(changes).toHaveLength(1);
       const change = changes[0];
-      if (change.type !== "pixels-changed") throw new Error("expected pixels-changed");
+      if (change.type !== "pixels-changed") {
+        throw new Error("expected pixels-changed");
+      }
       expect(change.areas).toHaveLength(change.tiles.length);
       // Every changed pixel lies in the area given for its tile.
       const now = drawing.getLayer(id).tiles.readRegion(all);
       for (let i = 0; i < now.length; i += 4) {
-        if (now.subarray(i, i + 4).every((v, c) => v === previous[i + c])) continue;
+        if (now.subarray(i, i + 4).every((v, c) => v === previous[i + c])) {
+          continue;
+        }
         const px = (i / 4) % 600;
         const py = Math.floor(i / 4 / 600);
         const t = change.tiles.indexOf(
@@ -337,8 +359,12 @@ describe("libmypaint engine", () => {
         }
       }
       // Same stroke, after other strokes: libmypaint must give the same result.
-      if (firstDifference(first, run(b)) !== -1) differing.push(b.id);
-      if (firstDifference(first, background) === -1) silent.push(b.id);
+      if (firstDifference(first, run(b)) !== -1) {
+        differing.push(b.id);
+      }
+      if (firstDifference(first, background) === -1) {
+        silent.push(b.id);
+      }
     }
     expect(invalid).toEqual([]);
     expect(differing).toEqual([]);
@@ -364,14 +390,18 @@ describe("a stroke limited to an area", () => {
     });
     stroke.finish("Stroke");
     expect(pixel(drawing, id, 150, 150)[3]).toBeGreaterThan(0);
-    for (const x of [40, 99, 200, 260]) expect(pixel(drawing, id, x, 150)).toEqual([0, 0, 0, 0]);
+    for (const x of [40, 99, 200, 260]) {
+      expect(pixel(drawing, id, x, 150)).toEqual([0, 0, 0, 0]);
+    }
   });
 
   it("only changes the pixels of the mask", () => {
     const clip = { x: 100, y: 100, width: 100, height: 100 };
     // The left half only.
     const clipMask = new Uint8Array(clip.width * clip.height);
-    for (let y = 0; y < clip.height; y++) clipMask.fill(1, y * 100, y * 100 + 50);
+    for (let y = 0; y < clip.height; y++) {
+      clipMask.fill(1, y * 100, y * 100 + 50);
+    }
     const { drawing, id, stroke } = limited({ clip, clipMask });
     stroke.finish("Stroke");
     expect(pixel(drawing, id, 120, 150)[3]).toBeGreaterThan(0);

@@ -18,7 +18,9 @@ function paletteEdit(
 ): Edit {
   const shown = (run: () => void) => () => {
     const index = library.indexOf(palette);
-    if (index < 0) return;
+    if (index < 0) {
+      return;
+    }
     library.select(index);
     run();
   };

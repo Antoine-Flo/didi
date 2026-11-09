@@ -24,9 +24,13 @@ describe("edits", () => {
       moveLayer(a.id, 0),
       removeLayer(b.id),
     ];
-    for (const edit of edits) edit.apply(d);
+    for (const edit of edits) {
+      edit.apply(d);
+    }
     expect(d.layers.map((l) => [l.name, l.opacity])).toEqual([["A", 0.2]]);
-    for (const edit of [...edits].reverse()) edit.revert(d);
+    for (const edit of [...edits].reverse()) {
+      edit.revert(d);
+    }
     expect(d.layers).toEqual([]);
   });
 
@@ -79,7 +83,9 @@ describe("edits", () => {
         const edits: Edit[] = [];
         for (const op of ops) {
           const edit = op(d);
-          if (!edit) continue;
+          if (!edit) {
+            continue;
+          }
           edit.apply(d);
           edits.push(edit);
         }
@@ -102,16 +108,22 @@ describe("edits", () => {
         const applied: Edit[] = [];
         for (const op of ops) {
           const edit = op(d);
-          if (!edit) continue;
+          if (!edit) {
+            continue;
+          }
           edit.apply(d);
           applied.push(edit);
         }
         const final = capture(d);
 
-        for (const edit of [...applied].reverse()) edit.revert(d);
+        for (const edit of [...applied].reverse()) {
+          edit.revert(d);
+        }
         expectSameState(capture(d), initial);
 
-        for (const edit of applied) edit.apply(d);
+        for (const edit of applied) {
+          edit.apply(d);
+        }
         expectSameState(capture(d), final);
       }),
       { numRuns: 150 },

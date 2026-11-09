@@ -16,7 +16,9 @@
 
   // While it is open, a contact on the canvas only closes it.
   $effect(() => {
-    if (!request) return;
+    if (!request) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });

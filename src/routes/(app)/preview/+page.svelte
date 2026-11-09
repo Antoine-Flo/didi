@@ -31,9 +31,14 @@
   });
 
   function onMouseDown(e: MouseEvent) {
-    if (!appWindow || e.button !== 0) return;
-    if (e.detail === 2) appWindow.toggleMaximize();
-    else appWindow.startDragging();
+    if (!appWindow || e.button !== 0) {
+      return;
+    }
+    if (e.detail === 2) {
+      appWindow.toggleMaximize();
+    } else {
+      appWindow.startDragging();
+    }
   }
 </script>
 

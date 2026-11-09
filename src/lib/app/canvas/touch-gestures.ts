@@ -104,8 +104,9 @@ export class TouchGestures {
       }
       return;
     }
-    if (this.phase === "navigate") this.reanchor();
-    else if (this.phase === "pending" && this.fingers.size === 1 && this.host.fingerDraws()) {
+    if (this.phase === "navigate") {
+      this.reanchor();
+    } else if (this.phase === "pending" && this.fingers.size === 1 && this.host.fingerDraws()) {
       if (this.host.beginStroke(p, time)) {
         this.phase = "stroke";
         this.strokeFinger = id;
@@ -116,10 +117,14 @@ export class TouchGestures {
 
   move(id: number, p: Point, time: number) {
     const finger = this.fingers.get(id);
-    if (!finger) return;
+    if (!finger) {
+      return;
+    }
     finger.at = p;
     if (this.phase === "stroke") {
-      if (id === this.strokeFinger) this.host.moveStroke(p, time);
+      if (id === this.strokeFinger) {
+        this.host.moveStroke(p, time);
+      }
     } else if (this.phase === "pending") {
       if (Math.hypot(p.x - finger.start.x, p.y - finger.start.y) > TAP_SLOP) {
         // From where the fingers landed: the canvas stays under them.
@@ -133,7 +138,9 @@ export class TouchGestures {
   }
 
   up(id: number, time: number) {
-    if (!this.fingers.delete(id)) return;
+    if (!this.fingers.delete(id)) {
+      return;
+    }
     if (this.phase === "stroke") {
       this.host.endStroke();
       this.strokeFinger = null;
@@ -143,12 +150,17 @@ export class TouchGestures {
     } else if (this.phase === "pending" && this.fingers.size === 0) {
       // Still pending: no finger moved.
       if (time - this.firstDown <= TAP_MS) {
-        if (this.most === 2) this.host.undo();
-        else if (this.most === 3) this.host.redo();
+        if (this.most === 2) {
+          this.host.undo();
+        } else if (this.most === 3) {
+          this.host.redo();
+        }
       }
     }
     if (this.fingers.size === 0) {
-      if (this.phase === "navigate" && this.lastAt) this.host.endNavigation?.(this.lastAt);
+      if (this.phase === "navigate" && this.lastAt) {
+        this.host.endNavigation?.(this.lastAt);
+      }
       this.phase = "idle";
       this.anchor = null;
       this.lastAt = null;
@@ -160,14 +172,20 @@ export class TouchGestures {
    * nothing more until lifted; a finger's stroke is kept.
    */
   abandon() {
-    if (this.phase === "stroke") this.host.endStroke();
-    if (this.phase !== "idle") this.phase = "spent";
+    if (this.phase === "stroke") {
+      this.host.endStroke();
+    }
+    if (this.phase !== "idle") {
+      this.phase = "spent";
+    }
     this.strokeFinger = null;
   }
 
   /** The system took the fingers (e.g. a system gesture): ends everything, without a tap. */
   cancel(id: number) {
-    if (this.phase === "pending") this.phase = "spent";
+    if (this.phase === "pending") {
+      this.phase = "spent";
+    }
     this.up(id, Infinity);
   }
 
@@ -188,9 +206,13 @@ export class TouchGestures {
    */
   private follow() {
     const anchor = this.anchor;
-    if (!anchor) return;
+    if (!anchor) {
+      return;
+    }
     const now = [...this.fingers.values()].slice(0, 2).map((f) => f.at);
-    if (now.length !== anchor.points.length) return this.reanchor();
+    if (now.length !== anchor.points.length) {
+      return this.reanchor();
+    }
     const [a0, b0] = anchor.points;
     const [a, b] = now;
     this.lastAt = b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
@@ -211,8 +233,12 @@ export class TouchGestures {
       anchor.turnedFrom = turn;
     }
     let camera = anchor.camera;
-    if (span0 > 0 && span > 0) camera = zoomAt(camera, mid0, span / span0);
-    if (this.rotating) camera = rotateAt(camera, mid0, turn - anchor.turnedFrom);
+    if (span0 > 0 && span > 0) {
+      camera = zoomAt(camera, mid0, span / span0);
+    }
+    if (this.rotating) {
+      camera = rotateAt(camera, mid0, turn - anchor.turnedFrom);
+    }
     this.host.setCamera(pan(camera, mid.x - mid0.x, mid.y - mid0.y));
   }
 }

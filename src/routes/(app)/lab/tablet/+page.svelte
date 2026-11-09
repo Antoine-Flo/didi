@@ -47,7 +47,9 @@
   /** Draws a segment to (x, y), given in viewport CSS pixels. */
   function drawTo(source: Source, x: number, y: number, pressure: number) {
     const stroke = strokes[source];
-    if (!stroke) return;
+    if (!stroke) {
+      return;
+    }
     const r = canvas.getBoundingClientRect();
     const p = { x: x - r.left, y: y - r.top };
     if (stroke.last && source === drawSource) {
@@ -69,7 +71,9 @@
   function domSamples(e: PointerEvent): PointerEvent[] {
     if (support.coalescedEvents) {
       const list = e.getCoalescedEvents();
-      if (list.length > 0) return list;
+      if (list.length > 0) {
+        return list;
+      }
     }
     return [e];
   }
@@ -80,7 +84,9 @@
 
   function onDown(e: PointerEvent) {
     logButton(`dom down ${e.pointerType} button=${e.button} buttons=${e.buttons}`);
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     canvas.setPointerCapture(e.pointerId);
     strokes.dom = { stats: new InputStats(), last: null };
     strokes.dom.stats.record([domSample(e)], performance.now(), e.timeStamp);
@@ -96,15 +102,21 @@
       buttons: e.buttons,
     };
     const stroke = strokes.dom;
-    if (!stroke) return;
+    if (!stroke) {
+      return;
+    }
     const samples = domSamples(e);
     stroke.stats.record(samples.map(domSample), performance.now(), e.timeStamp);
-    for (const s of samples) drawTo("dom", s.clientX, s.clientY, s.pressure);
+    for (const s of samples) {
+      drawTo("dom", s.clientX, s.clientY, s.pressure);
+    }
   }
 
   function onUp(e: PointerEvent) {
     logButton(`dom up   ${e.pointerType} button=${e.button} buttons=${e.buttons}`);
-    if (!strokes.dom) return;
+    if (!strokes.dom) {
+      return;
+    }
     reports.dom = strokes.dom.stats.report();
     strokes.dom = null;
   }
@@ -119,8 +131,12 @@
       tiltY: e.tiltY,
       buttons: e.button,
     };
-    if (e.phase !== "move") logButton(`native ${e.phase} ${e.source} button=${e.button}`);
-    if (e.source !== "pen" && e.source !== "eraser") return;
+    if (e.phase !== "move") {
+      logButton(`native ${e.phase} ${e.source} button=${e.button}`);
+    }
+    if (e.source !== "pen" && e.source !== "eraser") {
+      return;
+    }
 
     const handledAt = performance.timeOrigin + performance.now();
     const sample = { time: e.time, pressure: e.pressure, tiltX: e.tiltX, tiltY: e.tiltY };
@@ -129,7 +145,9 @@
       strokes.native = { stats: new InputStats(), last: null };
     }
     const stroke = strokes.native;
-    if (!stroke) return;
+    if (!stroke) {
+      return;
+    }
     stroke.stats.record([sample], handledAt, e.sentAt);
     drawTo("native", e.x, e.y, e.pressure);
     if (e.phase === "up" && e.button === 1) {
@@ -152,7 +170,9 @@
     ];
     for (const source of ["dom", "native"] as const) {
       const report = reports[source];
-      if (!report) continue;
+      if (!report) {
+        continue;
+      }
       lines.push(`--- ${source}`);
       for (const [k, v] of Object.entries(report)) {
         lines.push(`${k}: ${Number.isInteger(v) ? v : v.toFixed(3)}`);
@@ -189,12 +209,18 @@
     resize();
     window.addEventListener("resize", resize);
 
-    if (native) subscribeNativePen(onNative);
+    if (native) {
+      subscribeNativePen(onNative);
+    }
 
     // Update the live readout at most once per frame.
     let frame = requestAnimationFrame(function tick() {
-      if (pendingLive.dom) live.dom = pendingLive.dom;
-      if (pendingLive.native) live.native = pendingLive.native;
+      if (pendingLive.dom) {
+        live.dom = pendingLive.dom;
+      }
+      if (pendingLive.native) {
+        live.native = pendingLive.native;
+      }
       delete pendingLive.dom;
       delete pendingLive.native;
       frame = requestAnimationFrame(tick);

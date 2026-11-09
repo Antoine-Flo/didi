@@ -39,7 +39,9 @@ export async function readClipboardImage(): Promise<ClipboardImage | null> {
   }
   for (const item of await navigator.clipboard.read()) {
     const type = item.types.find((t) => t.startsWith("image/"));
-    if (type) return decode(await item.getType(type));
+    if (type) {
+      return decode(await item.getType(type));
+    }
   }
   return null;
 }

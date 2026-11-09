@@ -158,7 +158,9 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
         enabled(editor, params) {
           const { drawing } = editor;
           const id = target(editor, params?.id);
-          if (!exists(drawing, id)) return false;
+          if (!exists(drawing, id)) {
+            return false;
+          }
           const index = drawing.indexOf(id) + step;
           return index >= 0 && index < drawing.layers.length;
         },
@@ -181,7 +183,9 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
         if (Object.keys(undoable).length > 0) {
           editor.history.push(updateLayer(layerId, undoable));
         }
-        if (visible !== undefined) editor.drawing.updateLayer(layerId, { visible });
+        if (visible !== undefined) {
+          editor.drawing.updateLayer(layerId, { visible });
+        }
       },
     }),
 
@@ -211,7 +215,9 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
       title: m.cmd_layer_clear(),
       enabled: (editor, params) => {
         const id = target(editor, params?.id);
-        if (!exists(editor.drawing, id)) return false;
+        if (!exists(editor.drawing, id)) {
+          return false;
+        }
         const layer = editor.drawing.getLayer(id);
         return !layer.locked && !layer.alphaLocked;
       },
@@ -253,7 +259,9 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
         title,
         enabled(editor) {
           const active = editor.activeLayer;
-          if (!active) return false;
+          if (!active) {
+            return false;
+          }
           const index = editor.drawing.indexOf(active.id) + step;
           return index >= 0 && index < editor.drawing.layers.length;
         },
@@ -282,7 +290,9 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>): () =>
       enabled: (editor) => editor.selection.rect !== null,
       run(editor) {
         const rect = selectionBounds(editor);
-        if (rect) crop(editor, rect, m.cmd_image_crop_to_selection());
+        if (rect) {
+          crop(editor, rect, m.cmd_image_crop_to_selection());
+        }
       },
     }),
     registry.register({

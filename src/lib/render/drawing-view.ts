@@ -79,8 +79,11 @@ class LayerView {
       const source = sprite.texture.source as BufferImageSource;
       source.resource = bytes;
       // Rows only: Pixi uploads a range of texels.
-      if (area) source.update(area.y * TILE_SIZE, (area.y + area.height) * TILE_SIZE);
-      else source.update();
+      if (area) {
+        source.update(area.y * TILE_SIZE, (area.y + area.height) * TILE_SIZE);
+      } else {
+        source.update();
+      }
       return;
     }
     const source = new BufferImageSource({
@@ -100,13 +103,21 @@ class LayerView {
 
   syncAll() {
     const present = new Set(this.layer.tiles.keys());
-    for (const key of [...this.sprites.keys()]) if (!present.has(key)) this.syncTile(key);
-    for (const key of present) this.syncTile(key);
+    for (const key of [...this.sprites.keys()]) {
+      if (!present.has(key)) {
+        this.syncTile(key);
+      }
+    }
+    for (const key of present) {
+      this.syncTile(key);
+    }
     this.syncProps();
   }
 
   setScaleMode(mode: SCALE_MODE) {
-    if (mode === this.scaleMode) return;
+    if (mode === this.scaleMode) {
+      return;
+    }
     this.scaleMode = mode;
     for (const sprite of this.sprites.values()) {
       const source = sprite.texture.source;
@@ -212,7 +223,9 @@ export class DrawingView {
     this.pointerPicker.scale.set(PIPETTE_SIZE / 24);
     this.pointerPicker.visible = false;
     this.root.addChild(this.canvasRoot, this.pointerRing, this.pointerCross, this.pointerPicker);
-    for (const layer of drawing.layers) this.addView(layer.id);
+    for (const layer of drawing.layers) {
+      this.addView(layer.id);
+    }
     this.orderDirty = true;
     this.unsubscribe = drawing.subscribe((change) => this.onChange(change));
   }
@@ -220,7 +233,9 @@ export class DrawingView {
   /** Number of tile sprites currently on the GPU. */
   get tileCount(): number {
     let count = 0;
-    for (const view of this.views.values()) count += view.tileCount;
+    for (const view of this.views.values()) {
+      count += view.tileCount;
+    }
     return count;
   }
 
@@ -238,12 +253,16 @@ export class DrawingView {
     this.zoom = camera.zoom;
     // Squares at least a few screen pixels wide: smaller, they would shimmer (moiré).
     let square = CHECKER_SIZE;
-    while (square * camera.zoom < CHECKER_MIN_ON_SCREEN) square *= 2;
+    while (square * camera.zoom < CHECKER_MIN_ON_SCREEN) {
+      square *= 2;
+    }
     this.checker.tileScale.set(square);
     const mode: SCALE_MODE = camera.zoom >= NEAREST_FROM_ZOOM ? "nearest" : "linear";
     if (mode !== this.scaleMode) {
       this.scaleMode = mode;
-      for (const layerView of this.views.values()) layerView.setScaleMode(mode);
+      for (const layerView of this.views.values()) {
+        layerView.setScaleMode(mode);
+      }
     }
     this.drawGrid(camera, view);
     this.drawSelection();
@@ -260,7 +279,9 @@ export class DrawingView {
     const rect = preview?.rect ?? { x: 0, y: 0, width, height };
     this.setCheckerArea(rect);
     this.previewMask.clear();
-    if (preview) this.previewMask.rect(rect.x, rect.y, rect.width, rect.height).fill(0xffffff);
+    if (preview) {
+      this.previewMask.rect(rect.x, rect.y, rect.width, rect.height).fill(0xffffff);
+    }
     this.layersRoot.mask = preview ? this.previewMask : null;
     this.layersRoot.scale.set(preview?.scaleX ?? 1, preview?.scaleY ?? 1);
     // The grid and the selection belong to the drawing as it is.
@@ -304,7 +325,9 @@ export class DrawingView {
   setSelectionDraft(draft: { rect: Rect; mask: Uint8Array | null } | null) {
     const sprite = this.selectionDraft;
     sprite.visible = !!draft;
-    if (!draft) return;
+    if (!draft) {
+      return;
+    }
     const { rect, mask } = draft;
     this.showDraftMask(rect, mask);
     sprite.position.set(rect.x, rect.y);
@@ -318,7 +341,11 @@ export class DrawingView {
     let bytes: Uint8Array | null = null;
     if (mask) {
       const texels = new Uint32Array(mask.length);
-      for (let i = 0; i < mask.length; i++) if (mask[i]) texels[i] = 0xffffffff;
+      for (let i = 0; i < mask.length; i++) {
+        if (mask[i]) {
+          texels[i] = 0xffffffff;
+        }
+      }
       bytes = new Uint8Array(texels.buffer);
     }
     if (bytes && ours && old.width === rect.width && old.height === rect.height) {
@@ -338,14 +365,18 @@ export class DrawingView {
           }),
         })
       : Texture.WHITE;
-    if (ours) old.destroy(true);
+    if (ours) {
+      old.destroy(true);
+    }
   }
 
   private drawSelection() {
     const g = this.selection;
     g.clear();
     const place = this.selectionPlace;
-    if (!place) return;
+    if (!place) {
+      return;
+    }
     const line = { width: 1, pixelLine: true };
     const frame = corners(place);
     const pieces: [Point, Point][] = this.selectionOutline
@@ -355,7 +386,9 @@ export class DrawingView {
         ])
       : frame.map((from, i) => [from, frame[(i + 1) % frame.length]]);
     this.drawDashes(pieces);
-    if (!this.selectionHasHandles) return;
+    if (!this.selectionHasHandles) {
+      return;
+    }
     // Around a lasso, the frame its handles belong to.
     if (this.selectionOutline) {
       g.poly(
@@ -398,7 +431,9 @@ export class DrawingView {
     // large outline, to keep the number of segments reasonable.
     const total = lengths.reduce((sum, length) => sum + length, 0);
     const dash = Math.max(4 / this.zoom, total / 2000);
-    for (const [a, b] of pieces) g.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    for (const [a, b] of pieces) {
+      g.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    }
     g.stroke({ ...line, color: 0xffffff });
     pieces.forEach(([a, b], i) => {
       const length = lengths[i];
@@ -425,7 +460,9 @@ export class DrawingView {
     this.pointerCross.clear();
     this.pointerPicker.visible = false;
     const c = this.cursorState;
-    if (!c || c.kind === "none") return;
+    if (!c || c.kind === "none") {
+      return;
+    }
     const screen = toScreen(this.camera, c);
     if (c.kind === "picker") {
       this.pointerPicker.position.set(screen.x, screen.y);
@@ -434,7 +471,9 @@ export class DrawingView {
     }
     if (c.kind === "circle") {
       const radius = (c.size / 2) * this.zoom;
-      if (radius * 2 < MIN_RING) return this.drawCross(screen);
+      if (radius * 2 < MIN_RING) {
+        return this.drawCross(screen);
+      }
       this.pointerRing
         .circle(screen.x, screen.y, radius)
         .stroke({ width: 1, color: 0xffffff, pixelLine: true });
@@ -452,7 +491,9 @@ export class DrawingView {
         const stamp = pixelStamp(n, "round");
         for (let i = 0; i < stamp.length;) {
           let j = i + 1;
-          while (j < stamp.length && stamp[j].y === stamp[i].y) j++;
+          while (j < stamp.length && stamp[j].y === stamp[i].y) {
+            j++;
+          }
           g.rect(x + stamp[i].x, y + stamp[i].y, stamp[j - 1].x - stamp[i].x + 1, 1);
           i = j;
         }
@@ -512,10 +553,18 @@ export class DrawingView {
     for (const p of stamp) {
       const left = x + p.x;
       const top = y + p.y;
-      if (!inside.has(`${p.x},${p.y - 1}`)) edges.push([left, top, left + 1, top]);
-      if (!inside.has(`${p.x},${p.y + 1}`)) edges.push([left, top + 1, left + 1, top + 1]);
-      if (!inside.has(`${p.x - 1},${p.y}`)) edges.push([left, top, left, top + 1]);
-      if (!inside.has(`${p.x + 1},${p.y}`)) edges.push([left + 1, top, left + 1, top + 1]);
+      if (!inside.has(`${p.x},${p.y - 1}`)) {
+        edges.push([left, top, left + 1, top]);
+      }
+      if (!inside.has(`${p.x},${p.y + 1}`)) {
+        edges.push([left, top + 1, left + 1, top + 1]);
+      }
+      if (!inside.has(`${p.x - 1},${p.y}`)) {
+        edges.push([left, top, left, top + 1]);
+      }
+      if (!inside.has(`${p.x + 1},${p.y}`)) {
+        edges.push([left + 1, top, left + 1, top + 1]);
+      }
     }
     // Two tones, like the other outlines: white one screen pixel off, then black.
     for (const [color, offset] of [
@@ -548,7 +597,9 @@ export class DrawingView {
     this.grid.clear();
     this.tileLines.clear();
     const area = visibleRect(camera, view, this.drawing);
-    if (!area) return;
+    if (!area) {
+      return;
+    }
     const right = area.x + area.width;
     const bottom = area.y + area.height;
     const tile = this.tileGrid;
@@ -558,10 +609,14 @@ export class DrawingView {
     const onTileY = (y: number) => tiles && y % tile.height === 0;
     if (this.gridShown && camera.zoom >= GRID_FROM_ZOOM) {
       for (let x = area.x; x <= right; x++) {
-        if (!onTileX(x)) this.grid.moveTo(x, area.y).lineTo(x, bottom);
+        if (!onTileX(x)) {
+          this.grid.moveTo(x, area.y).lineTo(x, bottom);
+        }
       }
       for (let y = area.y; y <= bottom; y++) {
-        if (!onTileY(y)) this.grid.moveTo(area.x, y).lineTo(right, y);
+        if (!onTileY(y)) {
+          this.grid.moveTo(area.x, y).lineTo(right, y);
+        }
       }
       this.grid.stroke({ width: 1, color: 0xffffff, alpha: PIXEL_GRID_STRENGTH, pixelLine: true });
     }
@@ -570,8 +625,12 @@ export class DrawingView {
       const x0 = Math.ceil(area.x / tile.width) * tile.width;
       const y0 = Math.ceil(area.y / tile.height) * tile.height;
       const lines = this.tileLines;
-      for (let x = x0; x <= right; x += tile.width) lines.moveTo(x, area.y).lineTo(x, bottom);
-      for (let y = y0; y <= bottom; y += tile.height) lines.moveTo(area.x, y).lineTo(right, y);
+      for (let x = x0; x <= right; x += tile.width) {
+        lines.moveTo(x, area.y).lineTo(x, bottom);
+      }
+      for (let y = y0; y <= bottom; y += tile.height) {
+        lines.moveTo(area.x, y).lineTo(right, y);
+      }
       lines.stroke({ width: 1, color: TILE_GRID_COLOR, alpha: TILE_GRID_ALPHA, pixelLine: true });
     }
   }
@@ -592,18 +651,26 @@ export class DrawingView {
       }
       this.orderDirty = false;
     }
-    for (const id of this.dirtyProps) this.views.get(id)?.syncProps();
+    for (const id of this.dirtyProps) {
+      this.views.get(id)?.syncProps();
+    }
     this.dirtyProps.clear();
     for (const [id, keys] of this.dirtyTiles) {
       const view = this.views.get(id);
-      if (view) for (const [key, area] of keys) view.syncTile(key, area);
+      if (view) {
+        for (const [key, area] of keys) {
+          view.syncTile(key, area);
+        }
+      }
     }
     this.dirtyTiles.clear();
   }
 
   destroy() {
     this.unsubscribe();
-    for (const view of this.views.values()) view.destroy();
+    for (const view of this.views.values()) {
+      view.destroy();
+    }
     this.views.clear();
     this.root.destroy({ children: true, texture: true, textureSource: true });
   }
@@ -629,12 +696,17 @@ export class DrawingView {
         break;
       case "pixels-changed": {
         let keys = this.dirtyTiles.get(change.id);
-        if (!keys) this.dirtyTiles.set(change.id, (keys = new Map()));
+        if (!keys) {
+          this.dirtyTiles.set(change.id, (keys = new Map()));
+        }
         change.tiles.forEach((key, i) => {
           const area = change.areas?.[i] ?? null;
           const previous = keys.get(key);
-          if (previous === undefined) keys.set(key, area);
-          else if (previous !== null) keys.set(key, area && union(previous, area));
+          if (previous === undefined) {
+            keys.set(key, area);
+          } else if (previous !== null) {
+            keys.set(key, area && union(previous, area));
+          }
         });
         break;
       }

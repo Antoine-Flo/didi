@@ -79,12 +79,18 @@ function pickAt(
   const px = Math.floor(x);
   const py = Math.floor(y);
   const { drawing } = editor;
-  if (px < 0 || py < 0 || px >= drawing.width || py >= drawing.height) return null;
+  if (px < 0 || py < 0 || px >= drawing.width || py >= drawing.height) {
+    return null;
+  }
   const data = SOURCES[source]?.read(editor, { x: px, y: py, width: 1, height: 1 });
   const taken = CHANNELS[channels];
-  if (!data || !taken) return null;
+  if (!data || !taken) {
+    return null;
+  }
   const [r, g, b, a] = unpremultiply(data);
-  if (a === 0) return taken.color ? { color: null } : { opacity: 0 };
+  if (a === 0) {
+    return taken.color ? { color: null } : { opacity: 0 };
+  }
   return {
     color: taken.color ? [r, g, b] : undefined,
     opacity: taken.opacity ? a / 255 : undefined,
@@ -114,14 +120,20 @@ export const pickerTool = defineTool<PickerSettings>({
   },
   begin(context, settings, { x, y }) {
     const picked = pickAt(context.editor, settings, x, y);
-    if (picked) context.pick(picked);
+    if (picked) {
+      context.pick(picked);
+    }
     return null;
   },
 });
 
 /** Applies what was picked: the opacity goes to the tool `toolId`, if it has one. */
 export function applyPicked(options: ToolOptions, toolId: string, { color, opacity }: Picked) {
-  if (color !== undefined) options.color = color;
+  if (color !== undefined) {
+    options.color = color;
+  }
   const settings = options.tools[toolId];
-  if (opacity !== undefined && typeof settings?.opacity === "number") settings.opacity = opacity;
+  if (opacity !== undefined && typeof settings?.opacity === "number") {
+    settings.opacity = opacity;
+  }
 }

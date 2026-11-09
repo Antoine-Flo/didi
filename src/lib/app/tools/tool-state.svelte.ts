@@ -41,7 +41,9 @@ export class ToolState {
 
   set id(id: string) {
     this.activeId = id;
-    if (id !== pickerTool.id) this.drawingId = id;
+    if (id !== pickerTool.id) {
+      this.drawingId = id;
+    }
   }
 
   /** The tool picking serves: the active one, or the one in use before the picker. */
@@ -51,7 +53,9 @@ export class ToolState {
 
   /** Shows another mode's tools, back on the last tool used in it. */
   setMode(mode: Mode) {
-    if (mode.id === this.mode.id) return;
+    if (mode.id === this.mode.id) {
+      return;
+    }
     this.lastTool[this.mode.id] = this.activeId;
     this.mode = mode;
     this.id = this.lastTool[mode.id] ?? mode.tools[0];

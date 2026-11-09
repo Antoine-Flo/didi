@@ -4,7 +4,9 @@ import { Editor } from "./editor";
 
 function setup(names: string[] = []) {
   const editor = new Editor(new Drawing(100, 100));
-  for (const name of names) editor.commands.execute("layer.add", { props: { name } });
+  for (const name of names) {
+    editor.commands.execute("layer.add", { props: { name } });
+  }
   return editor;
 }
 
@@ -13,7 +15,9 @@ const names = (editor: Editor) => editor.drawing.layers.map((l) => l.name);
 describe("Editor", () => {
   it("starts on the top layer of an existing drawing", () => {
     const drawing = new Drawing(100, 100);
-    for (const name of ["A", "B", "C"]) drawing.addLayer(drawing.createLayer({ name }));
+    for (const name of ["A", "B", "C"]) {
+      drawing.addLayer(drawing.createLayer({ name }));
+    }
     expect(new Editor(drawing).activeLayer?.name).toBe("C");
   });
 

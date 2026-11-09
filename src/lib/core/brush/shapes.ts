@@ -31,14 +31,18 @@ const LINE_STEPS: Pixel[] = [
 export function snapLineEnd(a: Pixel, b: Pixel): Pixel {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  if (dx === 0 && dy === 0) return b;
+  if (dx === 0 && dy === 0) {
+    return b;
+  }
   const sx = Math.sign(dx) || 1;
   const sy = Math.sign(dy) || 1;
   const angle = Math.atan2(Math.abs(dy), Math.abs(dx));
   let best = LINE_STEPS[0];
   for (const step of LINE_STEPS) {
     const diff = (s: Pixel) => Math.abs(Math.atan2(s.y, s.x) - angle);
-    if (diff(step) < diff(best)) best = step;
+    if (diff(step) < diff(best)) {
+      best = step;
+    }
   }
   // How many steps: the projection of the drag on the direction.
   const length = Math.hypot(best.x, best.y);
@@ -88,11 +92,15 @@ export function rectOutline({ x0, y0, x1, y1 }: PixelBox): Pixel[] {
   const pixels: Pixel[] = [];
   for (let x = x0; x <= x1; x++) {
     pixels.push({ x, y: y0 });
-    if (y1 !== y0) pixels.push({ x, y: y1 });
+    if (y1 !== y0) {
+      pixels.push({ x, y: y1 });
+    }
   }
   for (let y = y0 + 1; y < y1; y++) {
     pixels.push({ x: x0, y });
-    if (x1 !== x0) pixels.push({ x: x1, y });
+    if (x1 !== x0) {
+      pixels.push({ x: x1, y });
+    }
   }
   return pixels;
 }
@@ -147,10 +155,13 @@ export function ellipseOutline({ x0, y0, x1, y1 }: PixelBox): Pixel[] {
 export function ellipseSpans(box: PixelBox): Map<number, { x0: number; x1: number }> {
   const spans = new Map<number, { x0: number; x1: number }>();
   for (const { x, y } of ellipseOutline(box)) {
-    if (y < box.y0 || y > box.y1) continue;
+    if (y < box.y0 || y > box.y1) {
+      continue;
+    }
     const span = spans.get(y);
-    if (!span) spans.set(y, { x0: x, x1: x });
-    else {
+    if (!span) {
+      spans.set(y, { x0: x, x1: x });
+    } else {
       span.x0 = Math.min(span.x0, x);
       span.x1 = Math.max(span.x1, x);
     }

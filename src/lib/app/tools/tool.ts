@@ -218,7 +218,9 @@ export class ToolRegistry extends Registry<Tool> {
   /** The default color and every tool's default settings. */
   defaultOptions(): ToolOptions {
     const tools: Record<string, ToolSettings> = {};
-    for (const tool of this.list()) tools[tool.id] = { ...tool.defaults };
+    for (const tool of this.list()) {
+      tools[tool.id] = { ...tool.defaults };
+    }
     return { color: [20, 20, 20], tools };
   }
 }

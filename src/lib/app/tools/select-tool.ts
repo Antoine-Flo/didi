@@ -69,7 +69,9 @@ abstract class Gesture implements ToolStroke {
     this.editor = context.editor;
     this.before = this.editor.selection.state;
     this.grab = this.pen = sample;
-    if (layerId) this.tiles = { layerId, before: layerTiles(this.editor.drawing, layerId) };
+    if (layerId) {
+      this.tiles = { layerId, before: layerTiles(this.editor.drawing, layerId) };
+    }
   }
 
   /** Follows the pen. */
@@ -106,7 +108,9 @@ abstract class Gesture implements ToolStroke {
   }
 
   cancel() {
-    if (this.tiles) this.editor.drawing.restorePixels(this.tiles.layerId, this.tiles.before);
+    if (this.tiles) {
+      this.editor.drawing.restorePixels(this.tiles.layerId, this.tiles.before);
+    }
     this.editor.selection.set(this.before);
   }
 }
@@ -127,7 +131,9 @@ abstract class NewArea extends Gesture {
   protected abstract track(pen: Sample): void;
 
   protected update(pen: Sample) {
-    if (!this.lifted) this.track(pen);
+    if (!this.lifted) {
+      this.track(pen);
+    }
   }
 
   finish(): Edit | null {
@@ -136,7 +142,9 @@ abstract class NewArea extends Gesture {
     const { selection } = this.editor;
     const { draft } = selection;
     selection.setDraft(null);
-    if (draft) selection.set({ ...draft, floating: null });
+    if (draft) {
+      selection.set({ ...draft, floating: null });
+    }
     return super.finish();
   }
 
@@ -161,7 +169,9 @@ class NewRectangle extends NewArea {
   protected track(pen: Sample) {
     const x = Math.floor(pen.x);
     const y = Math.floor(pen.y);
-    if (!this.moved && x === this.startX && y === this.startY) return;
+    if (!this.moved && x === this.startX && y === this.startY) {
+      return;
+    }
     this.moved = true;
     const left = Math.min(x, this.startX);
     const top = Math.min(y, this.startY);
@@ -173,7 +183,9 @@ class NewRectangle extends NewArea {
     };
     const rect = intersect(box, canvasOf(this.editor));
     const { selection } = this.editor;
-    if (samePlacement(rect, selection.draft?.rect ?? null)) return;
+    if (samePlacement(rect, selection.draft?.rect ?? null)) {
+      return;
+    }
     selection.setDraft(rect && { rect });
   }
 }
@@ -190,11 +202,15 @@ class NewLasso extends NewArea {
     const x = Math.min(width - 1, Math.max(0, Math.floor(sample.x))) + 0.5;
     const y = Math.min(height - 1, Math.max(0, Math.floor(sample.y))) + 0.5;
     const last = this.path.at(-1);
-    if (!last || last.x !== x || last.y !== y) this.path.push({ x, y });
+    if (!last || last.x !== x || last.y !== y) {
+      this.path.push({ x, y });
+    }
   }
 
   protected track() {
-    if (this.path.length === this.shown) return;
+    if (this.path.length === this.shown) {
+      return;
+    }
     this.shown = this.path.length;
     this.editor.selection.setDraft(pathSelection(this.path));
   }
@@ -217,12 +233,16 @@ class MoveEdge extends Gesture {
   }
 
   protected update(pen: Sample) {
-    if (!this.start) return;
+    if (!this.start) {
+      return;
+    }
     const horizontal = this.side === "e" || this.side === "w";
     const delta = Math.round(horizontal ? pen.x - this.grab.x : pen.y - this.grab.y);
     const rect = moveEdge(this.start, this.side, delta, canvasOf(this.editor));
     const { selection } = this.editor;
-    if (samePlacement(rect, selection.rect)) return;
+    if (samePlacement(rect, selection.rect)) {
+      return;
+    }
     selection.set({ ...selection.state, rect });
   }
 }
@@ -244,9 +264,13 @@ class MovePivot extends Gesture {
       y: snap(this.start.y + pen.y - this.grab.y),
     };
     const { selection } = this.editor;
-    if (samePoint(pivot, selection.state.pivot)) return;
+    if (samePoint(pivot, selection.state.pivot)) {
+      return;
+    }
     // Grabbed without really moving: it stays the default one.
-    if (this.grab.x === pen.x && this.grab.y === pen.y) return;
+    if (this.grab.x === pen.x && this.grab.y === pen.y) {
+      return;
+    }
     selection.set({ ...selection.state, pivot });
   }
 }
@@ -280,7 +304,9 @@ class TransformContent extends Gesture {
     const { selection, drawing } = this.editor;
     const shownAt = placementOf(selection.state)!;
     const next = this.place(this.start, pen, this.grab);
-    if (samePlacement(next, shownAt)) return;
+    if (samePlacement(next, shownAt)) {
+      return;
+    }
     const { shape } = selection.state;
     const floating =
       selection.floating ??
@@ -301,10 +327,18 @@ class TransformContent extends Gesture {
 /** The layer content can be taken from, or null after telling the user why not. */
 function contentLayer(context: ToolContext): string | null {
   const { selection, activeLayer: layer } = context.editor;
-  if (selection.floating) return selection.floating.layerId;
-  if (!layer) return context.refuse(m.tool_no_layer_to_move());
-  if (layer.locked) return context.refuse(m.canvas_layer_locked({ name: layer.name }));
-  if (!layer.visible) return context.refuse(m.canvas_layer_hidden({ name: layer.name }));
+  if (selection.floating) {
+    return selection.floating.layerId;
+  }
+  if (!layer) {
+    return context.refuse(m.tool_no_layer_to_move());
+  }
+  if (layer.locked) {
+    return context.refuse(m.canvas_layer_locked({ name: layer.name }));
+  }
+  if (!layer.visible) {
+    return context.refuse(m.canvas_layer_hidden({ name: layer.name }));
+  }
   return layer.id;
 }
 
@@ -335,7 +369,9 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
     hover(editor, { x, y }, zoom) {
       const { state } = editor.selection;
       const placement = placementOf(state);
-      if (!placement) return null;
+      if (!placement) {
+        return null;
+      }
       return zoneCursor(zoneAt(placement, x, y, zoom, state.pivot ?? null), placement);
     },
     begin(context, settings, sample) {
@@ -349,11 +385,17 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
           ? new NewLasso(context, sample)
           : new NewRectangle(context, sample);
       }
-      if (zone.kind === "bounds") return new MoveEdge(context, sample, zone.side);
-      if (zone.kind === "pivot") return new MovePivot(context, sample);
+      if (zone.kind === "bounds") {
+        return new MoveEdge(context, sample, zone.side);
+      }
+      if (zone.kind === "pivot") {
+        return new MovePivot(context, sample);
+      }
 
       const layerId = contentLayer(context);
-      if (!layerId) return null;
+      if (!layerId) {
+        return null;
+      }
       const transform = (label: string, place: Place, carriesPivot = false) =>
         new TransformContent(context, sample, label, layerId, place, smooth, carriesPivot);
 
@@ -376,7 +418,9 @@ function selectionTool(id: string, title: string, smooth: boolean): Tool {
           return transform(m.tool_undo_rotate(), (start, pen, grab) => {
             const from = Math.atan2(grab.y - center.y, grab.x - center.x);
             let angle = Math.atan2(pen.y - center.y, pen.x - center.x) - from;
-            if (context.modifiers().shift) angle = Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
+            if (context.modifiers().shift) {
+              angle = Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
+            }
             return angle === 0 ? start : rotated(start, center, angle);
           });
         }

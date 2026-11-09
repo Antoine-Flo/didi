@@ -19,7 +19,9 @@
   } = $props();
 
   $effect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });

@@ -76,21 +76,31 @@ export function normalizeChord(chord: string): string {
     }
     modifiers.add(modifier as Modifier);
   }
-  if (!key || MODIFIER_KEYS.has(key)) throw new Error(`Invalid key in "${chord}"`);
+  if (!key || MODIFIER_KEYS.has(key)) {
+    throw new Error(`Invalid key in "${chord}"`);
+  }
   return [...MODIFIERS.filter((m) => modifiers.has(m)), key].join("+");
 }
 
 /** The chord of a key press, or null for a modifier key alone. */
 export function chordOf(e: KeyInput): string | null {
   const key = keyName(e.key);
-  if (MODIFIER_KEYS.has(key) || key === "dead" || key === "unidentified") return null;
+  if (MODIFIER_KEYS.has(key) || key === "dead" || key === "unidentified") {
+    return null;
+  }
   const symbol = isSymbol(e.key) && key !== "space";
   // With AltGr, some systems also report Ctrl and Alt (Windows).
   const altGraph = symbol && e.altGraph;
   const parts: string[] = [];
-  if ((e.ctrlKey || e.metaKey) && !altGraph) parts.push("ctrl");
-  if (e.altKey && !altGraph) parts.push("alt");
-  if (e.shiftKey && !symbol) parts.push("shift");
+  if ((e.ctrlKey || e.metaKey) && !altGraph) {
+    parts.push("ctrl");
+  }
+  if (e.altKey && !altGraph) {
+    parts.push("alt");
+  }
+  if (e.shiftKey && !symbol) {
+    parts.push("shift");
+  }
   parts.push(key);
   return parts.join("+");
 }
@@ -139,8 +149,11 @@ export class KeymapIndex {
     const byCommand = new Map<string, string[]>();
     for (const [chord, b] of this.byChord) {
       const chords = byCommand.get(b.command);
-      if (chords) chords.push(chord);
-      else byCommand.set(b.command, [chord]);
+      if (chords) {
+        chords.push(chord);
+      } else {
+        byCommand.set(b.command, [chord]);
+      }
     }
     return [...byCommand].map(([command, chords]) => ({ command, chords }));
   }

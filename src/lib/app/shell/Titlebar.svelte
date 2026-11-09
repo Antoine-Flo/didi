@@ -29,11 +29,18 @@
   } = $props();
 
   function onMouseDown(e: MouseEvent) {
-    if (!appWindow || e.button !== 0) return;
+    if (!appWindow || e.button !== 0) {
+      return;
+    }
     // Not from a control: a slider would move the window.
-    if ((e.target as Element).closest("button, input, label, select, [role='slider']")) return;
-    if (e.detail === 2) appWindow.toggleMaximize();
-    else appWindow.startDragging();
+    if ((e.target as Element).closest("button, input, label, select, [role='slider']")) {
+      return;
+    }
+    if (e.detail === 2) {
+      appWindow.toggleMaximize();
+    } else {
+      appWindow.startDragging();
+    }
   }
 </script>
 

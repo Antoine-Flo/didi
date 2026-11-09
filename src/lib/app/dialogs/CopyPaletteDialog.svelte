@@ -18,19 +18,25 @@
 
   let name = $state("");
   $effect(() => {
-    if (source !== null) name = m.copy_palette_default_name({ name: source });
+    if (source !== null) {
+      name = m.copy_palette_default_name({ name: source });
+    }
   });
 
   // While it is open, a contact on the canvas only closes it.
   $effect(() => {
-    if (source === null) return;
+    if (source === null) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      return;
+    }
     oncopy(name.trim());
     onclose();
   }

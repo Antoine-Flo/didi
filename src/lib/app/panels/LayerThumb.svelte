@@ -19,7 +19,9 @@
     void stamp;
     const bounds = contentBounds(tiles);
     empty = bounds === null;
-    if (!bounds) return;
+    if (!bounds) {
+      return;
+    }
     pixelated = Math.max(bounds.width, bounds.height) <= SIZE;
     const thumb = layerThumbnail(tiles, SIZE, bounds);
     canvas.width = thumb.width;

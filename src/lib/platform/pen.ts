@@ -30,7 +30,9 @@ export function subscribeNativePen(onEvent: (e: PenEvent) => void): Promise<void
 
 /** Whether native pen events are available (Tauri on Linux). */
 export async function nativePenAvailable(): Promise<boolean> {
-  if (!isTauri()) return false;
+  if (!isTauri()) {
+    return false;
+  }
   try {
     return await invoke<boolean>("tablet_available");
   } catch {

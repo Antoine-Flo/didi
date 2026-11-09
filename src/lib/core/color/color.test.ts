@@ -13,7 +13,9 @@ describe("color", () => {
     expect(toHex([255, 128, 0])).toBe("#ff8000");
     expect(fromHex("#FF8000")).toEqual([255, 128, 0]);
     expect(fromHex(" ff8000 ")).toEqual([255, 128, 0]);
-    for (const bad of ["nope", "#ff80", "#ff80001", "ggg000", ""]) expect(fromHex(bad)).toBeNull();
+    for (const bad of ["nope", "#ff80", "#ff80001", "ggg000", ""]) {
+      expect(fromHex(bad)).toBeNull();
+    }
   });
 
   it("converts known colors to HSV", () => {

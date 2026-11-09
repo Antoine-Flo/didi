@@ -49,7 +49,9 @@ export class History {
   }
 
   get undoLabel(): string | null {
-    if (this.open?.edits.length) return this.open.label;
+    if (this.open?.edits.length) {
+      return this.open.label;
+    }
     return this.past.at(-1)?.label ?? null;
   }
 
@@ -90,17 +92,26 @@ export class History {
 
   /** Starts grouping edits into one step. Groups can be nested; the outermost wins. */
   begin(label: string) {
-    if (this.open) this.open.depth++;
-    else this.open = { label, edits: [], depth: 1 };
+    if (this.open) {
+      this.open.depth++;
+    } else {
+      this.open = { label, edits: [], depth: 1 };
+    }
   }
 
   /** Ends the current group. An empty group leaves no step. */
   end() {
-    if (!this.open) throw new Error("No group to end");
-    if (--this.open.depth > 0) return;
+    if (!this.open) {
+      throw new Error("No group to end");
+    }
+    if (--this.open.depth > 0) {
+      return;
+    }
     const { label, edits } = this.open;
     this.open = null;
-    if (edits.length > 0) this.record(group(label, edits));
+    if (edits.length > 0) {
+      this.record(group(label, edits));
+    }
     this.notify();
   }
 
@@ -108,7 +119,9 @@ export class History {
   undo(): boolean {
     this.closeGroup();
     const edit = this.past.pop();
-    if (!edit) return false;
+    if (!edit) {
+      return false;
+    }
     edit.revert(this.drawing);
     this.future.push(edit);
     this.notify();
@@ -119,7 +132,9 @@ export class History {
   redo(): boolean {
     this.closeGroup();
     const edit = this.future.pop();
-    if (!edit) return false;
+    if (!edit) {
+      return false;
+    }
     edit.apply(this.drawing);
     this.past.push(edit);
     this.notify();
@@ -146,7 +161,9 @@ export class History {
   }
 
   private closeGroup() {
-    if (!this.open) return;
+    if (!this.open) {
+      return;
+    }
     this.open.depth = 1;
     this.end();
   }
@@ -154,7 +171,9 @@ export class History {
   // Drops the oldest steps, but always keeps the most recent one.
   private enforceLimits() {
     const { maxSteps, maxBytes } = this.options;
-    while (this.past.length > Math.max(1, maxSteps)) this.past.shift();
+    while (this.past.length > Math.max(1, maxSteps)) {
+      this.past.shift();
+    }
     let bytes = this.bytes;
     while (this.past.length > 1 && bytes > maxBytes) {
       bytes -= this.past.shift()!.bytes?.() ?? 0;

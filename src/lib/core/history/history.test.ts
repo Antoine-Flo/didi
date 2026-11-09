@@ -77,7 +77,9 @@ describe("History", () => {
   it("groups edits into one step", () => {
     const { drawing, history, id } = setup();
     history.begin("Opacity");
-    for (const opacity of [0.9, 0.7, 0.4]) history.push(updateLayer(id, { opacity }));
+    for (const opacity of [0.9, 0.7, 0.4]) {
+      history.push(updateLayer(id, { opacity }));
+    }
     expect(opacityOf(drawing, id)).toBe(0.4);
     history.end();
     expect(history.steps).toBe(1);
@@ -125,9 +127,13 @@ describe("History", () => {
 
   it("keeps at most maxSteps steps", () => {
     const { drawing, history, id } = setup({ maxSteps: 3 });
-    for (const opacity of [0.9, 0.8, 0.7, 0.6, 0.5]) history.push(updateLayer(id, { opacity }));
+    for (const opacity of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+      history.push(updateLayer(id, { opacity }));
+    }
     expect(history.steps).toBe(3);
-    while (history.undo());
+    while (history.undo()) {
+      // Undo everything.
+    }
     expect(opacityOf(drawing, id)).toBe(0.8);
   });
 
@@ -204,7 +210,9 @@ describe("History", () => {
         for (const a of actions) {
           if (a.kind === "push") {
             const edit = a.make(drawing);
-            if (!edit) continue;
+            if (!edit) {
+              continue;
+            }
             history.push(edit);
             if (depth > 0) {
               groupHasEdits = true;
@@ -215,24 +223,32 @@ describe("History", () => {
             present = capture(drawing);
           } else if (a.kind === "begin") {
             history.begin("Groupe");
-            if (depth++ === 0) groupStart = present;
+            if (depth++ === 0) {
+              groupStart = present;
+            }
           } else if (a.kind === "end") {
             if (depth === 0) {
               expect(() => history.end()).toThrow();
               continue;
             }
             history.end();
-            if (--depth === 0) endGroup();
+            if (--depth === 0) {
+              endGroup();
+            }
           } else if (a.kind === "undo") {
             history.undo();
-            if (depth > 0) endGroup();
+            if (depth > 0) {
+              endGroup();
+            }
             if (past.length) {
               future.push(present);
               present = past.pop()!;
             }
           } else {
             history.redo();
-            if (depth > 0) endGroup();
+            if (depth > 0) {
+              endGroup();
+            }
             if (future.length) {
               past.push(present);
               present = future.pop()!;

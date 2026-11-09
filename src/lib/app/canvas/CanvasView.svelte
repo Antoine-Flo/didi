@@ -169,7 +169,9 @@
       pen?.cancel();
     },
     endNavigation: (at) => {
-      if (pixelZoom) zoomAround(at, snapZoomNearest(camera.zoom, devicePixelRatio));
+      if (pixelZoom) {
+        zoomAround(at, snapZoomNearest(camera.zoom, devicePixelRatio));
+      }
     },
     undo: () => oncommand?.("history.undo"),
     redo: () => oncommand?.("history.redo"),
@@ -227,8 +229,11 @@
 
   /** One step in (1) or out (-1), around the center of the view. */
   export function zoomStep(direction: 1 | -1) {
-    if (pixelZoom) zoomAround(center(), stepZoom(camera.zoom, devicePixelRatio, direction));
-    else setCamera(zoomAt(camera, center(), direction > 0 ? 1.25 : 0.8));
+    if (pixelZoom) {
+      zoomAround(center(), stepZoom(camera.zoom, devicePixelRatio, direction));
+    } else {
+      setCamera(zoomAt(camera, center(), direction > 0 ? 1.25 : 0.8));
+    }
   }
 
   /** Sets the zoom to an absolute value (the nearest level in pixel art), around the center. */
@@ -237,7 +242,9 @@
   }
 
   function zoomAround(at: Point, zoom: number) {
-    if (zoom !== camera.zoom) setCamera(zoomAt(camera, at, zoom / camera.zoom));
+    if (zoom !== camera.zoom) {
+      setCamera(zoomAt(camera, at, zoom / camera.zoom));
+    }
   }
 
   /** Shows what a resize would give, without changing the drawing (see DrawingView). */
@@ -274,7 +281,9 @@
   /** Zooms with the wheel: smoothly, or in pixel art by levels when zoomed out. */
   function wheelZoom(at: Point, delta: number) {
     const factor = Math.exp(-delta * 0.0015);
-    if (!pixelZoom) return setCamera(zoomAt(camera, at, factor));
+    if (!pixelZoom) {
+      return setCamera(zoomAt(camera, at, factor));
+    }
     const dpr = devicePixelRatio;
     const free = isFreeZoom(camera.zoom, dpr);
     const target = camera.zoom * factor;
@@ -288,9 +297,13 @@
       return zoomAround(at, stepZoom(camera.zoom, dpr, -1, Infinity));
     }
     // One level per notch of a mouse wheel; a touchpad adds up its small moves.
-    if (Math.sign(delta) !== Math.sign(wheelRest)) wheelRest = 0;
+    if (Math.sign(delta) !== Math.sign(wheelRest)) {
+      wheelRest = 0;
+    }
     wheelRest += delta;
-    if (Math.abs(wheelRest) < WHEEL_NOTCH) return;
+    if (Math.abs(wheelRest) < WHEEL_NOTCH) {
+      return;
+    }
     wheelRest = 0;
     zoomAround(at, stepZoom(camera.zoom, dpr, delta < 0 ? 1 : -1));
   }
@@ -317,10 +330,14 @@
   // DOM pointer events: panning everywhere, drawing when there is no native input.
 
   function onPointerDown(e: PointerEvent) {
-    if (e.pointerType === "pen") penDown();
+    if (e.pointerType === "pen") {
+      penDown();
+    }
     if (e.pointerType === "touch") {
       // The palm, while the pen draws: ignored.
-      if (stroking && !touchStroke) return;
+      if (stroking && !touchStroke) {
+        return;
+      }
       touch.down(e.pointerId, local(e), e.timeStamp);
       touchNavigating = touch.navigating;
       return;
@@ -333,17 +350,25 @@
       return;
     }
     // Button 5 is the pen's eraser end.
-    if (!pen || (e.button !== 0 && e.button !== 5)) return;
+    if (!pen || (e.button !== 0 && e.button !== 5)) {
+      return;
+    }
     const eraser = e.button === 5 || (e.buttons & 32) !== 0;
-    if (pen.domDown(domSample(e), eraser)) host.setPointerCapture(e.pointerId);
+    if (pen.domDown(domSample(e), eraser)) {
+      host.setPointerCapture(e.pointerId);
+    }
   }
 
   function onPointerMove(e: PointerEvent) {
     if (e.pointerType === "touch") {
       const events = touch.stroking ? (e.getCoalescedEvents?.() ?? []) : [];
-      for (const c of events.length ? events : [e]) touch.move(e.pointerId, local(c), c.timeStamp);
+      for (const c of events.length ? events : [e]) {
+        touch.move(e.pointerId, local(c), c.timeStamp);
+      }
       touchNavigating = touch.navigating;
-      if (touchNavigating) return;
+      if (touchNavigating) {
+        return;
+      }
     }
     if (panning?.id === e.pointerId) {
       setCamera(pan(camera, e.clientX - panning.x, e.clientY - panning.y));
@@ -387,21 +412,29 @@
    * pixels are where the pen really is, under the system pointer).
    */
   function showPointer(now: number) {
-    if (!pointerAt) return;
+    if (!pointerAt) {
+      return;
+    }
     const still = now - pointerAt.time > STILL_MS;
     if (!pointerMoved && still) {
-      if (velocity.x === 0 && velocity.y === 0) return;
+      if (velocity.x === 0 && velocity.y === 0) {
+        return;
+      }
       velocity = { x: 0, y: 0 };
     }
     pointerMoved = false;
     const p = toCanvas(camera, local(pointerAt));
     reportCursor(p);
-    if (!stroking) hoverPoint = p;
+    if (!stroking) {
+      hoverPoint = p;
+    }
     let lead = { x: velocity.x * PREDICT_MS, y: velocity.y * PREDICT_MS };
     const length = Math.hypot(lead.x, lead.y);
-    if (still || !pointerAt.pen || cursorShape.kind !== "circle") lead = { x: 0, y: 0 };
-    else if (length > MAX_LEAD)
+    if (still || !pointerAt.pen || cursorShape.kind !== "circle") {
+      lead = { x: 0, y: 0 };
+    } else if (length > MAX_LEAD) {
       lead = { x: (lead.x * MAX_LEAD) / length, y: (lead.y * MAX_LEAD) / length };
+    }
     const ahead = toCanvas(
       camera,
       local({ clientX: pointerAt.clientX + lead.x, clientY: pointerAt.clientY + lead.y }),
@@ -411,14 +444,21 @@
 
   function onPointerUp(e: PointerEvent) {
     if (e.pointerType === "touch") {
-      if (e.type === "pointercancel") touch.cancel(e.pointerId);
-      else touch.up(e.pointerId, e.timeStamp);
+      if (e.type === "pointercancel") {
+        touch.cancel(e.pointerId);
+      } else {
+        touch.up(e.pointerId, e.timeStamp);
+      }
       touchNavigating = touch.navigating;
       return;
     }
-    if (panning?.id === e.pointerId) panning = null;
+    if (panning?.id === e.pointerId) {
+      panning = null;
+    }
     // Not the stroke of a finger: a mouse button released elsewhere.
-    if (!touchStroke) pen?.domUp();
+    if (!touchStroke) {
+      pen?.domUp();
+    }
   }
 
   /** Mice report 0.5 while pressed: they draw at full pressure. */
@@ -462,7 +502,9 @@
 
   function cursorState(p: Point): BrushCursorState | null {
     const c = cursorShape;
-    if (c.kind === "circle") return { ...c, x: p.x, y: p.y };
+    if (c.kind === "circle") {
+      return { ...c, x: p.x, y: p.y };
+    }
     if (c.kind === "square" || c.kind === "pixel-round") {
       const fill =
         c.opacity !== undefined && brushColor
@@ -473,7 +515,9 @@
           : undefined;
       return { kind: c.kind, size: c.size, x: p.x, y: p.y, fill };
     }
-    if (c.kind === "picker") return { kind: "picker", x: p.x, y: p.y };
+    if (c.kind === "picker") {
+      return { kind: "picker", x: p.x, y: p.y };
+    }
     return null;
   }
 
@@ -481,21 +525,27 @@
   let reported: Point | null = null;
   function reportCursor(p: Point | null) {
     const pixel = p && { x: Math.floor(p.x), y: Math.floor(p.y) };
-    if (pixel?.x === reported?.x && pixel?.y === reported?.y) return;
+    if (pixel?.x === reported?.x && pixel?.y === reported?.y) {
+      return;
+    }
     reported = pixel;
     oncursor?.(pixel);
   }
 
   function onKeyDown(e: KeyboardEvent) {
     // Alt alone must not open a menu of the system or the browser.
-    if (e.key === "Alt") e.preventDefault();
+    if (e.key === "Alt") {
+      e.preventDefault();
+    }
     if (e.code === "Space" && !isTyping(e)) {
       spaceDown = true;
       e.preventDefault();
     }
     // Also while the queue of a lifted stroke is still being painted.
     // Esc was for the stroke, not for the shortcut (see EditorApp).
-    if (e.key === "Escape" && pen?.cancel()) e.preventDefault();
+    if (e.key === "Escape" && pen?.cancel()) {
+      e.preventDefault();
+    }
   }
 
   function syncSelection() {
@@ -522,12 +572,18 @@
   // The background follows the theme when it changes (Preferences).
   $effect(() => {
     const background = themePrefs.theme.tokens["canvas-bg"];
-    if (app) app.renderer.background.color = background;
+    if (app) {
+      app.renderer.background.color = background;
+    }
   });
 
   function onKeyUp(e: KeyboardEvent) {
-    if (e.key === "Alt") e.preventDefault();
-    if (e.code === "Space") spaceDown = false;
+    if (e.key === "Alt") {
+      e.preventDefault();
+    }
+    if (e.code === "Space") {
+      spaceDown = false;
+    }
   }
 
   onMount(() => {
@@ -545,7 +601,9 @@
         autoDensity: true,
       })
       .then(() => {
-        if (destroyed) return pixi.destroy();
+        if (destroyed) {
+          return pixi.destroy();
+        }
         app = pixi;
         view = new DrawingView(editor.drawing);
         view.setGridShown(pixelGrid, tileGrid, camera, viewSize());
@@ -566,11 +624,17 @@
       });
 
     nativePenAvailable().then((available) => {
-      if (!available || destroyed || !pen) return;
+      if (!available || destroyed || !pen) {
+        return;
+      }
       pen.useNative();
       subscribeNativePen((e) => {
-        if ((e.source === "pen" || e.source === "eraser") && e.phase === "down") penDown();
-        if (!destroyed) pen.onNative(e);
+        if ((e.source === "pen" || e.source === "eraser") && e.phase === "down") {
+          penDown();
+        }
+        if (!destroyed) {
+          pen.onNative(e);
+        }
       });
     });
 

@@ -29,7 +29,9 @@ export function previewChannel(): BroadcastChannel {
  */
 export function changedRect(change: DrawingChange, drawing: Drawing): Rect | null {
   const all = { x: 0, y: 0, width: drawing.width, height: drawing.height };
-  if (change.type !== "pixels-changed") return all;
+  if (change.type !== "pixels-changed") {
+    return all;
+  }
   let rect: Rect | null = null;
   change.tiles.forEach((key, i) => {
     const { tx, ty } = tileCoord(key);
@@ -50,7 +52,9 @@ export function sendToWindow(drawing: Drawing): () => void {
   const channel = previewChannel();
   const sender = new PreviewSender(drawing, (message) => channel.postMessage(message));
   channel.onmessage = (e: MessageEvent<FromPreview>) => {
-    if (e.data.type === "hello") sender.sendAll();
+    if (e.data.type === "hello") {
+      sender.sendAll();
+    }
   };
   return () => {
     sender.close();
@@ -70,9 +74,13 @@ export class PreviewSender {
   ) {
     this.unsubscribe = drawing.subscribe((change) => {
       // A new size: the whole image again, with its size.
-      if (change.type === "canvas-resized") return this.sendAll();
+      if (change.type === "canvas-resized") {
+        return this.sendAll();
+      }
       const rect = changedRect(change, drawing);
-      if (rect) this.invalidate(rect);
+      if (rect) {
+        this.invalidate(rect);
+      }
     });
     this.sendAll();
   }
@@ -100,7 +108,9 @@ export class PreviewSender {
     this.frame = requestAnimationFrame(() => {
       const dirty = this.dirty;
       this.dirty = null;
-      if (!dirty) return;
+      if (!dirty) {
+        return;
+      }
       const data = unpremultiply(composite(this.drawing, dirty));
       this.post({ type: "pixels", rect: dirty, data });
     });

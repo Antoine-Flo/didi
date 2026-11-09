@@ -66,7 +66,9 @@ export class Editor {
   }
 
   setActiveLayer(id: string | null) {
-    if (id !== null) this.activeIndex = this.drawing.indexOf(id);
+    if (id !== null) {
+      this.activeIndex = this.drawing.indexOf(id);
+    }
     this.setActiveId(id);
   }
 
@@ -78,7 +80,9 @@ export class Editor {
   /** Lays floating content where it is shown. The selection stays, cut to the canvas. */
   applySelection() {
     const before = this.selection.state;
-    if (!before.floating) return;
+    if (!before.floating) {
+      return;
+    }
     const after = appliedState(this.drawing, before);
     this.history.push(selectionEdit(this.selection, m.cmd_selection_apply(), before, after));
   }
@@ -87,7 +91,9 @@ export class Editor {
   cancelSelection() {
     const before = this.selection.state;
     const { floating } = before;
-    if (!floating) return this.deselect();
+    if (!floating) {
+      return this.deselect();
+    }
     // Pasted content may come from beyond the canvas: what is left of it there.
     const rect = before.shape ? floating.origin : intersect(floating.origin, this.canvas);
     const after = { rect, shape: rect && before.shape, floating: null };
@@ -104,7 +110,9 @@ export class Editor {
   /** Removes the selection. Floating content stays where it is shown. */
   deselect() {
     const before = this.selection.state;
-    if (!before.rect) return;
+    if (!before.rect) {
+      return;
+    }
     this.history.push(
       selectionEdit(this.selection, m.cmd_selection_deselect(), before, NO_SELECTION),
     );
@@ -137,9 +145,13 @@ export class Editor {
    */
   editableLayer(clears = false): ReadonlyLayer | null {
     const { floating } = this.selection;
-    if (floating) return this.drawing.getLayer(floating.layerId);
+    if (floating) {
+      return this.drawing.getLayer(floating.layerId);
+    }
     const layer = this.activeLayer;
-    if (!layer || layer.locked || (clears && layer.alphaLocked)) return null;
+    if (!layer || layer.locked || (clears && layer.alphaLocked)) {
+      return null;
+    }
     return layer;
   }
 
@@ -156,12 +168,18 @@ export class Editor {
       return;
     }
     const layer = this.editableLayer(true);
-    if (!layer) return;
+    if (!layer) {
+      return;
+    }
     const rect = before.rect ?? this.canvas;
     const data = layer.tiles.readRegion(rect);
     if (before.shape) {
       const mask = shapeMask(rect, before.shape);
-      for (let i = 0; i < mask.length; i++) if (mask[i]) data.fill(0, i * 4, i * 4 + 4);
+      for (let i = 0; i < mask.length; i++) {
+        if (mask[i]) {
+          data.fill(0, i * 4, i * 4 + 4);
+        }
+      }
     } else {
       data.fill(0);
     }
@@ -179,12 +197,18 @@ export class Editor {
       return { rect, pixels, width: rect.width, height: rect.height };
     }
     const layer = this.activeLayer;
-    if (!layer) return null;
+    if (!layer) {
+      return null;
+    }
     const rect = state.rect ?? this.canvas;
     const pixels = layer.tiles.readRegion(rect);
     if (state.shape) {
       const mask = shapeMask(rect, state.shape);
-      for (let i = 0; i < mask.length; i++) if (!mask[i]) pixels.fill(0, i * 4, i * 4 + 4);
+      for (let i = 0; i < mask.length; i++) {
+        if (!mask[i]) {
+          pixels.fill(0, i * 4, i * 4 + 4);
+        }
+      }
     }
     return { rect, pixels, width: rect.width, height: rect.height };
   }
@@ -194,12 +218,18 @@ export class Editor {
    * False if there are none.
    */
   selectLayerContent(id = this.activeLayer?.id): boolean {
-    if (!id) return false;
+    if (!id) {
+      return false;
+    }
     const pixels = this.drawing.getLayer(id).tiles.readRegion(this.canvas);
     const mask = new Uint8Array(pixels.length / 4);
-    for (let i = 0; i < mask.length; i++) mask[i] = pixels[i * 4 + 3] > 0 ? 1 : 0;
+    for (let i = 0; i < mask.length; i++) {
+      mask[i] = pixels[i * 4 + 3] > 0 ? 1 : 0;
+    }
     const after = selectionOfMask(this.canvas, mask);
-    if (!after.rect) return false;
+    if (!after.rect) {
+      return false;
+    }
     const before = this.selection.state;
     this.history.push(
       selectionEdit(this.selection, m.cmd_selection_layer_content(), before, after),
@@ -215,11 +245,17 @@ export class Editor {
    */
   transform(): boolean {
     const before = this.selection.state;
-    if (before.floating) return true;
+    if (before.floating) {
+      return true;
+    }
     const area = this.drawnArea();
-    if (!area) return false;
+    if (!area) {
+      return false;
+    }
     const lifted = this.lifted(area);
-    if (!lifted) return false;
+    if (!lifted) {
+      return false;
+    }
     const { state, pixels } = lifted;
     this.history.push(selectionEdit(this.selection, m.cmd_edit_transform(), before, state, pixels));
     return true;
@@ -232,10 +268,14 @@ export class Editor {
   flip(axis: "horizontal" | "vertical") {
     const before = this.selection.state;
     const layerId = this.editableLayer()?.id;
-    if (!layerId) return;
+    if (!layerId) {
+      return;
+    }
     const start = layerTiles(this.drawing, layerId);
     let state = before.floating ? before : this.lifted()?.state;
-    if (!state?.floating) return;
+    if (!state?.floating) {
+      return;
+    }
     // Across the middle of its box.
     const shown = placementOf(state)!;
     const next = mirrored(
@@ -259,7 +299,9 @@ export class Editor {
   paste(image: Image, at: { x: number; y: number }): boolean {
     const before = this.selection.state;
     const layer = this.activeLayer;
-    if (!layer || layer.locked) return false;
+    if (!layer || layer.locked) {
+      return false;
+    }
     const start = layerTiles(this.drawing, layer.id);
     const rect = { x: at.x, y: at.y, width: image.width, height: image.height };
     const floating: Floating = {
@@ -289,7 +331,9 @@ export class Editor {
     const edits = [addLayer(layer, index)];
     const from = { x: at.x, y: at.y, width: image.width, height: image.height };
     const rect = intersect(from, this.canvas);
-    if (rect) edits.push(writePixels(layer.id, rect, cropped(image, from, rect)));
+    if (rect) {
+      edits.push(writePixels(layer.id, rect, cropped(image, from, rect)));
+    }
     this.history.push(group(m.cmd_edit_paste_as_layer(), edits));
     this.setActiveLayer(layer.id);
   }
@@ -300,7 +344,9 @@ export class Editor {
    */
   private drawnArea(): SelectionState | null {
     const layer = this.activeLayer;
-    if (!layer) return null;
+    if (!layer) {
+      return null;
+    }
     const { rect: selected, shape } = this.selection.state;
     const rect = selected ?? this.canvas;
     const pixels = layer.tiles.readRegion(rect);
@@ -310,10 +356,14 @@ export class Editor {
       drawn[i] = (!inside || inside[i]) && pixels[i * 4 + 3] > 0 ? 1 : 0;
     }
     const around = selectionOfMask(rect, drawn).rect;
-    if (!around) return null;
+    if (!around) {
+      return null;
+    }
     // The selection's own shape in that rectangle, not the drawing's: what is transparent in
     // it is lifted too, harmlessly.
-    if (!inside) return { ...this.selection.state, rect: around, floating: null };
+    if (!inside) {
+      return { ...this.selection.state, rect: around, floating: null };
+    }
     const mask = new Uint8Array(around.width * around.height);
     for (let y = 0; y < around.height; y++) {
       const from = (around.y - rect.y + y) * rect.width + (around.x - rect.x);
@@ -332,7 +382,9 @@ export class Editor {
   ): { state: SelectionState; pixels: ReturnType<typeof changedTiles> } | null {
     const before = from;
     const layer = this.editableLayer();
-    if (!layer || !layer.visible) return null;
+    if (!layer || !layer.visible) {
+      return null;
+    }
     const rect = before.rect ?? this.canvas;
     const mask = before.shape ? shapeMask(rect, before.shape) : null;
     const floating = lift(this.drawing, layer.id, rect, mask);
@@ -347,7 +399,9 @@ export class Editor {
   }
 
   private setActiveId(id: string | null) {
-    if (id === this.activeId) return;
+    if (id === this.activeId) {
+      return;
+    }
     this.activeId = id;
     this.activeChanges.emit(id);
   }
@@ -370,7 +424,9 @@ export class Editor {
 
 /** The pixels of `rect`, inside `from`, of an image covering `from`. */
 function cropped(image: Image, from: Rect, rect: Rect): Uint8ClampedArray {
-  if (rect.width === from.width && rect.height === from.height) return image.pixels;
+  if (rect.width === from.width && rect.height === from.height) {
+    return image.pixels;
+  }
   const out = new Uint8ClampedArray(rect.width * rect.height * 4);
   for (let y = 0; y < rect.height; y++) {
     const start = ((rect.y - from.y + y) * from.width + (rect.x - from.x)) * 4;

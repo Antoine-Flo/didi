@@ -37,7 +37,9 @@
 
   $effect(() => {
     const view = image;
-    if (!view) return;
+    if (!view) {
+      return;
+    }
     const sender = new PreviewSender(drawing, (message) => view.receive(message));
     return () => sender.close();
   });
@@ -53,7 +55,9 @@
 
   /** Follows the pointer from `down` until it is released. */
   function drag(down: PointerEvent, move: (dx: number, dy: number) => void) {
-    if (down.button !== 0) return;
+    if (down.button !== 0) {
+      return;
+    }
     down.preventDefault();
     down.stopPropagation();
     const target = down.currentTarget as HTMLElement;

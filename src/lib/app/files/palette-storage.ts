@@ -52,11 +52,15 @@ function autosave(library: PaletteLibrary, onError: (message: string) => void) {
     );
   };
   library.subscribe(() => {
-    if (timer !== null) clearTimeout(timer);
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
     timer = setTimeout(save, SAVE_DELAY_MS);
   });
   flush = async () => {
-    if (timer === null) return;
+    if (timer === null) {
+      return;
+    }
     clearTimeout(timer);
     await save();
   };

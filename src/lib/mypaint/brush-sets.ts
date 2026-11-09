@@ -268,7 +268,9 @@ const byId = new Map(BRUSH_SETS.map((s) => [s.id, s]));
 
 export function brushSet(id: string): BrushSet {
   const set = byId.get(id);
-  if (!set) throw new Error(`Unknown brush set ${id}`);
+  if (!set) {
+    throw new Error(`Unknown brush set ${id}`);
+  }
   return set;
 }
 

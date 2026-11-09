@@ -96,7 +96,9 @@ describe("the color picker", () => {
 
   it("offers every choice it knows", () => {
     for (const field of pickerTool.fields ?? []) {
-      if (field.kind === "choice") expect(field.choices.length).toBeGreaterThan(1);
+      if (field.kind === "choice") {
+        expect(field.choices.length).toBeGreaterThan(1);
+      }
     }
   });
 });

@@ -37,10 +37,14 @@
   }
 
   const groups = $derived.by(() => {
-    if (!open) return [];
+    if (!open) {
+      return [];
+    }
     const items = keymap.shortcuts().flatMap((s) => {
       const command = editor.commands.get(s.command);
-      if (!command) return [];
+      if (!command) {
+        return [];
+      }
       return {
         command: s.command,
         category: categoryOf(s.command),
@@ -58,7 +62,9 @@
 
   // While it is open, a contact on the canvas only closes it.
   $effect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });

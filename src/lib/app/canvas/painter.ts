@@ -51,8 +51,12 @@ export class Painter {
 
   /** Paints in another document from now on. A stroke in progress is abandoned. */
   setEditor(editor: Editor) {
-    if (editor === this.editor) return;
-    if (this.active) this.cancel();
+    if (editor === this.editor) {
+      return;
+    }
+    if (this.active) {
+      this.cancel();
+    }
     this.editor = editor;
   }
 
@@ -85,16 +89,24 @@ export class Painter {
     const tool = modifiers().alt ? pickerTool : this.host.tool(eraser);
     const layer = this.editor.activeLayer;
     if (tool.needsLayer !== false) {
-      if (!layer) return this.refuse(m.canvas_no_layer_to_draw());
-      if (layer.locked) return this.refuse(m.canvas_layer_locked({ name: layer.name }));
-      if (!layer.visible) return this.refuse(m.canvas_layer_hidden({ name: layer.name }));
+      if (!layer) {
+        return this.refuse(m.canvas_no_layer_to_draw());
+      }
+      if (layer.locked) {
+        return this.refuse(m.canvas_layer_locked({ name: layer.name }));
+      }
+      if (!layer.visible) {
+        return this.refuse(m.canvas_layer_hidden({ name: layer.name }));
+      }
     }
     const options = this.host.options();
     if (!options.color && tool.needsColor !== false) {
       return this.refuse(m.canvas_no_color());
     }
     // Drawing or changing a layer lays floating content down first.
-    if (tool.needsLayer !== false) this.editor.applySelection();
+    if (tool.needsLayer !== false) {
+      this.editor.applySelection();
+    }
     const context: ToolContext = {
       editor: this.editor,
       layer: layer ?? null,
@@ -110,28 +122,40 @@ export class Painter {
       },
     };
     this.stroke = tool.begin(context, options.tools[tool.id] ?? { ...tool.defaults }, sample);
-    if (!this.stroke) return false;
+    if (!this.stroke) {
+      return false;
+    }
     this.ending = false;
     this.stroke.move(sample);
     return true;
   }
 
   move(samples: readonly Sample[]) {
-    for (const s of samples) this.stroke?.move(s);
+    for (const s of samples) {
+      this.stroke?.move(s);
+    }
   }
 
   /** The pen is up. The stroke ends once it is fully painted (see `flush` and `drain`). */
   end() {
-    if (!this.stroke) return;
+    if (!this.stroke) {
+      return;
+    }
     this.ending = true;
-    if (!this.stroke.busy) this.finish();
+    if (!this.stroke.busy) {
+      this.finish();
+    }
   }
 
   /** Paints every waiting sample now, and finishes the stroke if the pen is up. */
   drain() {
-    if (!this.stroke) return;
+    if (!this.stroke) {
+      return;
+    }
     this.stroke.drain();
-    if (this.ending) this.finish();
+    if (this.ending) {
+      this.finish();
+    }
   }
 
   /** Abandons the stroke, leaving the layer as it was. */
@@ -147,9 +171,13 @@ export class Painter {
    * latest changes. Call once per frame.
    */
   flush(budgetMs = 8) {
-    if (!this.stroke) return;
+    if (!this.stroke) {
+      return;
+    }
     this.stroke.flush(budgetMs);
-    if (this.ending && !this.stroke.busy) this.finish();
+    if (this.ending && !this.stroke.busy) {
+      this.finish();
+    }
   }
 
   private finish() {
@@ -157,12 +185,16 @@ export class Painter {
     this.stroke = null;
     this.ending = false;
     const edit = stroke.finish();
-    if (edit) this.editor.history.push(edit);
+    if (edit) {
+      this.editor.history.push(edit);
+    }
   }
 
   /** The libmypaint brush for a bundled preset, created on first use. */
   private brush(preset: string): Brush {
-    if (!this.engine) throw new Error("The brush engine is not loaded");
+    if (!this.engine) {
+      throw new Error("The brush engine is not loaded");
+    }
     let brush = this.brushes.get(preset);
     if (!brush) {
       brush = this.engine.createBrush(bundledBrush(preset).myb);

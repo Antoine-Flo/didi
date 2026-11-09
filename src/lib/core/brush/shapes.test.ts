@@ -84,7 +84,9 @@ describe("ellipses", () => {
   it("fill every row of their box", () => {
     for (const box of boxes) {
       const spans = ellipseSpans(box);
-      for (let y = box.y0; y <= box.y1; y++) expect(spans.has(y), `row ${y}`).toBe(true);
+      for (let y = box.y0; y <= box.y1; y++) {
+        expect(spans.has(y), `row ${y}`).toBe(true);
+      }
     }
   });
 });

@@ -14,7 +14,9 @@ import type { Editor } from "./editor";
 function step(editor: Editor, label: string, change: () => void) {
   editor.history.begin(label);
   try {
-    if (editor.selection.floating) editor.applySelection();
+    if (editor.selection.floating) {
+      editor.applySelection();
+    }
     change();
   } finally {
     editor.history.end();
@@ -51,7 +53,9 @@ export function duplicateLayer(editor: Editor, id: string) {
 export function mergeTarget(editor: Editor, id: string): ReadonlyLayer | null {
   const { drawing } = editor;
   const index = drawing.indexOf(id);
-  if (index === 0 || !drawing.getLayer(id).visible) return null;
+  if (index === 0 || !drawing.getLayer(id).visible) {
+    return null;
+  }
   const below = drawing.layers[index - 1];
   return below.locked ? null : below;
 }
@@ -63,7 +67,9 @@ export function mergeTarget(editor: Editor, id: string): ReadonlyLayer | null {
 export function mergeDown(editor: Editor, id: string) {
   const { drawing } = editor;
   const below = mergeTarget(editor, id);
-  if (!below) return;
+  if (!below) {
+    return;
+  }
   step(editor, m.cmd_layer_merge_down(), () => {
     // The two layers alone, the one below at full opacity: what it holds once merged.
     const pair = new Drawing(drawing.width, drawing.height);

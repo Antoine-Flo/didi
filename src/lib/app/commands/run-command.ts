@@ -12,13 +12,19 @@ export function runCommand(
   params?: unknown,
 ): boolean {
   if (painter.active) {
-    if (!painter.finishing) return false;
+    if (!painter.finishing) {
+      return false;
+    }
     // The pen is up but the stroke is still being painted: finish it first, so that undo, for
     // instance, applies to it.
     painter.drain();
   }
-  if (!editor.commands.isEnabled(id, params)) return false;
+  if (!editor.commands.isEnabled(id, params)) {
+    return false;
+  }
   // Floating content belongs to a layer: lay it down before anything changes the layers.
-  if (id.startsWith("layer.")) editor.applySelection();
+  if (id.startsWith("layer.")) {
+    editor.applySelection();
+  }
   return editor.commands.execute(id, params);
 }

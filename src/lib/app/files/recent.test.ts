@@ -6,7 +6,9 @@ const file = (path: string, time = 1): RecentFile => ({ path, name: path, thumbn
 describe("recent files", () => {
   it("puts the latest file first, once, and keeps at most MAX_RECENT", () => {
     let list: RecentFile[] = [];
-    for (let i = 0; i < MAX_RECENT + 3; i++) list = withRecent(list, file(`/f${i}`));
+    for (let i = 0; i < MAX_RECENT + 3; i++) {
+      list = withRecent(list, file(`/f${i}`));
+    }
     expect(list).toHaveLength(MAX_RECENT);
     expect(list[0].path).toBe(`/f${MAX_RECENT + 2}`);
     list = withRecent(list, file("/f5", 99));

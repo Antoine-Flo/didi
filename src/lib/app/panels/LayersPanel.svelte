@@ -68,7 +68,9 @@
   const active = $derived.by(() => {
     void version;
     const layer = editor.activeLayer;
-    if (!layer) return null;
+    if (!layer) {
+      return null;
+    }
     return { id: layer.id, opacity: layer.opacity, blendMode: layer.blendMode };
   });
 
@@ -80,15 +82,22 @@
   const changed = new Set<string>();
   $effect(() =>
     editor.drawing.subscribe((change) => {
-      if (change.type === "pixels-changed") changed.add(change.id);
-      if (change.type === "canvas-resized")
-        for (const l of editor.drawing.layers) changed.add(l.id);
+      if (change.type === "pixels-changed") {
+        changed.add(change.id);
+      }
+      if (change.type === "canvas-resized") {
+        for (const l of editor.drawing.layers) {
+          changed.add(l.id);
+        }
+      }
     }),
   );
   $effect(() => {
     void version;
     untrack(() => {
-      for (const id of changed) stamps[id] = (stamps[id] ?? 0) + 1;
+      for (const id of changed) {
+        stamps[id] = (stamps[id] ?? 0) + 1;
+      }
       changed.clear();
     });
   });
@@ -105,24 +114,35 @@
   // Double-click on a name, or "Rename layer" in the menu, to rename the layer.
   let renaming = $state<string | null>(null);
   function rename(id: string, input: HTMLInputElement) {
-    if (renaming !== id) return;
+    if (renaming !== id) {
+      return;
+    }
     renaming = null;
     const name = input.value.trim();
-    if (name) update(id, { name });
+    if (name) {
+      update(id, { name });
+    }
   }
 
   /** "Rename layer": the name's field keeps the focus, instead of the menu's button. */
   function onCloseAutoFocus(e: Event) {
-    if (renaming) e.preventDefault();
+    if (renaming) {
+      e.preventDefault();
+    }
   }
 
   // While the right-click menu is open, a click on the canvas only closes it.
   let contextOpen = false;
   function setContextOpen(next: boolean) {
-    if (next === contextOpen) return;
+    if (next === contextOpen) {
+      return;
+    }
     contextOpen = next;
-    if (next) popupOpened();
-    else popupClosed();
+    if (next) {
+      popupOpened();
+    } else {
+      popupClosed();
+    }
   }
   // Removed while open: the canvas must not stay blocked.
   onDestroy(() => setContextOpen(false));
@@ -130,12 +150,16 @@
   // Dragging the opacity slider makes one undo step.
   let dragging = false;
   function startOpacity() {
-    if (dragging) return;
+    if (dragging) {
+      return;
+    }
     dragging = true;
     editor.history.begin(m.layers_opacity_history());
   }
   function endOpacity() {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     dragging = false;
     editor.history.end();
   }
@@ -149,14 +173,20 @@
   let drop = $state<number | null>(null);
 
   function startDrag(e: PointerEvent, id: string, position: number) {
-    if (e.button !== 0 || renaming !== null) return;
+    if (e.button !== 0 || renaming !== null) {
+      return;
+    }
     drag = { id, from: position, startY: e.clientY, moved: false };
   }
 
   function moveDrag(e: PointerEvent) {
-    if (!drag) return;
+    if (!drag) {
+      return;
+    }
     if (!drag.moved) {
-      if (Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD) return;
+      if (Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD) {
+        return;
+      }
       drag.moved = true;
       // Only now: before, the row's buttons must still get their clicks.
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -280,8 +310,12 @@
                 onfocus={(e) => e.currentTarget.select()}
                 onblur={(e) => rename(layer.id, e.currentTarget)}
                 onkeydown={(e) => {
-                  if (e.key === "Enter") rename(layer.id, e.currentTarget);
-                  if (e.key === "Escape") renaming = null;
+                  if (e.key === "Enter") {
+                    rename(layer.id, e.currentTarget);
+                  }
+                  if (e.key === "Escape") {
+                    renaming = null;
+                  }
                 }}
               />
             {:else}

@@ -38,7 +38,9 @@
 
   const info = $derived.by(() => {
     void version;
-    if (!library) return null;
+    if (!library) {
+      return null;
+    }
     return {
       names: library.palettes.map((p) => p.name),
       /** Each palette's colors, as hex, for the list of palettes. */
@@ -59,9 +61,13 @@
 
   let renaming = $state(false);
   function rename(input: HTMLInputElement) {
-    if (!renaming) return;
+    if (!renaming) {
+      return;
+    }
     renaming = false;
-    if (input.value.trim()) run("palette.rename", { name: input.value });
+    if (input.value.trim()) {
+      run("palette.rename", { name: input.value });
+    }
   }
 </script>
 
@@ -77,8 +83,12 @@
           onfocus={(e) => e.currentTarget.select()}
           onblur={(e) => rename(e.currentTarget)}
           onkeydown={(e) => {
-            if (e.key === "Enter") rename(e.currentTarget);
-            if (e.key === "Escape") renaming = false;
+            if (e.key === "Enter") {
+              rename(e.currentTarget);
+            }
+            if (e.key === "Escape") {
+              renaming = false;
+            }
           }}
         />
       {:else}
@@ -132,7 +142,9 @@
       disabled={!info}
       onCloseAutoFocus={(e) => {
         // "Rename": the name's field keeps the focus, instead of the menu's button.
-        if (renaming) e.preventDefault();
+        if (renaming) {
+          e.preventDefault();
+        }
       }}
     >
       <DropdownMenu.Item class="menu-item" onSelect={() => run("palette.new")}>
@@ -159,7 +171,9 @@
       class="swatches"
       style:--swatch-size="calc({swatchSize}px * var(--ui-scale))"
       onwheel={(e) => {
-        if (!e.ctrlKey || !onzoom) return;
+        if (!e.ctrlKey || !onzoom) {
+          return;
+        }
         e.preventDefault();
         onzoom(e.deltaY < 0 ? 1.15 : 1 / 1.15);
       }}

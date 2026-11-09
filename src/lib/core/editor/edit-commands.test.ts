@@ -12,7 +12,9 @@ function setup() {
   editor.commands.execute("layer.add");
   const id = editor.activeLayer!.id;
   const data = new Uint8ClampedArray(4 * 2 * 4);
-  for (let i = 0; i < 8; i++) data.set(i % 4 < 2 ? RED : BLUE, i * 4);
+  for (let i = 0; i < 8; i++) {
+    data.set(i % 4 < 2 ? RED : BLUE, i * 4);
+  }
   editor.drawing.writePixels(id, { x: 0, y: 0, width: 4, height: 2 }, data);
   return { editor, id };
 }

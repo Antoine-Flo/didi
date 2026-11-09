@@ -53,7 +53,9 @@ export class PenInput {
    * fingers draw from DOM events even when the pen's are native.
    */
   domDown(sample: Sample, eraser: boolean, finger = false): boolean {
-    if ((this.native && !finger) || this.stroking || this.host.consumeDismissal()) return false;
+    if ((this.native && !finger) || this.stroking || this.host.consumeDismissal()) {
+      return false;
+    }
     this.stroking = this.host.painter.begin(sample, eraser);
     this.strokeEraser = eraser;
     this.domStroke = this.stroking;
@@ -61,22 +63,32 @@ export class PenInput {
   }
 
   domMove(samples: readonly Sample[]) {
-    if (this.stroking && this.domStroke) this.host.painter.move(samples);
+    if (this.stroking && this.domStroke) {
+      this.host.painter.move(samples);
+    }
   }
 
   domUp() {
-    if (!this.stroking || !this.domStroke) return;
+    if (!this.stroking || !this.domStroke) {
+      return;
+    }
     this.host.painter.end();
     this.stroking = false;
     this.domStroke = false;
   }
 
   onNative(e: PenEvent) {
-    if (e.source === "pen" || e.source === "eraser") this.hoverEraser = e.source === "eraser";
+    if (e.source === "pen" || e.source === "eraser") {
+      this.hoverEraser = e.source === "eraser";
+    }
     // Fingers come as DOM events too: they are handled there. A finger is drawing: the pen waits.
-    if (e.source === "touch" || this.domStroke) return;
+    if (e.source === "touch" || this.domStroke) {
+      return;
+    }
     if (e.phase === "move") {
-      if (!this.stroking) return;
+      if (!this.stroking) {
+        return;
+      }
       if (!e.pressed && this.pendingEnd === null) {
         // The tip is up but we missed its release (e.g. it happened in another window, like
         // the color dialog): end the stroke instead of drawing while hovering.
@@ -86,7 +98,9 @@ export class PenInput {
       this.host.painter.move([this.host.sample(e)]);
       return;
     }
-    if (e.button !== 1) return;
+    if (e.button !== 1) {
+      return;
+    }
     if (e.phase === "down") {
       if (this.pendingEnd !== null) {
         // The pen switched device (pen ↔ eraser) without being lifted: same stroke, same tool
@@ -94,8 +108,12 @@ export class PenInput {
         this.clearPendingEnd();
         return;
       }
-      if (this.host.consumeDismissal()) return;
-      if (!this.host.mayStartAt(e.x, e.y)) return;
+      if (this.host.consumeDismissal()) {
+        return;
+      }
+      if (!this.host.mayStartAt(e.x, e.y)) {
+        return;
+      }
       this.strokeEraser = e.source === "eraser";
       this.stroking = this.host.painter.begin(this.host.sample(e), this.strokeEraser);
     } else if (this.stroking && this.pendingEnd === null) {
@@ -107,7 +125,9 @@ export class PenInput {
   /** Ends the stroke in progress, if any: the pen is up, or its release will not come. */
   end() {
     this.clearPendingEnd();
-    if (this.stroking) this.host.painter.end();
+    if (this.stroking) {
+      this.host.painter.end();
+    }
     this.stroking = false;
     this.domStroke = false;
   }
@@ -117,7 +137,9 @@ export class PenInput {
    * Returns whether there was one.
    */
   cancel(): boolean {
-    if (!this.stroking && !this.host.painter.active) return false;
+    if (!this.stroking && !this.host.painter.active) {
+      return false;
+    }
     this.clearPendingEnd();
     this.host.painter.cancel();
     this.stroking = false;
@@ -126,7 +148,9 @@ export class PenInput {
   }
 
   private clearPendingEnd() {
-    if (this.pendingEnd !== null) clearTimeout(this.pendingEnd);
+    if (this.pendingEnd !== null) {
+      clearTimeout(this.pendingEnd);
+    }
     this.pendingEnd = null;
   }
 }

@@ -103,12 +103,16 @@ async function renderDidi(c: Case): Promise<Uint8ClampedArray> {
     ] as const) {
       const rect = { x, y: 0, width: c.width / 2, height: c.height };
       const data = new Uint8ClampedArray(rect.width * rect.height * 4);
-      for (let i = 0; i < data.length; i += 4) data.set(color, i);
+      for (let i = 0; i < data.length; i += 4) {
+        data.set(color, i);
+      }
       drawing.writePixels(layer.id, rect, data);
     }
   }
   const brush = mp.createBrush(bundledBrush(c.brush).myb);
-  if (c.size) brush.size = c.size;
+  if (c.size) {
+    brush.size = c.size;
+  }
   brush.setColor(c.color);
   const stroke = new MyPaintStroke(mp, brush, drawing, layer.id);
   for (const [dtime, x, y, pressure, xtilt, ytilt, zoom, rotation] of c.events) {
@@ -125,7 +129,9 @@ async function renderDidi(c: Case): Promise<Uint8ClampedArray> {
 /** Total opacity ("ink") of an image, to compare how much each engine painted. */
 function ink(rgba: Uint8ClampedArray): number {
   let sum = 0;
-  for (let i = 3; i < rgba.length; i += 4) sum += rgba[i];
+  for (let i = 3; i < rgba.length; i += 4) {
+    sum += rgba[i];
+  }
   return sum / 255;
 }
 
@@ -146,7 +152,9 @@ describe.runIf(enabled)("Didi vs MyPaint", () => {
       const diff = new Uint8ClampedArray(ours.length);
       for (let p = 0; p < ours.length; p += 4) {
         let d = 0;
-        for (let k = 0; k < 4; k++) d = Math.max(d, Math.abs(ours[p + k] - theirs[p + k]));
+        for (let k = 0; k < 4; k++) {
+          d = Math.max(d, Math.abs(ours[p + k] - theirs[p + k]));
+        }
         maxDiff = Math.max(maxDiff, d);
         sumDiff += d;
         diff.set([255, 0, 0, Math.min(255, d * 4)], p);
@@ -173,9 +181,13 @@ function sheetRow(c: Case, images: Uint8ClampedArray[]): Uint8ClampedArray {
         const s = (y * c.width + x) * 4;
         const o = (y * W * 3 + col * W + x) * 4;
         const a = img[s + 3] / 255;
-        for (let k = 0; k < 3; k++) row[o + k] = img[s + k] + 255 * (1 - a);
+        for (let k = 0; k < 3; k++) {
+          row[o + k] = img[s + k] + 255 * (1 - a);
+        }
         row[o + 3] = 255;
-        if (x === 0 || y === 0) row.set([180, 180, 180, 255], o);
+        if (x === 0 || y === 0) {
+          row.set([180, 180, 180, 255], o);
+        }
       }
     }
   });
@@ -195,12 +207,16 @@ function concatRows(rows: Uint8ClampedArray[]): Uint8ClampedArray {
 function png(width: number, height: number, rgba: Uint8ClampedArray): Buffer {
   const table = Array.from({ length: 256 }, (_, n) => {
     let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
     return c >>> 0;
   });
   const crc = (b: Buffer) => {
     let c = 0xffffffff;
-    for (const x of b) c = table[(c ^ x) & 255] ^ (c >>> 8);
+    for (const x of b) {
+      c = table[(c ^ x) & 255] ^ (c >>> 8);
+    }
     return (c ^ 0xffffffff) >>> 0;
   };
   const chunk = (type: string, data: Buffer) => {

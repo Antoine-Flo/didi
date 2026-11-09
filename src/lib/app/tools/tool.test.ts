@@ -65,8 +65,12 @@ describe("ToolRegistry", () => {
       "picker",
     ]);
     for (const tool of registry.list()) {
-      for (const field of tool.fields ?? []) expect(tool.defaults).toHaveProperty(field.key);
-      if (!tool.fields?.length) expect(tool.hint).toBeTruthy();
+      for (const field of tool.fields ?? []) {
+        expect(tool.defaults).toHaveProperty(field.key);
+      }
+      if (!tool.fields?.length) {
+        expect(tool.hint).toBeTruthy();
+      }
       if (tool.menu) {
         const values = tool.menu.items.map((i) => i.value);
         expect(values, tool.id).toContain(tool.defaults[tool.menu.key]);
@@ -79,6 +83,8 @@ describe("size slider", () => {
   it("maps both ends and round-trips sizes", () => {
     expect(sizeFromSlider(0)).toBe(MIN_SIZE);
     expect(sizeFromSlider(1)).toBe(MAX_SIZE);
-    for (const size of [1, 4.2, 20, 220]) expect(sizeFromSlider(sliderFromSize(size))).toBe(size);
+    for (const size of [1, 4.2, 20, 220]) {
+      expect(sizeFromSlider(sliderFromSize(size))).toBe(size);
+    }
   });
 });

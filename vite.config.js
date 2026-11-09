@@ -33,7 +33,9 @@ export default defineConfig(() => ({
         // /doc and /devlog are the website (website/), added to build/ at deploy time: the
         // landing page links to them, but they are not pages of the app.
         handleHttpError: ({ path, message }) => {
-          if (/^\/(doc|devlog)(\/|$)/.test(path)) return;
+          if (/^\/(doc|devlog)(\/|$)/.test(path)) {
+            return;
+          }
           throw new Error(message);
         },
       },

@@ -5,7 +5,9 @@ import { BUNDLED_BRUSHES, findBundledBrush } from "./brushes";
 describe("brush sets", () => {
   it("hold every bundled brush exactly once", () => {
     const listed = BRUSH_SETS.flatMap((s) => [...s.picks, ...s.more]);
-    for (const id of listed) expect(findBundledBrush(id), id).toBeDefined();
+    for (const id of listed) {
+      expect(findBundledBrush(id), id).toBeDefined();
+    }
     expect(new Set(listed).size).toBe(listed.length);
     expect([...listed].sort()).toEqual(BUNDLED_BRUSHES.map((b) => b.id).sort());
   });
@@ -17,6 +19,8 @@ describe("brush sets", () => {
   });
 
   it("each have a first selection", () => {
-    for (const set of BRUSH_SETS) expect(set.picks.length, set.id).toBeGreaterThan(0);
+    for (const set of BRUSH_SETS) {
+      expect(set.picks.length, set.id).toBeGreaterThan(0);
+    }
   });
 });

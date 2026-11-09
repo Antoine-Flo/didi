@@ -58,7 +58,9 @@
   const validSize = (v: number) => Number.isInteger(v) && v >= 1 && v <= MAX_SIZE;
 
   function choose(next: Mode) {
-    if (next.id === chosen.id) return;
+    if (next.id === chosen.id) {
+      return;
+    }
     chosenId = next.id;
     ({ width, height } = next.newDocument.size);
     background = next.newDocument.background;
@@ -66,17 +68,23 @@
   }
 
   function changed() {
-    if (validSize(width) && validSize(height)) onchange?.(width, height, background, chosen.id);
+    if (validSize(width) && validSize(height)) {
+      onchange?.(width, height, background, chosen.id);
+    }
   }
 
   function setSize(w: number, h: number) {
-    if (w === width && h === height) return;
+    if (w === width && h === height) {
+      return;
+    }
     ({ width, height } = { width: w, height: h });
     changed();
   }
 
   function setBackground(next: Background) {
-    if (next === background) return;
+    if (next === background) {
+      return;
+    }
     background = next;
     changed();
   }
@@ -92,7 +100,9 @@
 
   // While it is open, a contact on the canvas only closes it.
   $effect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });
@@ -105,9 +115,13 @@
   function recoveryParts(info: RecoveryInfo) {
     let strong = false;
     return m.start_recovery.parts({ time: when(info.time), name: info.name }).flatMap((part) => {
-      if (part.type === "markup-start") strong = true;
-      else if (part.type === "markup-end") strong = false;
-      else if (part.type === "text") return [{ text: part.value, strong }];
+      if (part.type === "markup-start") {
+        strong = true;
+      } else if (part.type === "markup-end") {
+        strong = false;
+      } else if (part.type === "text") {
+        return [{ text: part.value, strong }];
+      }
       return [];
     });
   }

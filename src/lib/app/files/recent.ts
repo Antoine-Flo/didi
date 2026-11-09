@@ -31,7 +31,9 @@ export function withRecent(list: readonly RecentFile[], file: RecentFile): Recen
 export function parseRecent(text: string): RecentFile[] {
   try {
     const json = JSON.parse(text) as Partial<RecentJson>;
-    if (json.version !== 1 || !Array.isArray(json.files)) return [];
+    if (json.version !== 1 || !Array.isArray(json.files)) {
+      return [];
+    }
     return json.files
       .filter(
         (f) =>

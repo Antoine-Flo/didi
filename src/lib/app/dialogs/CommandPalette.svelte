@@ -19,7 +19,9 @@
 
   // Read when the palette opens: commands and their state may have changed since.
   const items = $derived.by(() => {
-    if (!open) return [];
+    if (!open) {
+      return [];
+    }
     return editor.commands
       .list()
       .filter((c) => !c.needsParams && c.id !== "app.commandPalette")

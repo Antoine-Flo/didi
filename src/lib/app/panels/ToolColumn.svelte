@@ -64,7 +64,9 @@
     short = false;
   });
   $effect(() => {
-    if (height === 0 || trackHeight === 0) return;
+    if (height === 0 || trackHeight === 0) {
+      return;
+    }
     if (!short && height > trackHeight) {
       fullHeight = height;
       short = true;
@@ -80,32 +82,44 @@
   const lastUsed = $state<Record<string, string>>({});
   $effect(() => {
     const group = tools.find((t) => t.id === active)?.group?.group;
-    if (group) lastUsed[group.id] = active;
+    if (group) {
+      lastUsed[group.id] = active;
+    }
   });
 
   let drag: { pointer: number; from: number; top: number } | null = null;
 
   function moveTo(nextTop: number) {
-    if (free > 0) onmove(Math.min(free, Math.max(0, nextTop)) / free);
+    if (free > 0) {
+      onmove(Math.min(free, Math.max(0, nextTop)) / free);
+    }
   }
 
   function onpointerdown(e: PointerEvent) {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     e.preventDefault();
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     drag = { pointer: e.pointerId, from: e.clientY, top };
   }
 
   function onpointermove(e: PointerEvent) {
-    if (drag?.pointer === e.pointerId) moveTo(drag.top + e.clientY - drag.from);
+    if (drag?.pointer === e.pointerId) {
+      moveTo(drag.top + e.clientY - drag.from);
+    }
   }
 
   function end(e: PointerEvent) {
-    if (drag?.pointer === e.pointerId) drag = null;
+    if (drag?.pointer === e.pointerId) {
+      drag = null;
+    }
   }
 
   function onkeydown(e: KeyboardEvent) {
-    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") {
+      return;
+    }
     e.preventDefault();
     moveTo(top + (e.key === "ArrowDown" ? KEY_STEP : -KEY_STEP));
   }

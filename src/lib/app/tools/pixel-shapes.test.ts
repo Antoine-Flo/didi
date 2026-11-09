@@ -25,7 +25,13 @@ function setup(tool: string) {
     editor.activeLayer!.tiles.readRegion({ x, y, width: 1, height: 1 })[3];
   const painted = () => {
     let n = 0;
-    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (alpha(x, y)) n++;
+    for (let y = 0; y < 32; y++) {
+      for (let x = 0; x < 32; x++) {
+        if (alpha(x, y)) {
+          n++;
+        }
+      }
+    }
     return n;
   };
   const drag = (from: [number, number], ...to: [number, number][]) => {

@@ -156,13 +156,18 @@ function bandZone(p: Placement, x: number, y: number, zoom: number): SelectionZo
     const vy = b.y - a.y;
     const t = Math.min(1, Math.max(0, ((x - a.x) * vx + (y - a.y) * vy) / (vx * vx + vy * vy)));
     const distance = Math.hypot(a.x + vx * t - x, a.y + vy * t - y) * zoom;
-    if (distance >= nearest) return;
+    if (distance >= nearest) {
+      return;
+    }
     nearest = distance;
     const length = Math.hypot(vx, vy) * zoom;
-    if (t * length <= CORNER_REACH) zone = { kind: "rotate", id: CORNERS[i] };
-    else if ((1 - t) * length <= CORNER_REACH) {
+    if (t * length <= CORNER_REACH) {
+      zone = { kind: "rotate", id: CORNERS[i] };
+    } else if ((1 - t) * length <= CORNER_REACH) {
       zone = { kind: "rotate", id: CORNERS[(i + 1) % CORNERS.length] };
-    } else zone = { kind: "skew", side: SIDES[i] };
+    } else {
+      zone = { kind: "skew", side: SIDES[i] };
+    }
   });
   return nearest <= BAND ? zone : null;
 }
@@ -176,7 +181,9 @@ export function zoneAt(
   pivot: Point | null = null,
 ): SelectionZone {
   for (const { group, id, grab } of selectionHandles(p, zoom, pivot)) {
-    if (!inRect(grab, x, y)) continue;
+    if (!inRect(grab, x, y)) {
+      continue;
+    }
     switch (group) {
       case "bounds":
         return { kind: "bounds", side: id as Side };
@@ -186,7 +193,9 @@ export function zoneAt(
         return { kind: "pivot" };
     }
   }
-  if (contains(p, x, y)) return { kind: "inside" };
+  if (contains(p, x, y)) {
+    return { kind: "inside" };
+  }
   return bandZone(p, x, y, zoom) ?? { kind: "outside" };
 }
 
@@ -196,10 +205,18 @@ export function moveEdge(rect: Rect, side: Side, delta: number, canvas: Rect): R
   let top = rect.y;
   let right = rect.x + rect.width;
   let bottom = rect.y + rect.height;
-  if (side === "w") left = clamp(left + delta, canvas.x, right - 1);
-  if (side === "e") right = clamp(right + delta, left + 1, canvas.x + canvas.width);
-  if (side === "n") top = clamp(top + delta, canvas.y, bottom - 1);
-  if (side === "s") bottom = clamp(bottom + delta, top + 1, canvas.y + canvas.height);
+  if (side === "w") {
+    left = clamp(left + delta, canvas.x, right - 1);
+  }
+  if (side === "e") {
+    right = clamp(right + delta, left + 1, canvas.x + canvas.width);
+  }
+  if (side === "n") {
+    top = clamp(top + delta, canvas.y, bottom - 1);
+  }
+  if (side === "s") {
+    bottom = clamp(bottom + delta, top + 1, canvas.y + canvas.height);
+  }
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
@@ -223,10 +240,18 @@ export function scaleRect(
   // Signed: negative once the handle has gone past the opposite side.
   let signedWidth = rect.width;
   let signedHeight = rect.height;
-  if (west) signedWidth = rect.width - dx;
-  if (east) signedWidth = rect.width + dx;
-  if (north) signedHeight = rect.height - dy;
-  if (south) signedHeight = rect.height + dy;
+  if (west) {
+    signedWidth = rect.width - dx;
+  }
+  if (east) {
+    signedWidth = rect.width + dx;
+  }
+  if (north) {
+    signedHeight = rect.height - dy;
+  }
+  if (south) {
+    signedHeight = rect.height + dy;
+  }
   let width = Math.max(1, Math.abs(signedWidth));
   let height = Math.max(1, Math.abs(signedHeight));
   if (keepRatio && id.length === 2) {

@@ -29,7 +29,9 @@ describe("parsePaletteFile", () => {
       '{"version": 1, "palettes": [{"name": 3, "colors": []}]}',
       '{"version": 1, "palettes": [{"name": "a", "colors": ["#ff00"]}]}',
     ];
-    for (const text of bad) expect(() => parsePaletteFile(text), text).toThrow();
+    for (const text of bad) {
+      expect(() => parsePaletteFile(text), text).toThrow();
+    }
   });
 
   it("reads version 1 files: the shown palette by index, without unchanged built-in copies", () => {
@@ -128,7 +130,9 @@ describe("PaletteLibrary", () => {
 
   it("shows a neighbor after removing the shown palette", () => {
     const library = new PaletteLibrary([], null, []);
-    for (const name of ["A", "B", "C"]) library.add({ name, colors: [] });
+    for (const name of ["A", "B", "C"]) {
+      library.add({ name, colors: [] });
+    }
     library.select(1);
     library.remove();
     expect(library.active?.name).toBe("A");

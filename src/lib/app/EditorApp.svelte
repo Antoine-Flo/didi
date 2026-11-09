@@ -109,7 +109,9 @@
    * (also when clicking outside). A document with any change or a file is never replaced.
    */
   function previewNew(width: number, height: number, background: Background, mode: string) {
-    if (!session.untouched) return;
+    if (!session.untouched) {
+      return;
+    }
     void session.newDocument(width, height, background, mode);
   }
   const editor = $derived(session.editor);
@@ -145,7 +147,9 @@
   function notify(message: string) {
     error = message;
     setTimeout(() => {
-      if (error === message) error = null;
+      if (error === message) {
+        error = null;
+      }
     }, 6000);
   }
 
@@ -196,12 +200,16 @@
   let cursor = $state<Point | null>(null);
   /** The tool bar's swatch: what the tool would make of the color drawn with, at the cursor. */
   const toolPreview = $derived.by(() => {
-    if (!shownTool.preview) return null;
+    if (!shownTool.preview) {
+      return null;
+    }
     void version;
     void pixelVersion;
     const opacity = options.tools[tools.drawingTool]?.opacity;
     const current = { color: options.color, opacity: typeof opacity === "number" ? opacity : 1 };
-    if (!cursor) return current;
+    if (!cursor) {
+      return current;
+    }
     return shownTool.preview(editor, options.tools[shownTool.id], cursor, current);
   });
   let error = $state<string | null>(null);
@@ -228,9 +236,13 @@
     navigator.maxTouchPoints > 0 || matchMedia("(any-pointer: coarse)").matches,
   );
   $effect(() => {
-    if (touchScreen) return;
+    if (touchScreen) {
+      return;
+    }
     const onPointer = (e: PointerEvent) => {
-      if (e.pointerType === "touch") touchScreen = true;
+      if (e.pointerType === "touch") {
+        touchScreen = true;
+      }
     };
     window.addEventListener("pointerdown", onPointer, { capture: true });
     return () => window.removeEventListener("pointerdown", onPointer, { capture: true });
@@ -274,7 +286,9 @@
   const compact = $derived(layout.compact === "auto" ? smallWindow : layout.compact === "on");
   let openWhileCompact = $state(false);
   $effect(() => {
-    if (compact) openWhileCompact = false;
+    if (compact) {
+      openWhileCompact = false;
+    }
   });
   const panelsOpen = $derived(compact ? openWhileCompact : layout.panelsOpen);
 
@@ -282,8 +296,11 @@
   let sliding = $state(false);
   let slideTimer: ReturnType<typeof setTimeout> | undefined;
   function togglePanels() {
-    if (compact) openWhileCompact = !openWhileCompact;
-    else layout.panelsOpen = !layout.panelsOpen;
+    if (compact) {
+      openWhileCompact = !openWhileCompact;
+    } else {
+      layout.panelsOpen = !layout.panelsOpen;
+    }
     sliding = true;
     clearTimeout(slideTimer);
     slideTimer = setTimeout(() => (sliding = false), 250);
@@ -297,9 +314,13 @@
   const tabbed = $derived(compact || (columnHeight > 0 && columnHeight < TABS_HEIGHT * uiScale));
   let panelTab = $state<PanelTab>("color");
   function openTab(tab: PanelTab) {
-    if (panelsOpen && panelTab === tab) return togglePanels();
+    if (panelsOpen && panelTab === tab) {
+      return togglePanels();
+    }
     panelTab = tab;
-    if (!panelsOpen) togglePanels();
+    if (!panelsOpen) {
+      togglePanels();
+    }
   }
 
   /** A saved panel size, as CSS. */
@@ -400,7 +421,9 @@
   /** The compact tab's swatch is outlined with the light or dark most unlike the color:
    *  seen on any canvas. */
   const swatchOutline = $derived.by(() => {
-    if (!options.color) return undefined;
+    if (!options.color) {
+      return undefined;
+    }
     const [r, g, b] = options.color;
     return 0.2126 * r + 0.7152 * g + 0.0722 * b > 128
       ? "rgb(0 0 0 / 0.7)"
@@ -459,14 +482,20 @@
     });
     void closeStalePreview();
     void session.start().then((restored) => {
-      if (!initial && !capabilities.userFiles && !restored) startOpen = true;
+      if (!initial && !capabilities.userFiles && !restored) {
+        startOpen = true;
+      }
     });
-    if (!appWindow) return;
+    if (!appWindow) {
+      return;
+    }
     // Closing the window: offer to save unsaved changes first.
     const window = appWindow;
     const unlisten = window.onCloseRequested(async (event) => {
       event.preventDefault();
-      if (!(await session.confirmDiscard())) return;
+      if (!(await session.confirmDiscard())) {
+        return;
+      }
       await Promise.all([session.closing(), flushPalettes(), layout.flush(), themePrefs.flush()]);
       previewWindow?.close();
       await window.destroy();
@@ -479,20 +508,30 @@
   let preview = $state<"off" | "in" | "out">("off");
   let previewWindow: OpenWindow | null = null;
   function setPreview(next: "off" | "in" | "out") {
-    if (next === preview) return;
-    if (preview === "out") previewWindow?.close();
+    if (next === preview) {
+      return;
+    }
+    if (preview === "out") {
+      previewWindow?.close();
+    }
     previewWindow = null;
     preview = next;
-    if (next !== "out") return;
+    if (next !== "out") {
+      return;
+    }
     const opened = openPreviewWindow(() => {
-      if (previewWindow !== opened) return;
+      if (previewWindow !== opened) {
+        return;
+      }
       previewWindow = null;
       preview = "off";
     });
     previewWindow = opened;
   }
   $effect(() => {
-    if (preview === "out") return sendToWindow(editor.drawing);
+    if (preview === "out") {
+      return sendToWindow(editor.drawing);
+    }
   });
 
   // The canvas size, and a new view whenever it changes (cropped, scaled, turned…).
@@ -502,7 +541,9 @@
     const { drawing } = editor;
     canvasSize = { width: drawing.width, height: drawing.height };
     return drawing.subscribe((change) => {
-      if (change.type !== "canvas-resized") return;
+      if (change.type !== "canvas-resized") {
+        return;
+      }
       canvasSize = { width: drawing.width, height: drawing.height };
       resizes++;
     });
@@ -516,8 +557,11 @@
     untrack(bump);
     const unsubscribe = [
       editor.drawing.subscribe((change) => {
-        if (change.type === "pixels-changed") pixelVersion++;
-        else bump();
+        if (change.type === "pixels-changed") {
+          pixelVersion++;
+        } else {
+          bump();
+        }
       }),
       editor.history.subscribe(bump),
       editor.selection.subscribe(bump),
@@ -533,8 +577,11 @@
     const title = session.unsaved
       ? m.editor_window_title_unsaved({ name: session.name })
       : m.editor_window_title({ name: session.name });
-    if (appWindow) appWindow.setTitle(title);
-    else document.title = title;
+    if (appWindow) {
+      appWindow.setTitle(title);
+    } else {
+      document.title = title;
+    }
   });
   $effect(() => {
     // Not behind the preferences: the whole interface is seen while choosing its look.
@@ -561,7 +608,9 @@
         await importPalette(file);
         continue;
       }
-      if (!file.type.startsWith("image/")) continue;
+      if (!file.type.startsWith("image/")) {
+        continue;
+      }
       try {
         importImage(editor, await decodeImage(file), file.name.replace(/\.[^.]+$/, ""));
       } catch (e) {
@@ -571,7 +620,9 @@
   }
 
   async function importPalette(file: File) {
-    if (!palettes) return;
+    if (!palettes) {
+      return;
+    }
     try {
       palettes.add(parseHexPalette(await file.text(), file.name.replace(/\.[^.]+$/, "")));
     } catch (e) {
@@ -581,13 +632,19 @@
 
   /** In a browser, closing the tab would lose the latest changes: the browser asks first. */
   function onBeforeUnload(e: BeforeUnloadEvent) {
-    if (!capabilities.ownWindow && session.unsaved) e.preventDefault();
+    if (!capabilities.ownWindow && session.unsaved) {
+      e.preventDefault();
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
-    if (isTyping(e) || dialogOpen) return;
+    if (isTyping(e) || dialogOpen) {
+      return;
+    }
     // Esc is for the stroke in progress (see CanvasView), whichever hears it first.
-    if (e.defaultPrevented || (e.key === "Escape" && painter.active)) return;
+    if (e.defaultPrevented || (e.key === "Escape" && painter.active)) {
+      return;
+    }
     const binding = keymap.match({
       key: e.key,
       ctrlKey: e.ctrlKey,
@@ -596,11 +653,17 @@
       shiftKey: e.shiftKey,
       altGraph: e.getModifierState("AltGraph"),
     });
-    if (!binding) return;
+    if (!binding) {
+      return;
+    }
     // Its shortcut still means nothing else here: Ctrl+S must not open the browser's dialog.
-    if (!editor.commands.has(binding.command)) return e.preventDefault();
+    if (!editor.commands.has(binding.command)) {
+      return e.preventDefault();
+    }
     // Not disabled commands: Enter still has to press a focused button.
-    if (!editor.commands.isEnabled(binding.command, binding.params)) return;
+    if (!editor.commands.isEnabled(binding.command, binding.params)) {
+      return;
+    }
     e.preventDefault();
     run(binding.command, binding.params);
   }
@@ -800,7 +863,9 @@
     hidden
     onchange={(e) => {
       const file = e.currentTarget.files?.[0];
-      if (file) importPalette(file);
+      if (file) {
+        importPalette(file);
+      }
       e.currentTarget.value = "";
     }}
   />

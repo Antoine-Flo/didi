@@ -63,7 +63,9 @@ export const MAX_TILE_GRID = 4096;
 
 /** A valid grid size: whole numbers from 1 to MAX_TILE_GRID. */
 export function isTileGridSize(value: unknown): value is { width: number; height: number } {
-  if (typeof value !== "object" || value === null) return false;
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
   const { width, height } = value as Record<string, unknown>;
   const valid = (v: unknown) =>
     Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_TILE_GRID;
@@ -130,11 +132,15 @@ export function editorFromDocument(data: DocumentData): Editor {
     const layer = drawing.createLayer({ ...props, locked: false });
     drawing.addLayer(layer);
     drawing.restorePixels(layer.id, tiles);
-    if (props.locked) drawing.updateLayer(layer.id, { locked: true });
+    if (props.locked) {
+      drawing.updateLayer(layer.id, { locked: true });
+    }
   }
   const editor = new Editor(drawing);
   const active = drawing.layers[data.active];
-  if (active) editor.setActiveLayer(active.id);
+  if (active) {
+    editor.setActiveLayer(active.id);
+  }
   return editor;
 }
 
@@ -250,7 +256,9 @@ export function readDidiThumbnail(bytes: Uint8Array): Uint8Array | null {
 export function readDidi(bytes: Uint8Array): DocumentData {
   const files = unzip(bytes);
   const jsonBytes = files["document.json"];
-  if (!jsonBytes) throw new DidiFileError(m.file_error_no_document_json());
+  if (!jsonBytes) {
+    throw new DidiFileError(m.file_error_no_document_json());
+  }
   let raw: Record<string, unknown>;
   try {
     raw = JSON.parse(strFromU8(jsonBytes));
@@ -269,12 +277,16 @@ export function readDidi(bytes: Uint8Array): DocumentData {
   } catch {
     throw new DidiFileError(m.file_error_invalid_size({ width, height }));
   }
-  if (!Array.isArray(doc.layers)) throw new DidiFileError(m.file_error_no_layer_list());
+  if (!Array.isArray(doc.layers)) {
+    throw new DidiFileError(m.file_error_no_layer_list());
+  }
 
   const layers = doc.layers.map((entry: unknown, i: number) => {
     const { props, file } = readLayerEntry(entry, i);
     const png = files[file];
-    if (!png) throw new DidiFileError(m.file_error_missing_layer_file({ file }));
+    if (!png) {
+      throw new DidiFileError(m.file_error_missing_layer_file({ file }));
+    }
     let image;
     try {
       image = decodePng(png);
@@ -343,28 +355,38 @@ function readLayerEntry(entry: unknown, index: number): { props: LayerProps; fil
   const fail = (problem: string): never => {
     throw new DidiFileError(m.file_error_bad_layer({ number: index + 1, problem }));
   };
-  if (typeof entry !== "object" || entry === null) fail(m.file_error_layer_not_object());
+  if (typeof entry !== "object" || entry === null) {
+    fail(m.file_error_layer_not_object());
+  }
   const e = entry as Record<string, unknown>;
-  if (typeof e.file !== "string") fail(m.file_error_layer_no_file());
+  if (typeof e.file !== "string") {
+    fail(m.file_error_layer_no_file());
+  }
   const props: LayerProps = { ...DEFAULT_LAYER_PROPS };
   if (e.name !== undefined) {
-    if (typeof e.name !== "string" || !e.name.trim()) fail(m.file_error_layer_invalid_name());
+    if (typeof e.name !== "string" || !e.name.trim()) {
+      fail(m.file_error_layer_invalid_name());
+    }
     props.name = e.name as string;
   }
   for (const key of ["visible", "locked", "alphaLocked"] as const) {
     if (e[key] !== undefined) {
-      if (typeof e[key] !== "boolean") fail(m.file_error_layer_invalid_setting({ setting: key }));
+      if (typeof e[key] !== "boolean") {
+        fail(m.file_error_layer_invalid_setting({ setting: key }));
+      }
       props[key] = e[key] as boolean;
     }
   }
   if (e.opacity !== undefined) {
-    if (typeof e.opacity !== "number" || !(e.opacity >= 0 && e.opacity <= 1))
+    if (typeof e.opacity !== "number" || !(e.opacity >= 0 && e.opacity <= 1)) {
       fail(m.file_error_layer_invalid_opacity());
+    }
     props.opacity = e.opacity as number;
   }
   if (e.blendMode !== undefined) {
-    if (!BLEND_MODES.includes(e.blendMode as never))
+    if (!BLEND_MODES.includes(e.blendMode as never)) {
       fail(m.file_error_layer_unknown_blend_mode({ mode: String(e.blendMode) }));
+    }
     props.blendMode = e.blendMode as LayerProps["blendMode"];
   }
   return { props, file: e.file as string };

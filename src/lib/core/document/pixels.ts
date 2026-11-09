@@ -19,7 +19,9 @@ export function unpremultiply(premultiplied: Uint8ClampedArray): Uint8ClampedArr
   const out = new Uint8ClampedArray(premultiplied.length);
   for (let i = 0; i < premultiplied.length; i += 4) {
     const a = premultiplied[i + 3];
-    if (a === 0) continue;
+    if (a === 0) {
+      continue;
+    }
     out[i] = Math.round((premultiplied[i] * 255) / a);
     out[i + 1] = Math.round((premultiplied[i + 1] * 255) / a);
     out[i + 2] = Math.round((premultiplied[i + 2] * 255) / a);
@@ -43,9 +45,13 @@ export function keepAlpha(
   const a0 = before ? before[k + 3] : 0;
   const a = out[j + 3];
   if (a0 === 0 || a === 0) {
-    for (let c = 0; c < 4; c++) out[j + c] = before ? before[k + c] : 0;
+    for (let c = 0; c < 4; c++) {
+      out[j + c] = before ? before[k + c] : 0;
+    }
     return;
   }
-  for (let c = 0; c < 3; c++) out[j + c] = Math.min(a0, Math.round((out[j + c] * a0) / a));
+  for (let c = 0; c < 3; c++) {
+    out[j + c] = Math.min(a0, Math.round((out[j + c] * a0) / a));
+  }
   out[j + 3] = a0;
 }

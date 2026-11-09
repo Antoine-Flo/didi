@@ -18,7 +18,9 @@ export function toHex([r, g, b]: RGB): string {
 /** Reads "#ff8000" or "ff8000" (any case, spaces around). Null if invalid. */
 export function fromHex(hex: string): RGB | null {
   const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   const n = parseInt(match[1], 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
@@ -29,9 +31,13 @@ export function rgbToHsv([r, g, b]: RGB): HSV {
   const d = max - Math.min(rf, gf, bf);
   let h = 0;
   if (d > 0) {
-    if (max === rf) h = ((gf - bf) / d) % 6;
-    else if (max === gf) h = (bf - rf) / d + 2;
-    else h = (rf - gf) / d + 4;
+    if (max === rf) {
+      h = ((gf - bf) / d) % 6;
+    } else if (max === gf) {
+      h = (bf - rf) / d + 2;
+    } else {
+      h = (rf - gf) / d + 4;
+    }
   }
   return { h: (h * 60 + 360) % 360, s: max === 0 ? 0 : d / max, v: max };
 }

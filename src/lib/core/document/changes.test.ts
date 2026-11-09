@@ -52,7 +52,9 @@ class Mirror {
       case "layer-updated": {
         const props = this.props.get(c.id)!;
         const layer = d.getLayer(c.id);
-        for (const key of c.keys) Object.assign(props, { [key]: layer[key] });
+        for (const key of c.keys) {
+          Object.assign(props, { [key]: layer[key] });
+        }
         break;
       }
       case "pixels-changed": {
@@ -163,9 +165,14 @@ describe("drawing change notifications", () => {
         for (const a of actions) {
           if (a.kind === "push") {
             const edit = a.make(d);
-            if (edit) history.push(edit);
-          } else if (a.kind === "undo") history.undo();
-          else history.redo();
+            if (edit) {
+              history.push(edit);
+            }
+          } else if (a.kind === "undo") {
+            history.undo();
+          } else {
+            history.redo();
+          }
           expectSameState(mirror.state(), capture(d));
         }
       }),

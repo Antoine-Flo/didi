@@ -45,11 +45,16 @@
   let open = false;
   function setValue(value: string) {
     const next = value !== "";
-    if (next === open) return;
+    if (next === open) {
+      return;
+    }
     open = next;
     pages = [];
-    if (next) popupOpened();
-    else popupClosed();
+    if (next) {
+      popupOpened();
+    } else {
+      popupClosed();
+    }
   }
   // Removed while open: the canvas must not stay blocked.
   onDestroy(() => setValue(""));

@@ -16,7 +16,9 @@ vi.mock("#lib/platform/storage.js", () => ({
     browser.cancel ? null : async () => void browser.written.push(name),
   readFile: async (path: string) => {
     const bytes = disk.get(path);
-    if (!bytes) throw new Error("No such file");
+    if (!bytes) {
+      throw new Error("No such file");
+    }
     return bytes.slice();
   },
   writeFile: async (path: string, bytes: Uint8Array) => void disk.set(path, bytes.slice()),
@@ -26,7 +28,9 @@ vi.mock("#lib/platform/storage.js", () => ({
   writeDataFile: async (name: string, text: string) => void data.set(name, text),
   readDataBytes: async (name: string) => (data.get(name) as Uint8Array | undefined) ?? null,
   writeDataBytes: async (name: string, bytes: Uint8Array) => {
-    if (writeFails.active) throw new Error("Disk full");
+    if (writeFails.active) {
+      throw new Error("Disk full");
+    }
     data.set(name, bytes);
   },
   removeDataFile: async (name: string) => void data.delete(name),
@@ -49,7 +53,9 @@ vi.mock("./files", async (original) => {
     },
     openDocument: async (path: string) => {
       const bytes = disk.get(path);
-      if (!bytes) throw new Error("No such file");
+      if (!bytes) {
+        throw new Error("No such file");
+      }
       return { doc: readDidi(bytes), thumbnail: png };
     },
   };

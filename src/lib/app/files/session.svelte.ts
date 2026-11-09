@@ -161,10 +161,14 @@ export class Session {
   async start(): Promise<boolean> {
     try {
       this.recent = await loadRecent();
-      if (!canUseFiles()) return await this.restoreCopy();
+      if (!canUseFiles()) {
+        return await this.restoreCopy();
+      }
       const info = await setAsideLeftCopy();
       await this.copy.remove();
-      if (info) this.recovery = info;
+      if (info) {
+        this.recovery = info;
+      }
     } catch (e) {
       this.host.notify(m.files_app_data_read_failed({ error: errorMessage(e) }));
     }
@@ -174,7 +178,9 @@ export class Session {
   /** In a browser: back to the document as it was when the tab closed. */
   private async restoreCopy(): Promise<boolean> {
     const left = await readLeftCopy();
-    if (!left || !this.untouched) return false;
+    if (!left || !this.untouched) {
+      return false;
+    }
     this.load(left.doc, { path: null, name: left.info.name, inNoFile: true, keepCopy: true });
     this.copy.adopt();
     return true;
@@ -182,9 +188,13 @@ export class Session {
 
   /** Asks to save unsaved changes. Returns false if the user cancels. */
   async confirmDiscard(): Promise<boolean> {
-    if (!this.dirty) return true;
+    if (!this.dirty) {
+      return true;
+    }
     const choice = await this.host.askUnsaved(this.name);
-    if (choice === "save") return this.save();
+    if (choice === "save") {
+      return this.save();
+    }
     return choice === "discard";
   }
 
@@ -194,7 +204,9 @@ export class Session {
     background: Background,
     mode: string = DEFAULT_MODE,
   ) {
-    if (!(await this.confirmDiscard())) return;
+    if (!(await this.confirmDiscard())) {
+      return;
+    }
     this.replace(newEditor(width, height, background), {
       path: null,
       name: m.files_untitled(),
@@ -204,23 +216,31 @@ export class Session {
 
   /** Changes the document's mode: an unsaved change, but not an undo step. */
   setMode(id: string) {
-    if (id === this.mode) return;
+    if (id === this.mode) {
+      return;
+    }
     this.mode = id;
     this.copy.schedule();
   }
 
   /** Changes the tiles' grid (or shows it): an unsaved change, but not an undo step. */
   setGrid(grid: TileGrid) {
-    if (sameGrid(grid, this.grid)) return;
+    if (sameGrid(grid, this.grid)) {
+      return;
+    }
     this.grid = grid;
     this.copy.schedule();
   }
 
   /** Opens a .didi file: the given one, or one chosen by the user. */
   async open(path?: string) {
-    if (!this.checkFiles() || !(await this.confirmDiscard())) return;
+    if (!this.checkFiles() || !(await this.confirmDiscard())) {
+      return;
+    }
     path ??= (await chooseFileToOpen(didiFilter())) ?? undefined;
-    if (!path) return;
+    if (!path) {
+      return;
+    }
     const name = fileName(path);
     await this.run(
       m.files_opening({ name }),
@@ -228,30 +248,46 @@ export class Session {
       async () => {
         const { doc, thumbnail } = await openDocument(path);
         this.load(doc, { path, name: documentName(path) });
-        if (thumbnail) await this.addRecent(path, thumbnail);
+        if (thumbnail) {
+          await this.addRecent(path, thumbnail);
+        }
       },
     );
   }
 
   /** Saves to the document's file, or asks for one. Returns false if not saved. */
   async save(): Promise<boolean> {
-    if (!this.path) return this.saveAs();
+    if (!this.path) {
+      return this.saveAs();
+    }
     return this.saveTo(this.path);
   }
 
   async saveAs(): Promise<boolean> {
-    if (!this.checkFiles()) return false;
+    if (!this.checkFiles()) {
+      return false;
+    }
     let path = await chooseFileToSave(this.path ?? `${this.name}.didi`, didiFilter());
-    if (!path) return false;
-    if (!/\.didi$/i.test(path)) path += ".didi";
+    if (!path) {
+      return false;
+    }
+    if (!/\.didi$/i.test(path)) {
+      path += ".didi";
+    }
     return this.saveTo(path);
   }
 
   async exportPng() {
-    if (!canUseFiles()) return this.downloadPng();
+    if (!canUseFiles()) {
+      return this.downloadPng();
+    }
     let path = await chooseFileToSave(`${this.name}.png`, pngFilter());
-    if (!path) return;
-    if (!/\.png$/i.test(path)) path += ".png";
+    if (!path) {
+      return;
+    }
+    if (!/\.png$/i.test(path)) {
+      path += ".png";
+    }
     const doc = documentFromEditor(this.editor);
     const name = fileName(path);
     await this.run(
@@ -265,7 +301,9 @@ export class Session {
   private async downloadPng() {
     const name = `${this.name}.png`;
     const write = await chooseBrowserFile(name, "image/png", ".png");
-    if (!write) return;
+    if (!write) {
+      return;
+    }
     const doc = documentFromEditor(this.editor);
     await this.run(
       m.files_exporting({ name }),
@@ -277,7 +315,9 @@ export class Session {
   /** Opens the copy left by a previous session, as an unsaved document. */
   async recover() {
     const info = this.recovery;
-    if (!info || !(await this.confirmDiscard())) return;
+    if (!info || !(await this.confirmDiscard())) {
+      return;
+    }
     await this.run(
       m.files_recovering(),
       (error) => m.files_recover_failed({ error }),
@@ -342,7 +382,9 @@ export class Session {
   }
 
   private checkFiles(): boolean {
-    if (canUseFiles()) return true;
+    if (canUseFiles()) {
+      return true;
+    }
     this.host.notify(m.files_desktop_only());
     return false;
   }
@@ -365,8 +407,12 @@ export class Session {
     this.grid = replacement.grid ?? DEFAULT_TILE_GRID;
     this.extensions = replacement.extensions ?? {};
     this.saved = savedStateOf(editor, replacement.mode, this.grid);
-    if (replacement.inNoFile) this.saved = { ...this.saved, marker: {} };
-    if (!replacement.keepCopy) void this.copy.remove();
+    if (replacement.inNoFile) {
+      this.saved = { ...this.saved, marker: {} };
+    }
+    if (!replacement.keepCopy) {
+      void this.copy.remove();
+    }
   }
 
   private setEditor(editor: Editor) {
@@ -379,7 +425,9 @@ export class Session {
     const unsubscribe = [
       editor.history.subscribe(changed),
       editor.drawing.subscribe((change) => {
-        if (change.type === "layer-updated" && change.keys.includes("visible")) changed();
+        if (change.type === "layer-updated" && change.keys.includes("visible")) {
+          changed();
+        }
       }),
     ];
     this.unsubscribe = () => unsubscribe.forEach((fn) => fn());

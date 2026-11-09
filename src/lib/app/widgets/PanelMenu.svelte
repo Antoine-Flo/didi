@@ -23,10 +23,15 @@
   // While the menu is open, a click on the canvas only closes it.
   let open = false;
   function setOpen(next: boolean) {
-    if (next === open) return;
+    if (next === open) {
+      return;
+    }
     open = next;
-    if (next) popupOpened();
-    else popupClosed();
+    if (next) {
+      popupOpened();
+    } else {
+      popupClosed();
+    }
   }
   // Removed while open: the canvas must not stay blocked.
   onDestroy(() => setOpen(false));

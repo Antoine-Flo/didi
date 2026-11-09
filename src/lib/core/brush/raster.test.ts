@@ -68,7 +68,9 @@ describe("StrokeRaster", () => {
   it("caps the stroke at its opacity, however many times a pixel is covered", () => {
     const { drawing, id } = setup();
     const stroke = new StrokeRaster(drawing, id, { ...RED, opacity: 0.5 });
-    for (let i = 0; i < 10; i++) stroke.setPixels([{ x: 5, y: 5 }], 3, true);
+    for (let i = 0; i < 10; i++) {
+      stroke.setPixels([{ x: 5, y: 5 }], 3, true);
+    }
     stroke.flush();
     expect(pixelAt(drawing, id, 5, 5)).toEqual([128, 0, 0, 128]);
   });
@@ -202,10 +204,16 @@ describe("StrokeRaster: history", () => {
             for (let x = 0; x < 260; x++) {
               const i = (y * 260 + x) * 4;
               const a = after[i + 3];
-              if (after[i] > a || after[i + 1] > a || after[i + 2] > a) bad = `invalid ${x},${y}`;
+              if (after[i] > a || after[i + 1] > a || after[i + 2] > a) {
+                bad = `invalid ${x},${y}`;
+              }
               const same = [0, 1, 2, 3].every((c) => after[i + c] === before[i + c]);
-              if (!covered.has(`${x},${y}`) && !same) bad = `pixel ${x},${y} changed`;
-              if (bad) break;
+              if (!covered.has(`${x},${y}`) && !same) {
+                bad = `pixel ${x},${y} changed`;
+              }
+              if (bad) {
+                break;
+              }
             }
           }
           expect(bad).toBe("");

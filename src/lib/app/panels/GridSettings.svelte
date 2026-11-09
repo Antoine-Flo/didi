@@ -27,7 +27,9 @@
    */
   function setSide(side: "width" | "height", value: number) {
     const next = { ...tileGrid, [side]: value, shown: true };
-    if (isTileGridSize(next)) ontilegrid(next);
+    if (isTileGridSize(next)) {
+      ontilegrid(next);
+    }
   }
 </script>
 

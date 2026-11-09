@@ -58,9 +58,13 @@
   let wasOpen = false;
   $effect(() => {
     const open = kind !== null;
-    if (open === wasOpen) return;
+    if (open === wasOpen) {
+      return;
+    }
     wasOpen = open;
-    if (!open) return popupClosed();
+    if (!open) {
+      return popupClosed();
+    }
     popupOpened();
     width = currentWidth;
     height = currentHeight;
@@ -82,7 +86,9 @@
 
   // The preview follows the settings while open; it stops when it closes.
   $effect(() => {
-    if (kind === null || !valid(width) || !valid(height)) return onpreview(null);
+    if (kind === null || !valid(width) || !valid(height)) {
+      return onpreview(null);
+    }
     if (kind === "canvas") {
       onpreview({
         rect: { x: -offset.dx, y: -offset.dy, width, height },
@@ -100,7 +106,9 @@
 
   /** One side changed, the other follows when linked (scaling only). */
   function changed(side: "width" | "height") {
-    if (kind !== "image" || !linked) return;
+    if (kind !== "image" || !linked) {
+      return;
+    }
     if (side === "width" && valid(width)) {
       height = Math.max(1, Math.round((width * currentHeight) / currentWidth));
     } else if (side === "height" && valid(height)) {
@@ -109,7 +117,9 @@
   }
 
   function apply() {
-    if (!canApply) return;
+    if (!canApply) {
+      return;
+    }
     if (kind === "canvas") {
       run("image.resizeCanvas", { width, height, ...offset });
     } else {

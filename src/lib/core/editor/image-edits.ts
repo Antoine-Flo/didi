@@ -33,7 +33,11 @@ function canvasEdit(label: string, after: CanvasContent): Edit {
       let tiles = 0;
       for (const content of [before, after]) {
         for (const layer of content?.layers.values() ?? []) {
-          for (const tile of layer.values()) if (tile) tiles++;
+          for (const tile of layer.values()) {
+            if (tile) {
+              tiles++;
+            }
+          }
         }
       }
       return tiles * 256 * 256 * 4;
@@ -65,8 +69,12 @@ function transformImage(
   }
   history.begin(label);
   try {
-    if (editor.selection.floating) editor.applySelection();
-    if (editor.selection.rect) editor.deselect();
+    if (editor.selection.floating) {
+      editor.applySelection();
+    }
+    if (editor.selection.rect) {
+      editor.deselect();
+    }
     history.push(canvasEdit(label, { width, height, layers }));
   } finally {
     history.end();
@@ -87,12 +95,16 @@ export function resizeCanvas(
   dy: number,
   label = m.history_canvas_size(),
 ) {
-  if (!validSize(width) || !validSize(height)) throw new RangeError("Invalid canvas size");
+  if (!validSize(width) || !validSize(height)) {
+    throw new RangeError("Invalid canvas size");
+  }
   transformImage(editor, label, width, height, (from) => {
     const out = new Uint8ClampedArray(width * height * 4);
     const x0 = Math.max(0, dx);
     const x1 = Math.min(width, from.width + dx);
-    if (x1 <= x0) return out;
+    if (x1 <= x0) {
+      return out;
+    }
     for (let y = Math.max(0, dy); y < Math.min(height, from.height + dy); y++) {
       const s = ((y - dy) * from.width + (x0 - dx)) * 4;
       out.set(from.data.subarray(s, s + (x1 - x0) * 4), (y * width + x0) * 4);
@@ -116,7 +128,9 @@ export function drawnBounds(drawing: Drawing): Rect | null {
   let bounds: Rect | null = null;
   for (const layer of drawing.layers) {
     const b = contentBounds(layer.tiles);
-    if (!b) continue;
+    if (!b) {
+      continue;
+    }
     if (!bounds) {
       bounds = b;
       continue;
@@ -196,7 +210,9 @@ export function flipImage(editor: Editor, axis: "horizontal" | "vertical") {
  * pixel art.
  */
 export function scaleImage(editor: Editor, width: number, height: number, smooth: boolean) {
-  if (!validSize(width) || !validSize(height)) throw new RangeError("Invalid image size");
+  if (!validSize(width) || !validSize(height)) {
+    throw new RangeError("Invalid image size");
+  }
   transformImage(editor, m.history_image_size(), width, height, (from) =>
     smooth ? resampleSmooth(from, width, height) : resampleNearest(from, width, height),
   );
@@ -228,7 +244,9 @@ function weights(from: number, to: number): { index: number; weight: number }[][
       const parts = [];
       for (let j = Math.floor(start); j < Math.ceil(end) && j < from; j++) {
         const weight = Math.min(end, j + 1) - Math.max(start, j);
-        if (weight > 0) parts.push({ index: j, weight: weight / scale });
+        if (weight > 0) {
+          parts.push({ index: j, weight: weight / scale });
+        }
       }
       return parts;
     }
@@ -254,7 +272,9 @@ function resampleSmooth(from: Pixels, width: number, height: number): Uint8Clamp
       const d = (y * width + x) * 4;
       for (const { index, weight } of across[x]) {
         const s = (y * from.width + index) * 4;
-        for (let c = 0; c < 4; c++) middle[d + c] += from.data[s + c] * weight;
+        for (let c = 0; c < 4; c++) {
+          middle[d + c] += from.data[s + c] * weight;
+        }
       }
     }
   }
@@ -265,13 +285,17 @@ function resampleSmooth(from: Pixels, width: number, height: number): Uint8Clamp
       pixel.fill(0);
       for (const { index, weight } of down[y]) {
         const s = (index * width + x) * 4;
-        for (let c = 0; c < 4; c++) pixel[c] += middle[s + c] * weight;
+        for (let c = 0; c < 4; c++) {
+          pixel[c] += middle[s + c] * weight;
+        }
       }
       const d = (y * width + x) * 4;
       const alpha = Math.round(pixel[3]);
       out[d + 3] = alpha;
       // Rounding must not leave a color above its alpha.
-      for (let c = 0; c < 3; c++) out[d + c] = Math.min(alpha, Math.round(pixel[c]));
+      for (let c = 0; c < 3; c++) {
+        out[d + c] = Math.min(alpha, Math.round(pixel[c]));
+      }
     }
   }
   return out;

@@ -34,25 +34,33 @@
   }
 
   function onpointerdown(e: PointerEvent) {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     e.preventDefault();
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     drag = { pointer: e.pointerId, from: position(e), ...measure() };
   }
 
   function onpointermove(e: PointerEvent) {
-    if (drag?.pointer !== e.pointerId) return;
+    if (drag?.pointer !== e.pointerId) {
+      return;
+    }
     resize(drag, position(e) - drag.from);
   }
 
   function end(e: PointerEvent) {
-    if (drag?.pointer === e.pointerId) drag = undefined;
+    if (drag?.pointer === e.pointerId) {
+      drag = undefined;
+    }
   }
 
   function onkeydown(e: KeyboardEvent) {
     const [less, more] =
       orientation === "horizontal" ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
-    if (e.key !== less && e.key !== more) return;
+    if (e.key !== less && e.key !== more) {
+      return;
+    }
     e.preventDefault();
     resize(measure(), e.key === more ? KEY_STEP : -KEY_STEP);
   }

@@ -14,7 +14,9 @@ export class FrameStats {
 
   push(ms: number) {
     this.values.push(ms);
-    if (this.values.length > this.size) this.values.shift();
+    if (this.values.length > this.size) {
+      this.values.shift();
+    }
   }
 
   reset() {
@@ -23,7 +25,9 @@ export class FrameStats {
 
   report(): FrameReport {
     const n = this.values.length;
-    if (n === 0) return { fps: 0, avg: 0, p95: 0, max: 0 };
+    if (n === 0) {
+      return { fps: 0, avg: 0, p95: 0, max: 0 };
+    }
     const sorted = [...this.values].sort((a, b) => a - b);
     const avg = sorted.reduce((sum, v) => sum + v, 0) / n;
     return {

@@ -14,7 +14,9 @@
 
   let open = $state(false);
   $effect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     popupOpened();
     return () => popupClosed();
   });

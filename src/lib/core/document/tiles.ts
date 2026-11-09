@@ -30,7 +30,11 @@ export const tileCoord = (key: number): TileCoord => ({
 });
 
 export function isTransparent(data: TileData): boolean {
-  for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) return false;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] !== 0) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -81,7 +85,11 @@ export class TileStore {
     const before = { width: this.width, height: this.height, tiles: new Map(this.tiles) };
     this.size = sized(width, height);
     this.tiles = new Map();
-    for (const [key, tile] of tiles) if (tile) this.tiles.set(key, tile);
+    for (const [key, tile] of tiles) {
+      if (tile) {
+        this.tiles.set(key, tile);
+      }
+    }
     return before;
   }
 
@@ -111,12 +119,16 @@ export class TileStore {
   /** Coordinates of the tiles overlapping the rectangle, inside the canvas. */
   tilesIn(rect: Rect): TileCoord[] {
     const area = intersect(rect, this.bounds);
-    if (!area) return [];
+    if (!area) {
+      return [];
+    }
     const coords: TileCoord[] = [];
     const tx1 = Math.floor((area.x + area.width - 1) / TILE_SIZE);
     const ty1 = Math.floor((area.y + area.height - 1) / TILE_SIZE);
     for (let ty = Math.floor(area.y / TILE_SIZE); ty <= ty1; ty++) {
-      for (let tx = Math.floor(area.x / TILE_SIZE); tx <= tx1; tx++) coords.push({ tx, ty });
+      for (let tx = Math.floor(area.x / TILE_SIZE); tx <= tx1; tx++) {
+        coords.push({ tx, ty });
+      }
     }
     return coords;
   }
@@ -127,7 +139,9 @@ export class TileStore {
     const out = new Uint8ClampedArray(rect.width * rect.height * 4);
     for (const { tx, ty } of this.tilesIn(rect)) {
       const tile = this.getTile(tx, ty);
-      if (!tile) continue;
+      if (!tile) {
+        continue;
+      }
       copyRows(tile, tileRect(tx, ty), out, rect);
     }
     return out;
@@ -157,13 +171,17 @@ export class TileStore {
   /** Saves the given tiles. Cheap: tiles are shared, not copied. */
   snapshot(keys: Iterable<number>): TileSnapshot {
     const saved: TileSnapshot = new Map();
-    for (const key of keys) saved.set(key, this.tiles.get(key));
+    for (const key of keys) {
+      saved.set(key, this.tiles.get(key));
+    }
     return saved;
   }
 
   /** Puts back tiles saved by `snapshot`. Returns the restored keys. */
   restore(snapshot: TileSnapshot): number[] {
-    for (const [key, tile] of snapshot) this.put(key, tile);
+    for (const [key, tile] of snapshot) {
+      this.put(key, tile);
+    }
     return [...snapshot.keys()];
   }
 
@@ -173,18 +191,25 @@ export class TileStore {
    * Returns the keys.
    */
   putUnchecked(tiles: Map<number, TileData>): number[] {
-    for (const [key, tile] of tiles) this.tiles.set(key, tile);
+    for (const [key, tile] of tiles) {
+      this.tiles.set(key, tile);
+    }
     return [...tiles.keys()];
   }
 
   private put(key: number, tile: TileData | undefined) {
-    if (!tile || isTransparent(tile)) this.tiles.delete(key);
-    else this.tiles.set(key, tile);
+    if (!tile || isTransparent(tile)) {
+      this.tiles.delete(key);
+    } else {
+      this.tiles.set(key, tile);
+    }
   }
 }
 
 function assertRect(rect: Rect) {
-  if (!isIntegerRect(rect)) throw new RangeError(`Invalid rect ${JSON.stringify(rect)}`);
+  if (!isIntegerRect(rect)) {
+    throw new RangeError(`Invalid rect ${JSON.stringify(rect)}`);
+  }
 }
 
 function tileRect(tx: number, ty: number): Rect {
@@ -201,7 +226,9 @@ function copyRows(
 ) {
   const overlap = intersect(srcRect, dstRect);
   const area = overlap && intersect(overlap, clip);
-  if (!area) return;
+  if (!area) {
+    return;
+  }
   const rowBytes = area.width * 4;
   for (let y = area.y; y < area.y + area.height; y++) {
     const from = ((y - srcRect.y) * srcRect.width + (area.x - srcRect.x)) * 4;

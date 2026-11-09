@@ -105,7 +105,9 @@ export class Drawing {
 
   indexOf(id: string): number {
     const index = this.stack.findIndex((l) => l.id === id);
-    if (index < 0) throw new Error(`Unknown layer ${id}`);
+    if (index < 0) {
+      throw new Error(`Unknown layer ${id}`);
+    }
     return index;
   }
 
@@ -113,7 +115,9 @@ export class Drawing {
   createLayer(props: Partial<LayerProps> = {}): Layer {
     validateLayerProps(props);
     let id = `layer-${this.nextId++}`;
-    while (this.stack.some((l) => l.id === id)) id = `layer-${this.nextId++}`;
+    while (this.stack.some((l) => l.id === id)) {
+      id = `layer-${this.nextId++}`;
+    }
     return {
       ...DEFAULT_LAYER_PROPS,
       ...props,
@@ -150,7 +154,9 @@ export class Drawing {
     assertIndex(index, this.stack.length);
     const [layer] = this.stack.splice(from, 1);
     this.stack.splice(index, 0, layer);
-    if (from !== index) this.changes.emit({ type: "layer-moved", id, from, to: index });
+    if (from !== index) {
+      this.changes.emit({ type: "layer-moved", id, from, to: index });
+    }
     return from;
   }
 
@@ -160,12 +166,16 @@ export class Drawing {
     const layer = this.stack[this.indexOf(id)];
     const previous: Partial<LayerProps> = {};
     for (const key of LAYER_PROP_KEYS) {
-      if (changes[key] === undefined) continue;
+      if (changes[key] === undefined) {
+        continue;
+      }
       Object.assign(previous, { [key]: layer[key] });
       Object.assign(layer, { [key]: changes[key] });
     }
     const keys = Object.keys(previous) as (keyof LayerProps)[];
-    if (keys.length > 0) this.changes.emit({ type: "layer-updated", id, keys });
+    if (keys.length > 0) {
+      this.changes.emit({ type: "layer-updated", id, keys });
+    }
     return previous;
   }
 
@@ -175,12 +185,16 @@ export class Drawing {
    */
   writePixels(id: string, rect: Rect, data: Uint8ClampedArray): TileSnapshot {
     const layer = this.stack[this.indexOf(id)];
-    if (layer.locked) throw new Error(`Layer ${id} is locked`);
+    if (layer.locked) {
+      throw new Error(`Layer ${id} is locked`);
+    }
     const before = layer.tiles.snapshot(
       layer.tiles.tilesIn(rect).map(({ tx, ty }) => tileKey(tx, ty)),
     );
     const tiles = layer.tiles.writeRegion(rect, data);
-    if (tiles.length > 0) this.changes.emit({ type: "pixels-changed", id, tiles });
+    if (tiles.length > 0) {
+      this.changes.emit({ type: "pixels-changed", id, tiles });
+    }
     return before;
   }
 
@@ -192,7 +206,9 @@ export class Drawing {
     const tiles = this.stack[this.indexOf(id)].tiles;
     const before = tiles.snapshot(snapshot.keys());
     const keys = tiles.restore(snapshot);
-    if (keys.length > 0) this.changes.emit({ type: "pixels-changed", id, tiles: keys });
+    if (keys.length > 0) {
+      this.changes.emit({ type: "pixels-changed", id, tiles: keys });
+    }
     return before;
   }
 
@@ -204,7 +220,9 @@ export class Drawing {
    */
   showStrokeTiles(id: string, tiles: Map<number, TileData>, areas: Map<number, Rect>) {
     const keys = this.stack[this.indexOf(id)].tiles.putUnchecked(tiles);
-    if (keys.length === 0) return;
+    if (keys.length === 0) {
+      return;
+    }
     const changed = keys.map(
       (key) => areas.get(key) ?? { x: 0, y: 0, width: TILE_SIZE, height: TILE_SIZE },
     );

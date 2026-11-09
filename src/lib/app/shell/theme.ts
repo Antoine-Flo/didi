@@ -168,13 +168,17 @@ export function buildTheme(choice: ThemeChoice): Theme {
   const base = choice.mode === "light" ? LIGHT_THEME : DARK_THEME;
   const tokens = { ...base.tokens };
   if (choice.tint) {
-    for (const token of TINTED) tokens[token] = tintGray(tokens[token], TINT_HUE, TINT_CHROMA);
+    for (const token of TINTED) {
+      tokens[token] = tintGray(tokens[token], TINT_HUE, TINT_CHROMA);
+    }
     for (const token of TINTED_TEXT) {
       tokens[token] = tintGray(tokens[token], TINT_HUE, TINT_CHROMA / 2);
     }
     tokens["canvas-bg"] = tintGray(tokens["canvas-bg"], TINT_HUE, TINT_CHROMA * CANVAS_TINT);
   }
-  if (choice.canvas) tokens["canvas-bg"] = choice.canvas;
+  if (choice.canvas) {
+    tokens["canvas-bg"] = choice.canvas;
+  }
   return { ...base, tokens };
 }
 
@@ -212,6 +216,8 @@ const fromLinear = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 
 
 /** Applies a theme to the document. */
 export function applyTheme(theme: Theme, root: HTMLElement = document.documentElement) {
-  for (const token of TOKENS) root.style.setProperty(`--${token}`, theme.tokens[token]);
+  for (const token of TOKENS) {
+    root.style.setProperty(`--${token}`, theme.tokens[token]);
+  }
   root.style.colorScheme = theme.scheme;
 }

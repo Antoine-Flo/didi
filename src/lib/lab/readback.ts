@@ -61,7 +61,9 @@ export async function readAsync(
   gl.flush();
   let blocked = performance.now() - start;
 
-  while (gl.getSyncParameter(fence, gl.SYNC_STATUS) !== gl.SIGNALED) await nextFrame();
+  while (gl.getSyncParameter(fence, gl.SYNC_STATUS) !== gl.SIGNALED) {
+    await nextFrame();
+  }
 
   const copyStart = performance.now();
   const pixels = new Uint8Array(size);

@@ -104,8 +104,11 @@ describe(".didi files", () => {
     const files = unzipSync(writeDidi(documentFromEditor(editor)));
     for (const value of [undefined, { width: 0, height: 16 }, "16"]) {
       const json = JSON.parse(strFromU8(files["document.json"]));
-      if (value === undefined) delete json.grid;
-      else json.grid = value;
+      if (value === undefined) {
+        delete json.grid;
+      } else {
+        json.grid = value;
+      }
       const bytes = zipSync({ ...files, "document.json": strToU8(JSON.stringify(json)) });
       expect(readDidi(bytes).grid).toEqual(DEFAULT_TILE_GRID);
     }
@@ -142,7 +145,9 @@ describe(".didi files", () => {
             drawing.addLayer(created);
             const rect = { x: l.x, y: l.y, width: 40, height: 30 };
             drawing.writePixels(created.id, rect, pattern(rect, l.seed, l.alpha));
-            if (l.locked) drawing.updateLayer(created.id, { locked: true });
+            if (l.locked) {
+              drawing.updateLayer(created.id, { locked: true });
+            }
           }
           const editor = new Editor(drawing);
           expectSame(editor, editorFromDocument(reload(editor)));
@@ -266,7 +271,9 @@ describe(".didi files", () => {
           fc.boolean(),
           (at, flip, truncate) => {
             const damaged = truncate ? bytes.slice(0, at) : bytes.slice();
-            if (!truncate) damaged[at] ^= flip;
+            if (!truncate) {
+              damaged[at] ^= flip;
+            }
             message(damaged);
           },
         ),

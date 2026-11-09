@@ -30,6 +30,8 @@ export default ts.config(
       // __APP_VERSION__: defined at build time (see vite.config.js and src/globals.d.ts).
       globals: { ...globals.browser, ...globals.node, __APP_VERSION__: "readonly" },
     },
+    // Braces on every if/else/for/while body, even one line. After `prettier`, which turns it off.
+    rules: { curly: ["error", "all"] },
   },
   {
     files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],

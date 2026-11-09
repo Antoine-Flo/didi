@@ -89,8 +89,12 @@
   }
 
   function buildDocument() {
-    for (const child of view.removeChildren()) child.destroy();
-    for (const layer of layers) layer.destroy(true);
+    for (const child of view.removeChildren()) {
+      child.destroy();
+    }
+    for (const layer of layers) {
+      layer.destroy(true);
+    }
 
     const background = new Sprite(Texture.WHITE);
     background.width = background.height = docSize;
@@ -99,7 +103,9 @@
     layers = Array.from({ length: layerCount }, () =>
       RenderTexture.create({ width: docSize, height: docSize }),
     );
-    for (const layer of layers) view.addChild(new Sprite(layer));
+    for (const layer of layers) {
+      view.addChild(new Sprite(layer));
+    }
     fit();
   }
 
@@ -119,7 +125,9 @@
   }
 
   function flush() {
-    if (queue.length === 0) return;
+    if (queue.length === 0) {
+      return;
+    }
     const start = performance.now();
     while (pool.length < queue.length) {
       const sprite = new Sprite(dabTexture);
@@ -136,7 +144,9 @@
       sprite.scale.set(dab.size / dabTexture.width);
       sprite.visible = true;
     }
-    for (let i = queue.length; i < poolUsed; i++) pool[i].visible = false;
+    for (let i = queue.length; i < poolUsed; i++) {
+      pool[i].visible = false;
+    }
     poolUsed = queue.length;
 
     app.renderer.render({ container: batch, target: layers[layers.length - 1], clear: false });
@@ -167,10 +177,14 @@
   }
 
   function penMove(p: Point, pressure: number) {
-    if (!last) return;
+    if (!last) {
+      return;
+    }
     const size = Math.max(1, brushSize * pressure);
     const run = placeDabs(last, p, Math.max(1, size * 0.1), carry);
-    for (const d of run.dabs) queue.push({ ...d, size });
+    for (const d of run.dabs) {
+      queue.push({ ...d, size });
+    }
     carry = run.carry;
     last = p;
   }
@@ -180,23 +194,33 @@
   }
 
   function onNative(e: PenEvent) {
-    if (e.source !== "pen" && e.source !== "eraser") return;
+    if (e.source !== "pen" && e.source !== "eraser") {
+      return;
+    }
     const p = toDocument(e.x, e.y);
-    if (e.phase === "down" && e.button === 1) penDown(p, e.pressure);
-    else if (e.phase === "move") penMove(p, e.pressure);
-    else if (e.phase === "up" && e.button === 1) penUp();
+    if (e.phase === "down" && e.button === 1) {
+      penDown(p, e.pressure);
+    } else if (e.phase === "move") {
+      penMove(p, e.pressure);
+    } else if (e.phase === "up" && e.button === 1) {
+      penUp();
+    }
   }
 
   // DOM input, used outside Tauri (e.g. in a browser for comparison).
 
   function onPointerDown(e: PointerEvent) {
-    if (native || e.button !== 0) return;
+    if (native || e.button !== 0) {
+      return;
+    }
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     penDown(toDocument(e.clientX, e.clientY), e.pressure);
   }
 
   function onPointerMove(e: PointerEvent) {
-    if (native) return;
+    if (native) {
+      return;
+    }
     for (const c of e.getCoalescedEvents?.() ?? [e]) {
       penMove(toDocument(c.clientX, c.clientY), c.pressure);
     }
@@ -214,7 +238,9 @@
 
   const empty = new Container();
   function clearLayers() {
-    for (const layer of layers) app.renderer.render({ container: empty, target: layer });
+    for (const layer of layers) {
+      app.renderer.render({ container: empty, target: layer });
+    }
   }
 
   function resetStats() {
@@ -283,7 +309,9 @@
   function readGpuInfo() {
     const gl = (app.renderer as unknown as { gl?: WebGL2RenderingContext }).gl;
     info.renderer = app.renderer.name;
-    if (!gl) return;
+    if (!gl) {
+      return;
+    }
     info.maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     const ext = gl.getExtension("WEBGL_debug_renderer_info");
     info.gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
@@ -305,12 +333,16 @@
         preference: "webgl",
       })
       .then(() => {
-        if (destroyed) return app.destroy(true);
+        if (destroyed) {
+          return app.destroy(true);
+        }
         dabTexture = makeDabTexture();
         app.stage.addChild(view);
         readGpuInfo();
         buildDocument();
-        if (native) subscribeNativePen(onNative);
+        if (native) {
+          subscribeNativePen(onNative);
+        }
 
         let sinceUi = 0;
         const tick = () => {
@@ -330,14 +362,20 @@
         unsubscribeTick = () => app.ticker.remove(tick);
         ready = true;
         // ?measure starts the readback measurement on load (handy for headless runs).
-        if (new URLSearchParams(location.search).has("measure")) measureReadback();
+        if (new URLSearchParams(location.search).has("measure")) {
+          measureReadback();
+        }
       });
 
     return () => {
       destroyed = true;
-      if (!ready) return;
+      if (!ready) {
+        return;
+      }
       unsubscribeTick?.();
-      for (const layer of layers) layer.destroy(true);
+      for (const layer of layers) {
+        layer.destroy(true);
+      }
       dabTexture.destroy(true);
       app.destroy(true, { children: true });
     };

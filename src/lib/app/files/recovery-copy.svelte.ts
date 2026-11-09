@@ -63,7 +63,9 @@ export async function setAsideLeftCopy(): Promise<RecoveryInfo | null> {
 /** The document set aside by `setAsideLeftCopy`. Throws if it is missing. */
 export async function readSetAsideCopy(): Promise<DocumentData> {
   const bytes = await readDataBytes(PREVIOUS.file);
-  if (!bytes) throw new Error(m.files_recovery_copy_missing());
+  if (!bytes) {
+    throw new Error(m.files_recovery_copy_missing());
+  }
   return (await decodeDocument(bytes)).doc;
 }
 
@@ -72,7 +74,9 @@ export const discardSetAsideCopy = () => remove(PREVIOUS);
 /** In a browser: the copy left when the tab closed, if there is one. */
 export async function readLeftCopy(): Promise<{ info: RecoveryInfo; doc: DocumentData } | null> {
   const left = await read(CURRENT);
-  if (!left) return null;
+  if (!left) {
+    return null;
+  }
   const { doc } = await decodeDocument(left.bytes);
   return { info: JSON.parse(left.text) as RecoveryInfo, doc };
 }
@@ -108,7 +112,9 @@ export class RecoveryCopy {
 
   /** Writes the copy a little later, after a change. */
   schedule() {
-    if (this.timer !== null || (!this.host.needsCopy() && !this.written)) return;
+    if (this.timer !== null || (!this.host.needsCopy() && !this.written)) {
+      return;
+    }
     this.pending = true;
     this.timer = setTimeout(
       () => {
@@ -117,7 +123,9 @@ export class RecoveryCopy {
         this.writeNow()
           .then(() => {
             // Still pending if more changes came meanwhile. After a failure too.
-            if (id === this.writes && this.timer === null) this.pending = false;
+            if (id === this.writes && this.timer === null) {
+              this.pending = false;
+            }
           })
           .catch((e) => this.host.onError(e));
       },
@@ -132,7 +140,9 @@ export class RecoveryCopy {
 
   /** Removes the copy, and forgets a write to come. */
   remove(): Promise<void> {
-    if (this.timer !== null) clearTimeout(this.timer);
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+    }
     this.timer = null;
     this.pending = false;
     return this.inOrder(() => this.removeFiles());
@@ -148,7 +158,9 @@ export class RecoveryCopy {
   private async write() {
     // Back to the saved state, e.g. everything undone: the copy would bring the changes back.
     if (!this.host.needsCopy()) {
-      if (this.written) await this.removeFiles();
+      if (this.written) {
+        await this.removeFiles();
+      }
       return;
     }
     const start = performance.now();

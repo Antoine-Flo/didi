@@ -30,18 +30,26 @@
   const groups = $derived(
     items.reduce<{ heading?: string; items: typeof items }[]>((runs, entry) => {
       const last = runs.at(-1);
-      if (last && last.heading === entry.group) last.items.push(entry);
-      else runs.push({ heading: entry.group, items: [entry] });
+      if (last && last.heading === entry.group) {
+        last.items.push(entry);
+      } else {
+        runs.push({ heading: entry.group, items: [entry] });
+      }
       return runs;
     }, []),
   );
 
   let open = false;
   function setOpen(next: boolean) {
-    if (next === open) return;
+    if (next === open) {
+      return;
+    }
     open = next;
-    if (next) popupOpened();
-    else popupClosed();
+    if (next) {
+      popupOpened();
+    } else {
+      popupClosed();
+    }
   }
   // Removed while open (e.g. its panel disappears): the canvas must not stay blocked.
   onDestroy(() => setOpen(false));

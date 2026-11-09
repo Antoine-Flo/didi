@@ -10,7 +10,9 @@ import { BLEND_MODES } from "./document/layer";
 /** Solid color region data. */
 export function fill(rect: Rect, rgba: [number, number, number, number]): Uint8ClampedArray {
   const data = new Uint8ClampedArray(rect.width * rect.height * 4);
-  for (let i = 0; i < data.length; i += 4) data.set(rgba, i);
+  for (let i = 0; i < data.length; i += 4) {
+    data.set(rgba, i);
+  }
   return data;
 }
 
@@ -32,8 +34,14 @@ export function pattern(rect: Rect, seed: number, alpha: number): Uint8ClampedAr
 
 /** Index of the first differing byte, or -1. Much faster than toEqual on large buffers. */
 export function firstDifference(a: Uint8ClampedArray, b: Uint8ClampedArray): number {
-  if (a.length !== b.length) return 0;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return i;
+  if (a.length !== b.length) {
+    return 0;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return i;
+    }
+  }
   return -1;
 }
 
@@ -104,9 +112,13 @@ export const randomEdit: fc.Arbitrary<(d: Drawing) => edits.Edit | null> = fc.on
       alpha: fc.constantFrom(0, 128, 255),
     })
     .map((p) => (d: Drawing) => {
-      if (!d.layers.length) return null;
+      if (!d.layers.length) {
+        return null;
+      }
       const layer = d.layers[at(p.which, d.layers.length)];
-      if (layer.locked) return null;
+      if (layer.locked) {
+        return null;
+      }
       return edits.writePixels(layer.id, p, pattern(p, p.seed, p.alpha));
     }),
 );

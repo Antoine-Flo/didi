@@ -68,7 +68,9 @@ function mypaintTool(id: string, title: string, icon: Tool["icon"], pigment = tr
     cursor: (s) => ({ kind: "circle", size: s.size }),
     resize: (s, direction) => (s.size = stepSize(s.size, direction)),
     begin(context, settings, sample) {
-      if (!context.engine) return context.refuse(m.tool_engine_loading());
+      if (!context.engine) {
+        return context.refuse(m.tool_engine_loading());
+      }
       return new QueuedStroke(context, settings, sample, title, pigment);
     },
   });
@@ -150,7 +152,9 @@ class QueuedStroke implements ToolStroke {
     if (prev) {
       const length = Math.hypot(s.x - prev.x, s.y - prev.y);
       const parts = Math.ceil((length * this.size) / MAX_SEGMENT_COST);
-      for (let i = 1; i < parts; i++) this.pending.push(between(prev, s, i / parts));
+      for (let i = 1; i < parts; i++) {
+        this.pending.push(between(prev, s, i / parts));
+      }
     }
     this.pending.push(s);
     this.lastQueued = s;
@@ -161,21 +165,27 @@ class QueuedStroke implements ToolStroke {
     let done = 0;
     while (done < this.pending.length) {
       this.queue(this.pending[done++]);
-      if (this.now() - start >= budgetMs) break;
+      if (this.now() - start >= budgetMs) {
+        break;
+      }
     }
     this.pending.splice(0, done);
     this.stroke.flush();
   }
 
   drain() {
-    for (const s of this.pending) this.queue(s);
+    for (const s of this.pending) {
+      this.queue(s);
+    }
     this.pending = [];
   }
 
   finish() {
     // Samples still waiting for a later time: give them 1 ms each.
     if (this.lastTime !== null) {
-      for (const waiting of this.sameTime) this.send(waiting, this.lastTime + 1);
+      for (const waiting of this.sameTime) {
+        this.send(waiting, this.lastTime + 1);
+      }
     }
     this.sameTime = [];
     // A tap (no movement): mark the point, since libmypaint only paints along a movement.
@@ -209,7 +219,9 @@ class QueuedStroke implements ToolStroke {
       const interval = Math.min(s.time - this.lastTime, 100);
       const step = interval / (this.sameTime.length + 1);
       let time = s.time - interval;
-      for (const waiting of this.sameTime) this.send(waiting, (time += step));
+      for (const waiting of this.sameTime) {
+        this.send(waiting, (time += step));
+      }
       this.sameTime = [];
     }
     this.send(s, s.time);
@@ -218,7 +230,9 @@ class QueuedStroke implements ToolStroke {
   private send(s: Sample, time: number | undefined) {
     const dtime =
       time !== undefined && this.lastTime !== null ? (time - this.lastTime) / 1000 : 1 / 120;
-    if (time !== undefined) this.lastTime = time;
+    if (time !== undefined) {
+      this.lastTime = time;
+    }
     this.stroke.view = { zoom: s.viewZoom ?? 1, rotation: s.viewRotation ?? 0 };
     this.stroke.strokeTo(s.x, s.y, s.pressure, s.tiltX ?? 0, s.tiltY ?? 0, dtime);
   }

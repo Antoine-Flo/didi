@@ -40,7 +40,9 @@ export const fillTool = defineTool<FillSettings>({
     const x = Math.floor(sample.x);
     const y = Math.floor(sample.y);
     const area = fillArea(pixels, width, height, x, y, { tolerance, contiguous });
-    if (!area) return null;
+    if (!area) {
+      return null;
+    }
     const raster = new StrokeRaster(drawing, layer.id, {
       color: context.color,
       opacity,

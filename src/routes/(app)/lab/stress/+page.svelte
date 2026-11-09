@@ -20,7 +20,9 @@
     const hue = (l * 47) % 360;
     for (let ty = 0; ty < Math.ceil(size / TILE_SIZE); ty++) {
       for (let tx = 0; tx < Math.ceil(size / TILE_SIZE); tx++) {
-        if (Math.random() >= fill) continue;
+        if (Math.random() >= fill) {
+          continue;
+        }
         const rect = { x: tx * TILE_SIZE, y: ty * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
         drawing.writePixels(layer.id, rect, tileData(hue, tx, ty));
       }

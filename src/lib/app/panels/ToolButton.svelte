@@ -60,7 +60,9 @@
   let wasActive = false;
   const noteActive = () => (wasActive = active);
   function setOpen(next: boolean) {
-    if (next && compact && !wasActive) return;
+    if (next && compact && !wasActive) {
+      return;
+    }
     open = next;
   }
 
@@ -73,14 +75,21 @@
   // While open, a click on the canvas only closes it.
   let shown = false;
   $effect(() => {
-    if (open === shown) return;
+    if (open === shown) {
+      return;
+    }
     shown = open;
-    if (open) popupOpened();
-    else popupClosed();
+    if (open) {
+      popupOpened();
+    } else {
+      popupClosed();
+    }
   });
   // Removed while open (e.g. the mode changes): the canvas must not stay blocked.
   onDestroy(() => {
-    if (shown) popupClosed();
+    if (shown) {
+      popupClosed();
+    }
   });
 </script>
 
@@ -121,7 +130,9 @@
         onclick={() => {
           run(`tool.${t.id}`);
           // A brush stays open: its brushes are beside.
-          if (!t.brushSet) open = false;
+          if (!t.brushSet) {
+            open = false;
+          }
         }}
       >
         <t.icon />

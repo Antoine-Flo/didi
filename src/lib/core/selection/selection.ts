@@ -60,12 +60,18 @@ export function placementOf({ rect, transform }: SelectionState): Placement | nu
  * of the layer don't change.
  */
 export function appliedState(drawing: Drawing, state: SelectionState): SelectionState {
-  if (!state.floating) return state;
+  if (!state.floating) {
+    return state;
+  }
   const { width, height } = drawing;
   const placement = placementOf(state);
   const rect = placement && intersect(boundsOf(placement), { x: 0, y: 0, width, height });
-  if (!placement || !rect) return NO_SELECTION;
-  if (!state.shape && !placement.transform) return { rect, floating: null };
+  if (!placement || !rect) {
+    return NO_SELECTION;
+  }
+  if (!state.shape && !placement.transform) {
+    return { rect, floating: null };
+  }
   // Each pixel of the new rectangle takes the selected pixel shown at its center, if any.
   const box = { x: placement.x, y: placement.y, width: placement.width, height: placement.height };
   const inBox = state.shape ? shapeMask(box, state.shape) : null;
@@ -75,8 +81,12 @@ export function appliedState(drawing: Drawing, state: SelectionState): Selection
       const q = toBox(placement, rect.x + x + 0.5, rect.y + y + 0.5);
       const bx = Math.floor(q.x - box.x);
       const by = Math.floor(q.y - box.y);
-      if (bx < 0 || by < 0 || bx >= box.width || by >= box.height) continue;
-      if (!inBox || inBox[by * box.width + bx]) mask[y * rect.width + x] = 1;
+      if (bx < 0 || by < 0 || bx >= box.width || by >= box.height) {
+        continue;
+      }
+      if (!inBox || inBox[by * box.width + bx]) {
+        mask[y * rect.width + x] = 1;
+      }
     }
   }
   return selectionOfMask(rect, mask);
@@ -90,14 +100,18 @@ export function selectionOfMask(rect: Rect, mask: Uint8Array): SelectionState {
   let bottom = -1;
   for (let y = 0; y < rect.height; y++) {
     for (let x = 0; x < rect.width; x++) {
-      if (!mask[y * rect.width + x]) continue;
+      if (!mask[y * rect.width + x]) {
+        continue;
+      }
       left = Math.min(left, x);
       right = Math.max(right, x);
       top = Math.min(top, y);
       bottom = Math.max(bottom, y);
     }
   }
-  if (right < 0) return NO_SELECTION;
+  if (right < 0) {
+    return NO_SELECTION;
+  }
   const width = right - left + 1;
   const height = bottom - top + 1;
   let cut = mask;
@@ -127,13 +141,17 @@ export function allSelected(drawing: Drawing): SelectionState {
 export function invertedState(drawing: Drawing, state: SelectionState): SelectionState {
   const canvas = allSelected(drawing);
   const { rect, shape } = appliedState(drawing, state);
-  if (!rect) return canvas;
+  if (!rect) {
+    return canvas;
+  }
   const { width } = drawing;
   const mask = new Uint8Array(width * drawing.height).fill(1);
   const inRect = shape ? shapeMask(rect, shape) : null;
   for (let y = 0; y < rect.height; y++) {
     for (let x = 0; x < rect.width; x++) {
-      if (!inRect || inRect[y * rect.width + x]) mask[(rect.y + y) * width + rect.x + x] = 0;
+      if (!inRect || inRect[y * rect.width + x]) {
+        mask[(rect.y + y) * width + rect.x + x] = 0;
+      }
     }
   }
   return selectionOfMask(canvas.rect!, mask);
@@ -154,10 +172,14 @@ const outlines = new WeakMap<Uint8Array, OutlineRun[]>();
  * mask changes: it stays the same when the content moves or turns.
  */
 export function selectionOutline({ rect, shape }: SelectionState): OutlineRun[] | null {
-  if (!rect || !shape) return null;
+  if (!rect || !shape) {
+    return null;
+  }
   const mask = shapeMask(rect, shape);
   let outline = outlines.get(mask);
-  if (!outline) outlines.set(mask, (outline = maskOutline(mask, rect.width, rect.height)));
+  if (!outline) {
+    outlines.set(mask, (outline = maskOutline(mask, rect.width, rect.height)));
+  }
   return outline;
 }
 
@@ -190,7 +212,9 @@ export class Selection {
 
   /** Replaces the state, without touching any pixels or the history. */
   set(state: SelectionState) {
-    if (state === this.current) return;
+    if (state === this.current) {
+      return;
+    }
     this.current = state;
     this.changes.emit();
   }
@@ -260,7 +284,9 @@ export function lift(
   const left = new Uint8ClampedArray(pixels.length);
   if (mask) {
     for (let i = 0; i < mask.length; i++) {
-      if (mask[i]) continue;
+      if (mask[i]) {
+        continue;
+      }
       left.set(pixels.subarray(i * 4, i * 4 + 4), i * 4);
       pixels.fill(0, i * 4, i * 4 + 4);
     }
@@ -300,7 +326,9 @@ export function showFloating(
   drawing.restorePixels(layerId, shown);
 
   const area = intersect(boundsOf(to), tiles.bounds);
-  if (!area) return;
+  if (!area) {
+    return;
+  }
   const data = tiles.readRegion(area);
   layOver(data, area, floating, to, smooth);
   drawing.writePixels(layerId, area, data);
@@ -345,10 +373,14 @@ function layOver(
       const qy = start.y + x * (right.y - start.y) + y * (down.y - start.y);
       const sx = ((qx - to.x) * width) / to.width;
       const sy = ((qy - to.y) * height) / to.height;
-      if (!sample(pixels, width, height, sx, sy, color)) continue;
+      if (!sample(pixels, width, height, sx, sy, color)) {
+        continue;
+      }
       const d = (y * area.width + x) * 4;
       const keep = (255 - color[3]) / 255;
-      for (let c = 0; c < 4; c++) data[d + c] = color[c] + data[d + c] * keep;
+      for (let c = 0; c < 4; c++) {
+        data[d + c] = color[c] + data[d + c] * keep;
+      }
     }
   }
 }
@@ -361,9 +393,13 @@ function layOverMoved(data: Uint8ClampedArray, area: Rect, floating: Floating, t
     let d = y * area.width * 4;
     for (let x = 0; x < area.width; x++, s += 4, d += 4) {
       const alpha = pixels[s + 3];
-      if (alpha === 0) continue;
+      if (alpha === 0) {
+        continue;
+      }
       const keep = (255 - alpha) / 255;
-      for (let c = 0; c < 4; c++) data[d + c] = pixels[s + c] + data[d + c] * keep;
+      for (let c = 0; c < 4; c++) {
+        data[d + c] = pixels[s + c] + data[d + c] * keep;
+      }
     }
   }
 }
@@ -381,10 +417,16 @@ type Sampler = (
 const sampleExact: Sampler = (pixels, width, height, x, y, color) => {
   const sx = Math.floor(x);
   const sy = Math.floor(y);
-  if (sx < 0 || sy < 0 || sx >= width || sy >= height) return false;
+  if (sx < 0 || sy < 0 || sx >= width || sy >= height) {
+    return false;
+  }
   const s = (sy * width + sx) * 4;
-  if (pixels[s + 3] === 0) return false;
-  for (let c = 0; c < 4; c++) color[c] = pixels[s + c];
+  if (pixels[s + 3] === 0) {
+    return false;
+  }
+  for (let c = 0; c < 4; c++) {
+    color[c] = pixels[s + c];
+  }
   return true;
 };
 
@@ -394,20 +436,30 @@ const sampleSmooth: Sampler = (pixels, width, height, x, y, color) => {
   const v = y - 0.5;
   const left = Math.floor(u);
   const top = Math.floor(v);
-  if (left < -1 || top < -1 || left >= width || top >= height) return false;
+  if (left < -1 || top < -1 || left >= width || top >= height) {
+    return false;
+  }
   const fx = u - left;
   const fy = v - top;
   color.fill(0);
   for (let j = 0; j < 2; j++) {
     const row = top + j;
-    if (row < 0 || row >= height) continue;
+    if (row < 0 || row >= height) {
+      continue;
+    }
     for (let i = 0; i < 2; i++) {
       const col = left + i;
-      if (col < 0 || col >= width) continue;
+      if (col < 0 || col >= width) {
+        continue;
+      }
       const weight = (i ? fx : 1 - fx) * (j ? fy : 1 - fy);
-      if (weight === 0) continue;
+      if (weight === 0) {
+        continue;
+      }
       const s = (row * width + col) * 4;
-      for (let c = 0; c < 4; c++) color[c] += pixels[s + c] * weight;
+      for (let c = 0; c < 4; c++) {
+        color[c] += pixels[s + c] * weight;
+      }
     }
   }
   return color[3] > 0;

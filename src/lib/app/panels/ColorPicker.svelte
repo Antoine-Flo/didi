@@ -36,13 +36,17 @@
   // which must not jump back to red while dragging through them.
   let hsv = $state<HSV>({ h: 0, s: 0, v: 0 });
   $effect.pre(() => {
-    if (color && !sameColor(hsvToRgb(hsv), color)) hsv = rgbToHsv(color);
+    if (color && !sameColor(hsvToRgb(hsv), color)) {
+      hsv = rgbToHsv(color);
+    }
   });
 
   function set(next: HSV) {
     hsv = next;
     const rgb = hsvToRgb(next);
-    if (!color || !sameColor(rgb, color)) onchange(rgb);
+    if (!color || !sameColor(rgb, color)) {
+      onchange(rgb);
+    }
   }
 
   const clamp = (x: number) => Math.min(1, Math.max(0, x));
@@ -55,20 +59,26 @@
     };
     let dragging = false;
     const stop = () => {
-      if (!dragging) return;
+      if (!dragging) {
+        return;
+      }
       dragging = false;
       ondragend?.();
     };
     return {
       onpointerdown(e: PointerEvent) {
-        if (e.button !== 0) return;
+        if (e.button !== 0) {
+          return;
+        }
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
         dragging = true;
         ondragstart?.();
         at(e);
       },
       onpointermove(e: PointerEvent) {
-        if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) at(e);
+        if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
+          at(e);
+        }
       },
       onpointerup: stop,
       onlostpointercapture: stop,
@@ -126,8 +136,11 @@
       aria-label={m.color_hex()}
       onchange={(e) => {
         const rgb = fromHex(e.currentTarget.value);
-        if (rgb) onchange(rgb);
-        else e.currentTarget.value = hex;
+        if (rgb) {
+          onchange(rgb);
+        } else {
+          e.currentTarget.value = hex;
+        }
       }}
     />
   </div>

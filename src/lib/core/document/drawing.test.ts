@@ -136,7 +136,9 @@ describe("Drawing", () => {
             redo = () => d.addLayer(layer, index);
             undo = () => d.removeLayer(layer.id);
           } else {
-            if (d.layers.length === 0) continue;
+            if (d.layers.length === 0) {
+              continue;
+            }
             const id = d.layers[at(o.which, d.layers.length)].id;
             if (o.kind === "remove") {
               let removed = d.removeLayer(id);

@@ -16,7 +16,11 @@ import { encodePng } from "#lib/core/file/png.js";
 function tileBuffers(doc: DocumentData): ArrayBuffer[] {
   const buffers: ArrayBuffer[] = [];
   for (const layer of doc.layers) {
-    for (const tile of layer.tiles.values()) if (tile) buffers.push(tile.buffer as ArrayBuffer);
+    for (const tile of layer.tiles.values()) {
+      if (tile) {
+        buffers.push(tile.buffer as ArrayBuffer);
+      }
+    }
   }
   return buffers;
 }

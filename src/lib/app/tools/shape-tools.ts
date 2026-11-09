@@ -154,8 +154,9 @@ class ShapeStroke implements ToolStroke {
     this.clear();
     if (this.kind !== "line" && this.settings.style === "filled") {
       const area = rectOf(box);
-      if (this.kind === "rectangle") this.raster.setArea(area, true);
-      else {
+      if (this.kind === "rectangle") {
+        this.raster.setArea(area, true);
+      } else {
         const spans = ellipseSpans(box);
         this.raster.setArea(area, true, (x, y) => {
           const span = spans.get(y);
