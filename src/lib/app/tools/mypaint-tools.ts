@@ -20,7 +20,7 @@ import {
 import { brushSet } from "#lib/mypaint/brush-sets.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
 import { selectionClip } from "#lib/core/selection/selection.js";
-import { MyPaintStroke } from "#lib/mypaint/engine.js";
+import { MyPaintStroke } from "#lib/mypaint/stroke.js";
 import {
   defineTool,
   stepSize,

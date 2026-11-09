@@ -9,7 +9,8 @@
 import type { RGB } from "#lib/core/color/color.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
-import type { Brush, MyPaint } from "#lib/mypaint/engine.js";
+import type { Brush } from "#lib/mypaint/brush.js";
+import type { MyPaint } from "#lib/mypaint/engine.js";
 import { pickerTool } from "#lib/app/tools/picker-tool.js";
 import type {
   Modifiers,

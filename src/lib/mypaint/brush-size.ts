@@ -11,7 +11,7 @@
 import { Drawing } from "#lib/core/document/drawing.js";
 import type { MybBrush } from "#lib/mypaint/myb.js";
 import type { MyPaint } from "#lib/mypaint/engine.js";
-import { MyPaintStroke } from "#lib/mypaint/engine.js";
+import { MyPaintStroke } from "#lib/mypaint/stroke.js";
 
 /** libmypaint's base diameter for the test strokes. */
 const BASE = 20;

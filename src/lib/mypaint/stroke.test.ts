@@ -6,14 +6,9 @@ import { History } from "#lib/core/history/history.js";
 import { capture, expectSameState, fill, firstDifference } from "#lib/core/testing/test-utils.js";
 import { unpremultiply } from "#lib/core/document/pixels.js";
 import { BUNDLED_BRUSHES, bundledBrush } from "#lib/mypaint/brushes.js";
-import {
-  loadMyPaint,
-  MyPaintStroke,
-  rgbToHsv,
-  type Brush,
-  type MyPaint,
-} from "#lib/mypaint/engine.js";
-import { parseMyb } from "#lib/mypaint/myb.js";
+import type { Brush } from "#lib/mypaint/brush.js";
+import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
+import { MyPaintStroke } from "#lib/mypaint/stroke.js";
 
 let mp: MyPaint;
 beforeAll(async () => {
@@ -46,19 +41,6 @@ const pixel = (d: Drawing, id: string, x: number, y: number) => [
 ];
 
 describe("libmypaint engine", () => {
-  it("loads every bundled brush", () => {
-    expect(BUNDLED_BRUSHES.length).toBeGreaterThan(150);
-    for (const b of BUNDLED_BRUSHES) {
-      const created = mp.createBrush(b.myb);
-      expect(created.size, b.id).toBeGreaterThan(0);
-      expect(b.nativeSize, b.id).toBeGreaterThan(0);
-      created.destroy();
-    }
-    const erasers = BUNDLED_BRUSHES.filter((b) => b.eraser).map((b) => b.id);
-    expect(erasers).toContain("deevad/large_hard_eraser");
-    expect(erasers).not.toContain("deevad/liner");
-  });
-
   it("knows how large pressure makes a brush, as painted", () => {
     // The large hard eraser is about 3.2 times its size at full pressure.
     const { drawing, id } = setup();
@@ -81,14 +63,6 @@ describe("libmypaint engine", () => {
     expect(erased).toBeLessThan(expected * 1.15);
     // Without a pressure curve, the size is the diameter.
     expect(bundledBrush("deevad/liner").sizeFactor).toBe(1);
-  });
-
-  it("sets size and color", () => {
-    const b = brush("deevad/basic_digital_brush", 40, [0, 0, 255]);
-    expect(b.size).toBeCloseTo(40, 3);
-    expect(b.get("color_h")).toBeCloseTo(2 / 3, 5);
-    expect(b.get("color_v")).toBeCloseTo(1, 5);
-    b.destroy();
   });
 
   it("paints a stroke with the brush color, only around the path", () => {
@@ -441,27 +415,5 @@ describe("a stroke limited to an area", () => {
     history.undo();
     expect(pixel(drawing, id, 150, 150)).toEqual([0, 0, 0, 0]);
     expect(pixel(drawing, id, 140, 140)).toEqual([1, 2, 3, 255]);
-  });
-});
-
-describe("helpers", () => {
-  it("converts RGB to HSV", () => {
-    expect(rgbToHsv(1, 0, 0)).toEqual([0, 1, 1]);
-    const [h, s, v] = rgbToHsv(0, 0.5, 0.5);
-    expect(h).toBeCloseTo(0.5);
-    expect(s).toBe(1);
-    expect(v).toBe(0.5);
-    expect(rgbToHsv(0, 0, 0)).toEqual([0, 0, 0]);
-  });
-
-  it("rejects invalid brush files", () => {
-    expect(() => parseMyb('{"version": 2, "settings": {}}')).toThrow();
-    expect(() => parseMyb('{"version": 3}')).toThrow();
-    expect(() => parseMyb('{"version": 3, "settings": {"x": {"base_value": 1}}}')).toThrow();
-    expect(() =>
-      parseMyb(
-        '{"version": 3, "settings": {"x": {"base_value": 1, "inputs": {"pressure": [[0]]}}}}',
-      ),
-    ).toThrow();
   });
 });

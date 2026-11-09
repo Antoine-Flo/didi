@@ -1,7 +1,7 @@
 import type { BrushCursor } from "#lib/app/tools/tool.js";
 import type { RGB } from "#lib/core/color/color.js";
 import type { Point } from "#lib/render/camera.js";
-import type { BrushCursorState } from "#lib/render/drawing-view.js";
+import type { BrushCursorState } from "#lib/render/brush-cursor.js";
 
 /**
  * The outline the view draws for a tool's cursor at `p` (canvas pixels). Pixel-art tips show

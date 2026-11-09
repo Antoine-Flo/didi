@@ -10,7 +10,8 @@ import type { RGB } from "#lib/core/color/color.js";
 import type { ReadonlyLayer } from "#lib/core/document/layer.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import type { Edit } from "#lib/core/history/edits.js";
-import type { Brush, MyPaint } from "#lib/mypaint/engine.js";
+import type { Brush } from "#lib/mypaint/brush.js";
+import type { MyPaint } from "#lib/mypaint/engine.js";
 import { Registry } from "#lib/app/shared/registry.js";
 
 export interface Sample {
