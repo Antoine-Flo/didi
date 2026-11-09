@@ -1,0 +1,7 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  // index.html: the file Astro loads its config from. Without it here, the resolver keeps
+  // looking up to the app's tsconfig.json, which can't load without the app's packages (CI).
+  "include": [".astro/types.d.ts", "**/*", "index.html"],
+  "exclude": ["dist"]
+}

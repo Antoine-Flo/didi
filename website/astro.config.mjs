@@ -10,6 +10,9 @@ import starlightBlog from "starlight-blog";
 
 export default defineConfig({
   site: "https://didipaint.com",
+  // This project's tsconfig for every file, packages included. Otherwise the resolver looks
+  // up to the app's tsconfig.json, which can't load without the app's packages (CI).
+  vite: { tsconfig: "./tsconfig.json" },
   // Same URLs as the app's pages (wrangler.jsonc: auto-trailing-slash).
   trailingSlash: "ignore",
   build: { format: "directory" },
