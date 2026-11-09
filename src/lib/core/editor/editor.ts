@@ -11,33 +11,32 @@ import { History, type HistoryOptions } from "#lib/core/history/history.js";
 import type { ReadonlyLayer } from "#lib/core/document/layer.js";
 import { addLayer, group, writePixels } from "#lib/core/history/edits.js";
 import { intersect, type Rect } from "#lib/core/shared/geometry.js";
+import { floatingImage, lift, showFloating } from "#lib/core/selection/floating.js";
 import { mirrored } from "#lib/core/selection/placement.js";
-import { shapeMask, shapeOf } from "#lib/core/selection/shape.js";
+import { shapeMask } from "#lib/core/selection/shape.js";
 import {
   NO_SELECTION,
   Selection,
   allSelected,
   appliedState,
   changedTiles,
-  floatingImage,
   invertedState,
   layerTiles,
-  lift,
   selectionOfMask,
   placementOf,
   selectionEdit,
-  showFloating,
   type Floating,
   type SelectionState,
 } from "#lib/core/selection/selection.js";
-
-/** Pixels taken from or put in a layer: premultiplied RGBA, row by row. */
-export interface Image {
-  readonly width: number;
-  readonly height: number;
-  readonly pixels: Uint8ClampedArray;
-}
 import { registerEditorCommands } from "#lib/core/editor/editor-commands.js";
+import {
+  clearedPixels,
+  cropped,
+  drawnArea,
+  opaqueMask,
+  selectedPixels,
+  type Image,
+} from "#lib/core/editor/selected-pixels.js";
 
 export class Editor {
   readonly history: History;
@@ -172,17 +171,7 @@ export class Editor {
       return;
     }
     const rect = before.rect ?? this.canvas;
-    const data = layer.tiles.readRegion(rect);
-    if (before.shape) {
-      const mask = shapeMask(rect, before.shape);
-      for (let i = 0; i < mask.length; i++) {
-        if (mask[i]) {
-          data.fill(0, i * 4, i * 4 + 4);
-        }
-      }
-    } else {
-      data.fill(0);
-    }
+    const data = clearedPixels(layer, rect, before.shape);
     this.history.push(writePixels(layer.id, rect, data, label));
   }
 
@@ -201,15 +190,7 @@ export class Editor {
       return null;
     }
     const rect = state.rect ?? this.canvas;
-    const pixels = layer.tiles.readRegion(rect);
-    if (state.shape) {
-      const mask = shapeMask(rect, state.shape);
-      for (let i = 0; i < mask.length; i++) {
-        if (!mask[i]) {
-          pixels.fill(0, i * 4, i * 4 + 4);
-        }
-      }
-    }
+    const pixels = selectedPixels(layer, rect, state.shape);
     return { rect, pixels, width: rect.width, height: rect.height };
   }
 
@@ -222,11 +203,7 @@ export class Editor {
       return false;
     }
     const pixels = this.drawing.getLayer(id).tiles.readRegion(this.canvas);
-    const mask = new Uint8Array(pixels.length / 4);
-    for (let i = 0; i < mask.length; i++) {
-      mask[i] = pixels[i * 4 + 3] > 0 ? 1 : 0;
-    }
-    const after = selectionOfMask(this.canvas, mask);
+    const after = selectionOfMask(this.canvas, opaqueMask(pixels));
     if (!after.rect) {
       return false;
     }
@@ -248,7 +225,8 @@ export class Editor {
     if (before.floating) {
       return true;
     }
-    const area = this.drawnArea();
+    const layer = this.activeLayer;
+    const area = layer && drawnArea(layer, this.selection.state, this.canvas);
     if (!area) {
       return false;
     }
@@ -338,44 +316,6 @@ export class Editor {
     this.setActiveLayer(layer.id);
   }
 
-  /**
-   * The selection (or the whole canvas) cut down to the rectangle around what is drawn in it
-   * on the active layer, keeping its shape there. Null if nothing is.
-   */
-  private drawnArea(): SelectionState | null {
-    const layer = this.activeLayer;
-    if (!layer) {
-      return null;
-    }
-    const { rect: selected, shape } = this.selection.state;
-    const rect = selected ?? this.canvas;
-    const pixels = layer.tiles.readRegion(rect);
-    const inside = shape ? shapeMask(rect, shape) : null;
-    const drawn = new Uint8Array(rect.width * rect.height);
-    for (let i = 0; i < drawn.length; i++) {
-      drawn[i] = (!inside || inside[i]) && pixels[i * 4 + 3] > 0 ? 1 : 0;
-    }
-    const around = selectionOfMask(rect, drawn).rect;
-    if (!around) {
-      return null;
-    }
-    // The selection's own shape in that rectangle, not the drawing's: what is transparent in
-    // it is lifted too, harmlessly.
-    if (!inside) {
-      return { ...this.selection.state, rect: around, floating: null };
-    }
-    const mask = new Uint8Array(around.width * around.height);
-    for (let y = 0; y < around.height; y++) {
-      const from = (around.y - rect.y + y) * rect.width + (around.x - rect.x);
-      mask.set(inside.subarray(from, from + around.width), y * around.width);
-    }
-    return {
-      ...this.selection.state,
-      rect: around,
-      shape: shapeOf(mask, around.width, around.height),
-    };
-  }
-
   /** Floating content of the active layer, lifted from the selection or the whole layer. */
   private lifted(
     from: SelectionState = this.selection.state,
@@ -420,17 +360,4 @@ export class Editor {
     this.activeIndex = Math.min(this.activeIndex, layers.length - 1);
     this.setActiveId(layers[this.activeIndex].id);
   }
-}
-
-/** The pixels of `rect`, inside `from`, of an image covering `from`. */
-function cropped(image: Image, from: Rect, rect: Rect): Uint8ClampedArray {
-  if (rect.width === from.width && rect.height === from.height) {
-    return image.pixels;
-  }
-  const out = new Uint8ClampedArray(rect.width * rect.height * 4);
-  for (let y = 0; y < rect.height; y++) {
-    const start = ((rect.y - from.y + y) * from.width + (rect.x - from.x)) * 4;
-    out.set(image.pixels.subarray(start, start + rect.width * 4), y * rect.width * 4);
-  }
-  return out;
 }

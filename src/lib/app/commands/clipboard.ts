@@ -3,7 +3,8 @@
 // where it was taken, without the loss of a round trip through straight pixels. An image
 // copied elsewhere since then wins, pasted in the middle of the canvas.
 
-import type { Editor, Image } from "#lib/core/editor/editor.js";
+import type { Editor } from "#lib/core/editor/editor.js";
+import type { Image } from "#lib/core/editor/selected-pixels.js";
 import { premultiply, unpremultiply } from "#lib/core/document/pixels.js";
 import { readClipboardImage, writeClipboardImage } from "#lib/platform/clipboard.js";
 

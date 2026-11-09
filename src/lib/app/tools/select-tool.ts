@@ -20,14 +20,13 @@ import {
   type Placement,
   type Point,
 } from "#lib/core/selection/placement.js";
+import { lift, showFloating } from "#lib/core/selection/floating.js";
 import {
   appliedState,
   changedTiles,
   layerTiles,
-  lift,
   placementOf,
   selectionEdit,
-  showFloating,
   type SelectionState,
 } from "#lib/core/selection/selection.js";
 import { pathSelection, shapeMask } from "#lib/core/selection/shape.js";
