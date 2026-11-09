@@ -39,6 +39,8 @@ function setup(withView = true) {
     openAbout: vi.fn(),
     openPreferences: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
+    recentColors: vi.fn(() => []),
+    clearRecentColors: vi.fn(),
     notify: vi.fn(),
     openSizeDialog: vi.fn(),
     importImage: vi.fn(),
@@ -127,6 +129,27 @@ describe("app commands", () => {
     const { editor, host } = setup();
     editor.commands.execute("view.togglePanels");
     expect(host.togglePanels).toHaveBeenCalledOnce();
+  });
+
+  it("swaps the two colors, even without one", () => {
+    const { editor, host } = setup();
+    host.options.color = [1, 2, 3];
+    host.options.secondary = [4, 5, 6];
+    editor.commands.execute("color.swap");
+    expect(host.options.color).toEqual([4, 5, 6]);
+    expect(host.options.secondary).toEqual([1, 2, 3]);
+    host.options.secondary = null;
+    editor.commands.execute("color.swap");
+    expect(host.options.color).toBeNull();
+    expect(host.options.secondary).toEqual([4, 5, 6]);
+  });
+
+  it("clears the recent colors only when there are some", () => {
+    const { editor, host } = setup();
+    expect(editor.commands.isEnabled("color.clearRecent")).toBe(false);
+    vi.mocked(host.recentColors).mockReturnValue([[1, 2, 3]]);
+    editor.commands.execute("color.clearRecent");
+    expect(host.clearRecentColors).toHaveBeenCalledOnce();
   });
 
   it("sets the color, and edits palettes", async () => {

@@ -2,7 +2,7 @@
 // so they can be bound to shortcuts, listed in the command palette and later put in the
 // quick wheel; those that need params are marked `needsParams`.
 
-import { fromHex, sameColor } from "#lib/core/color/color.js";
+import { fromHex, sameColor, type RGB } from "#lib/core/color/color.js";
 import { addPaletteColor, removePaletteColor } from "#lib/core/color/palette-edits.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
@@ -62,6 +62,10 @@ export interface AppHost {
   openPreferences(): void;
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
+  /** The colors drawn with lately, in the document's mode, the latest first. */
+  recentColors(): readonly RGB[];
+  /** Empties the recent colors of the document's mode. */
+  clearRecentColors(): void;
   importImage(): void;
   /** Shows the start screen, to create a document or open a recent one. */
   newDocument(): void;
@@ -190,6 +194,21 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
       needsParams: true,
       enabled: (_, { color }) => fromHex(color) !== null,
       run: (_, { color }) => (host.options.color = fromHex(color)!),
+    }),
+    registry.register({
+      id: "color.swap",
+      title: m.cmd_color_swap(),
+      run: () => {
+        const { color, secondary } = host.options;
+        host.options.color = secondary;
+        host.options.secondary = color;
+      },
+    }),
+    registry.register({
+      id: "color.clearRecent",
+      title: m.cmd_color_clear_recent(),
+      enabled: () => host.recentColors().length > 0,
+      run: () => host.clearRecentColors(),
     }),
 
     registry.register({

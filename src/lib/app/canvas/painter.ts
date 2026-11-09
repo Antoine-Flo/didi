@@ -6,6 +6,7 @@
 // may still be painting after `end` (libmypaint brushes paint from a queue): it becomes an
 // undo step once nothing is waiting.
 
+import type { RGB } from "#lib/core/color/color.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { bundledBrush } from "#lib/mypaint/brushes.js";
 import type { Brush, MyPaint } from "#lib/mypaint/engine.js";
@@ -27,6 +28,8 @@ export interface PainterHost {
   options(): ToolOptions;
   /** Called with what was taken from the canvas, when using the picker. */
   onPick(picked: Picked): void;
+  /** Called with the color of a stroke done with a tool that draws in color. */
+  onPainted?(color: RGB): void;
   /** Called with a message for the user, when a stroke cannot start. */
   onMessage(message: string): void;
   /** The keys held now. None by default. */
@@ -41,6 +44,8 @@ export class Painter {
   private stroke: ToolStroke | null = null;
   /** `end` was called: the stroke ends once nothing is waiting. */
   private ending = false;
+  /** The color the stroke draws with, or null for tools without one (erasers, picker…). */
+  private strokeColor: RGB | null = null;
 
   constructor(
     private editor: Editor,
@@ -126,6 +131,7 @@ export class Painter {
       return false;
     }
     this.ending = false;
+    this.strokeColor = tool.needsColor !== false ? context.color : null;
     this.stroke.move(sample);
     return true;
   }
@@ -187,6 +193,9 @@ export class Painter {
     const edit = stroke.finish();
     if (edit) {
       this.editor.history.push(edit);
+      if (this.strokeColor) {
+        this.host.onPainted?.(this.strokeColor);
+      }
     }
   }
 

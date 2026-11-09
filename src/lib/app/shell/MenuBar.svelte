@@ -234,15 +234,6 @@
     min-width: calc(220px * var(--ui-scale));
   }
 
-  /* A switch's check or an icon, in a slot of its own: the names stay aligned. */
-  .menu-lead {
-    display: inline-flex;
-    align-items: center;
-    flex: none;
-    width: calc(16px * var(--ui-scale));
-    margin-right: calc(var(--space) / 2);
-  }
-
   /* The way back to the menu above: its name, muted, like a title. */
   :global(.menu-item.menu-back) {
     gap: calc(var(--space) / 2);

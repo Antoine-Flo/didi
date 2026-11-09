@@ -12,9 +12,10 @@
   import type { PaletteLibrary } from "#lib/core/color/palette.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { LayoutPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
+  import type { Mode } from "#lib/app/modes/mode.js";
   import Segmented from "#lib/app/widgets/Segmented.svelte";
   import Splitter from "#lib/app/widgets/Splitter.svelte";
-  import ColorPicker from "./ColorPicker.svelte";
+  import ColorPanel from "./ColorPanel.svelte";
   import LayersPanel from "./LayersPanel.svelte";
   import PalettePanel from "./PalettePanel.svelte";
   import { PaletteColorSync } from "./palette-sync.js";
@@ -25,6 +26,9 @@
     editor,
     version,
     color,
+    secondary,
+    recentColors,
+    mode,
     oncolor,
     palettes,
     paletteVersion,
@@ -41,6 +45,12 @@
     version: number;
     /** The current color, straight RGB. Null: none. */
     color: RGB | null;
+    /** The second color, swapped with the current one. Null: none. */
+    secondary: RGB | null;
+    /** The colors drawn with lately in the document's mode, the latest first. */
+    recentColors: readonly RGB[];
+    /** The document's mode: the color panel shows what was chosen for it. */
+    mode: Mode;
     oncolor: (color: RGB) => void;
     /** The user's palettes, once loaded. */
     palettes: PaletteLibrary | null;
@@ -119,18 +129,24 @@
   {/if}
 
   <div class="panel color-panel" style:height={scaledSize(colorHeight)} bind:this={colorPanel}>
-    <section class="section">
-      <ColorPicker
-        {color}
-        fill={colorHeight !== undefined}
-        onchange={(c) => {
-          sync.change(color, c);
-          oncolor(c);
-        }}
-        ondragstart={() => sync.start(color)}
-        ondragend={() => sync.end()}
-      />
-    </section>
+    <ColorPanel
+      prefs={layout.colorPanel(mode.id, mode.colorPanel)}
+      onprefs={(change) => layout.setColorPanel(mode.id, change)}
+      {color}
+      {secondary}
+      recent={recentColors}
+      {uiScale}
+      hand={layout.hand}
+      fill={colorHeight !== undefined}
+      onchange={(c) => {
+        sync.change(color, c);
+        oncolor(c);
+      }}
+      ondragstart={() => sync.start(color)}
+      ondragend={() => sync.end()}
+      {tip}
+      {run}
+    />
   </div>
 
   <Splitter
@@ -194,11 +210,6 @@
 
   .grow {
     flex: 1;
-  }
-
-  .color-panel .section {
-    flex: 1;
-    min-height: 0;
   }
 
   /* Give way first when the window is too short for their set heights. */

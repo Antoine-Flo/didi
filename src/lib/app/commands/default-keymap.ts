@@ -27,6 +27,7 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "e", command: "tool.eraser" },
     { keys: "p", command: "tool.pixel" },
     { keys: "i", command: "tool.picker" },
+    { keys: "x", command: "color.swap" },
     { keys: "]", command: "brush.grow" },
     { keys: "[", command: "brush.shrink" },
 

@@ -1,6 +1,7 @@
 // Editor modes: pixel art, painting… A mode only chooses what is shown. Every tool stays
 // usable in every mode (from the command palette), and a tool behaves the same in all
 // modes. The layout is shared too: a mode changes what the panels hold, not where they are.
+// (The color panel's content is the exception: each mode has its own, see LayoutPrefs.)
 //
 // A mode is plain data, registered like the tools (see `builtin.ts`). Each document
 // remembers its mode (saved in the .didi file).
@@ -8,6 +9,7 @@
 import type { Component } from "svelte";
 import type { Binding } from "#lib/app/commands/keymap.js";
 import type { Background } from "#lib/app/files/new-drawing.js";
+import type { ColorPanelPrefs } from "#lib/app/shell/layout-prefs.svelte.js";
 import { Registry } from "#lib/app/registry.js";
 
 /** What the start screen offers to create a document in a mode. */
@@ -42,6 +44,8 @@ export interface Mode {
   readonly pixelZoom: boolean;
   /** The pixel under the pointer is shown (pixel art); in painting it means little. */
   readonly showsCursorPixel: boolean;
+  /** What the color panel shows until the user changes it in this mode. */
+  readonly colorPanel: ColorPanelPrefs;
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }

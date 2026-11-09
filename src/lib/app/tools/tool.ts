@@ -203,10 +203,12 @@ export function defineTool<S extends ToolSettings>(tool: Tool<S>): Tool {
   return tool as unknown as Tool;
 }
 
-/** Current color and the settings of every tool, by tool id. */
+/** Current colors and the settings of every tool, by tool id. */
 export interface ToolOptions {
   /** Straight RGB, 0-255. Null: no color is selected, and painting tools refuse to draw. */
   color: RGB | null;
+  /** The second color, kept at hand: swapped with `color` (X). Null: none. */
+  secondary: RGB | null;
   tools: Record<string, ToolSettings>;
 }
 
@@ -215,13 +217,13 @@ export class ToolRegistry extends Registry<Tool> {
     super("tool");
   }
 
-  /** The default color and every tool's default settings. */
+  /** The default colors (dark gray, white) and every tool's default settings. */
   defaultOptions(): ToolOptions {
     const tools: Record<string, ToolSettings> = {};
     for (const tool of this.list()) {
       tools[tool.id] = { ...tool.defaults };
     }
-    return { color: [20, 20, 20], tools };
+    return { color: [20, 20, 20], secondary: [255, 255, 255], tools };
   }
 }
 

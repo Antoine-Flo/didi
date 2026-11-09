@@ -49,6 +49,7 @@
   } = $props();
 
   const degrees = (radians: number) => Math.round((radians * 180) / Math.PI);
+  const percent = $derived(Math.round(camera.zoom * 100));
 </script>
 
 <EdgeColumn
@@ -66,8 +67,12 @@
     ><ZoomIn /></button
   >
 
-  <button class="zoom" title={tip("view.actualSize")} onclick={() => run("view.actualSize")}
-    >{m.toolbar_percent({ percent: Math.round(camera.zoom * 100) })}</button
+  <!-- The zoom in percent, without "%": there is no room for it, and the column says what it
+       is. The tooltip has it. -->
+  <button
+    class="zoom"
+    title={m.nav_zoom_tip({ percent, tip: tip("view.actualSize") })}
+    onclick={() => run("view.actualSize")}>{percent}</button
   >
 
   <button class="icon" title={tip("view.zoomOut")} onclick={() => run("view.zoomOut")}
@@ -108,13 +113,12 @@
 </EdgeColumn>
 
 <style>
-  /* As wide as the icons: up to "6400%" in smaller type. */
+  /* As wide as the icons: up to "6400" in slightly smaller type. */
   .zoom {
     padding: 0;
     overflow: hidden;
-    font-size: calc(var(--font-size) * 0.8);
+    font-size: calc(var(--font-size) * 0.9);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
     white-space: nowrap;
   }
 </style>

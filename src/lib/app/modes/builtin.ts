@@ -32,6 +32,8 @@ export const PIXEL_MODE: Mode = {
   touchRotation: false,
   pixelZoom: true,
   showsCursorPixel: true,
+  // The square alone: pixel art works from a few colors, mostly from the palette.
+  colorPanel: { selector: "square", shades: false, recent: false },
   // Like Aseprite: B is the pencil, E the eraser, G the paint bucket, L the line, U the
   // rectangle, Shift+U the ellipse, M the rectangle selection and Q the lasso.
   bindings: [
@@ -85,6 +87,8 @@ export const PAINTING_MODE: Mode = {
   touchRotation: true,
   pixelZoom: false,
   showsCursorPixel: false,
+  // Like Krita: the wheel with a triangle, shade bars for small steps, the colors used lately.
+  colorPanel: { selector: "triangle", shades: true, recent: true },
   // B (brush), E (eraser) and I (picker) are common shortcuts. M is the rectangle selection and
   // Q the lasso, as in pixel art.
   bindings: [

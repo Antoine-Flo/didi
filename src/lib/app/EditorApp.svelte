@@ -61,6 +61,7 @@
   import { Painter } from "#lib/app/canvas/painter.js";
   import { held, heldModifiers } from "#lib/app/canvas/modifiers.svelte.js";
   import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
+  import { ModeColors } from "#lib/app/panels/mode-colors.svelte.js";
   import { Session, type UnsavedChoice } from "#lib/app/files/session.svelte.js";
   import { windowTitle } from "#lib/app/shell/window-title.svelte.js";
   import MenuBar from "#lib/app/shell/MenuBar.svelte";
@@ -142,11 +143,48 @@
   /** The tool the panels show: Alt turns any tool into the picker while it is held. */
   const shownTool = $derived(held.alt ? pickerTool : activeTool);
 
+  // The colors of each mode (current, second, recent), kept from one session to the next.
+  // Switching modes keeps the colors where they were and takes the other mode's.
+  const modeColors = new ModeColors();
+  /** The mode the colors in use belong to. */
+  let colorsMode = untrack(() => mode.id);
+  /** Takes a mode's saved current and second colors, if it has some. */
+  function applyColors(id: string) {
+    const saved = modeColors.current(id);
+    if (saved) {
+      options.color = saved.color;
+      options.secondary = saved.secondary;
+    }
+  }
+  /** Keeps the colors in use, for their mode. */
+  function keepColors() {
+    modeColors.setCurrent(
+      colorsMode,
+      $state.snapshot(options.color),
+      $state.snapshot(options.secondary),
+    );
+  }
+  $effect.pre(() => {
+    const id = mode.id;
+    untrack(() => {
+      if (id !== colorsMode) {
+        colorsMode = id;
+        applyColors(id);
+      }
+    });
+  });
+  $effect(() => {
+    void options.color;
+    void options.secondary;
+    untrack(keepColors);
+  });
+
   // One painter for the whole session: it keeps the brushes it has loaded.
   const painter = new Painter(session.editor, {
     tool: (eraser) => tools.forPen(eraser),
     options: () => $state.snapshot(options),
     onPick: (picked) => tools.pick(picked),
+    onPainted: (color) => modeColors.addRecent(mode.id, color),
     onMessage: notify,
     modifiers: heldModifiers,
   });
@@ -491,6 +529,8 @@
       get palettes() {
         return palettes;
       },
+      recentColors: () => modeColors.recent(mode.id),
+      clearRecentColors: () => modeColors.clearRecent(mode.id),
       notify,
       openSizeDialog: (kind) => (sizeDialog = kind),
       importImage: () => fileInput.click(),
@@ -576,6 +616,10 @@
       .catch((e) => (error = m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
 
     void layout.load(notify);
+    void modeColors.load(notify).then(() => {
+      applyColors(colorsMode);
+      keepColors();
+    });
     themePrefs.reportErrors(notify);
     loadPalettes(notify).then((library) => {
       palettes = library;
@@ -597,7 +641,13 @@
       if (!(await session.confirmDiscard())) {
         return;
       }
-      await Promise.all([session.closing(), flushPalettes(), layout.flush(), themePrefs.flush()]);
+      await Promise.all([
+        session.closing(),
+        flushPalettes(),
+        layout.flush(),
+        modeColors.flush(),
+        themePrefs.flush(),
+      ]);
       previewWindow?.close();
       await window.destroy();
     });
@@ -829,6 +879,9 @@
       {editor}
       {version}
       color={options.color}
+      secondary={options.secondary}
+      recentColors={modeColors.recent(mode.id)}
+      {mode}
       oncolor={(c) => (options.color = c)}
       {palettes}
       {paletteVersion}

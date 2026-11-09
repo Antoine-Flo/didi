@@ -6,6 +6,7 @@ import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
 import { Painter } from "./painter";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import type { Picked } from "#lib/app/tools/tool.js";
+import type { RGB } from "#lib/core/color/color.js";
 
 let engine: MyPaint;
 beforeAll(async () => {
@@ -22,6 +23,7 @@ function setup(tool = "brush", withEngine = true, now?: () => number) {
     tool,
     options: tools.defaultOptions(),
     picked: null as Picked | null,
+    painted: [] as RGB[],
     message: "",
     alt: false,
   };
@@ -32,6 +34,7 @@ function setup(tool = "brush", withEngine = true, now?: () => number) {
       tool: (eraser) => tools.get(eraser ? "eraser" : state.tool),
       options: () => state.options,
       onPick: (c) => (state.picked = c),
+      onPainted: (c) => state.painted.push(c),
       onMessage: (m) => (state.message = m),
       modifiers: () => ({ shift: false, ctrl: false, alt: state.alt }),
     },
@@ -82,6 +85,21 @@ describe("Painter", () => {
     expect(editor.history.undoLabel).toBe("Brush");
     editor.history.undo();
     expectSameState(capture(editor.drawing), before);
+  });
+
+  it("reports the color of a stroke done, not an eraser's", () => {
+    const { painter, state } = setup();
+    const [first, ...rest] = line(50);
+    painter.begin(first);
+    painter.move(rest);
+    painter.end();
+    painter.drain();
+    expect(state.painted).toEqual([[200, 0, 0]]);
+    painter.begin(first, true);
+    painter.move(rest);
+    painter.end();
+    painter.drain();
+    expect(state.painted).toHaveLength(1);
   });
 
   it("uses the tool chosen by the host for the pen's eraser end", () => {

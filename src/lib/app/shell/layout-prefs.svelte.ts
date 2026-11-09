@@ -6,7 +6,8 @@
 // EditorApp), whether one finger draws on a touch screen (see touch-gestures.ts), the sizes of
 // resizable panels, in pixels at 100% interface size, by panel id (e.g.
 // "palette"; a panel without a size has its default one, see the Splitter widget). The
-// same in every mode: switching modes moves nothing.
+// same in every mode: switching modes moves nothing. Except what the color panel shows
+// (selector, shades, recent colors): each mode has its own, from its defaults (see Mode).
 
 import { errorMessage } from "#lib/app/error-message.js";
 import type { ColumnEdge } from "#lib/app/panels/edge-columns.js";
@@ -24,6 +25,38 @@ const COMPACT_MODES: readonly CompactMode[] = ["auto", "on", "off"];
 /** One finger draws: until a pen is used ("auto"), always, or never (it moves the view). */
 export type FingerDrawing = "auto" | "on" | "off";
 const FINGER_DRAWINGS: readonly FingerDrawing[] = ["auto", "on", "off"];
+/**
+ * The color panel's selector: a square with a hue bar, or a hue ring around a square
+ * ("wheel") or around a triangle.
+ */
+export type ColorSelector = "square" | "wheel" | "triangle";
+export const COLOR_SELECTORS: readonly ColorSelector[] = ["square", "wheel", "triangle"];
+/** What the color panel shows. */
+export interface ColorPanelPrefs {
+  selector: ColorSelector;
+  /** The shade bars, below the selector. */
+  shades: boolean;
+  /** The recent colors, at the bottom. */
+  recent: boolean;
+}
+
+/** A saved color panel's preferences, keeping only what is valid. */
+function parseColorPanel(data: unknown): Partial<ColorPanelPrefs> {
+  const prefs: Partial<ColorPanelPrefs> = {};
+  if (typeof data !== "object" || data === null) {
+    return prefs;
+  }
+  if ("selector" in data && COLOR_SELECTORS.includes(data.selector as ColorSelector)) {
+    prefs.selector = data.selector as ColorSelector;
+  }
+  if ("shades" in data && typeof data.shades === "boolean") {
+    prefs.shades = data.shades;
+  }
+  if ("recent" in data && typeof data.recent === "boolean") {
+    prefs.recent = data.recent;
+  }
+  return prefs;
+}
 
 /** The interface size, in percent. Barely below 100: the interface is already compact. */
 export const UI_SCALE_MIN = 90;
@@ -48,6 +81,8 @@ export interface LayoutPrefsData {
   fingerDrawing: FingerDrawing;
   /** A pen was used on this device: with "auto", one finger then moves the view. */
   penSeen: boolean;
+  /** What the color panel shows, by mode id: only what the user changed. */
+  colorPanels: Record<string, Partial<ColorPanelPrefs>>;
   sizes: Record<string, number>;
 }
 
@@ -107,6 +142,13 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   if ("penSeen" in data && typeof data.penSeen === "boolean") {
     prefs.penSeen = data.penSeen;
   }
+  if ("colorPanels" in data && typeof data.colorPanels === "object" && data.colorPanels !== null) {
+    const panels: Record<string, Partial<ColorPanelPrefs>> = {};
+    for (const [mode, panel] of Object.entries(data.colorPanels)) {
+      panels[mode] = parseColorPanel(panel);
+    }
+    prefs.colorPanels = panels;
+  }
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};
     for (const [id, size] of Object.entries(data.sizes)) {
@@ -132,6 +174,7 @@ export class LayoutPrefs {
     compact: "auto",
     fingerDrawing: "auto",
     penSeen: false,
+    colorPanels: {},
     sizes: {},
   });
   /** Changed before loading: kept over the saved values. */
@@ -148,7 +191,9 @@ export class LayoutPrefs {
     fingerDrawing?: true;
     penSeen?: true;
     sizes: string[];
-  } = { sizes: [] };
+    /** Modes whose color panel changed. */
+    colorPanels: string[];
+  } = { sizes: [], colorPanels: [] };
   private loaded = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private onError: (message: string) => void = () => {};
@@ -305,6 +350,19 @@ export class LayoutPrefs {
     return mode === "on" || (mode === "auto" && !this.data.penSeen);
   }
 
+  /** What the color panel shows in a mode: the user's choices over the mode's defaults. */
+  colorPanel(mode: string, defaults: ColorPanelPrefs): ColorPanelPrefs {
+    return { ...defaults, ...this.data.colorPanels[mode] };
+  }
+
+  setColorPanel(mode: string, change: Partial<ColorPanelPrefs>) {
+    this.data.colorPanels[mode] = { ...this.data.colorPanels[mode], ...change };
+    if (!this.loaded) {
+      this.changed.colorPanels.push(mode);
+    }
+    this.scheduleSave();
+  }
+
   /** The size of a panel, or undefined for its default size. */
   size(id: string): number | undefined {
     return this.data.sizes[id];
@@ -369,6 +427,11 @@ export class LayoutPrefs {
         }
         if (saved.penSeen !== undefined && !this.changed.penSeen) {
           this.data.penSeen = saved.penSeen;
+        }
+        for (const [mode, panel] of Object.entries(saved.colorPanels ?? {})) {
+          if (!this.changed.colorPanels.includes(mode)) {
+            this.data.colorPanels[mode] = panel;
+          }
         }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {
           if (!this.changed.sizes.includes(id)) {
