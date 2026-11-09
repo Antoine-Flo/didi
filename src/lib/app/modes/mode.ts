@@ -38,6 +38,8 @@ export interface Mode {
   readonly smoothScaling: boolean;
   /** Two fingers turn the view (painting), or only move and zoom it (pixel art). */
   readonly touchRotation: boolean;
+  /** Zoomed out, the zoom keeps every pixel the same size on screen (see pixel-zoom.ts). */
+  readonly pixelZoom: boolean;
   /** Shortcuts of this mode, added to the common ones (and winning over them). */
   readonly bindings: readonly Binding[];
 }

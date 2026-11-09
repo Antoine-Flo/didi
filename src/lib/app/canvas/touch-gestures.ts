@@ -35,6 +35,8 @@ export interface TouchGestureHost {
   moveStroke(p: Point, time: number): void;
   endStroke(): void;
   cancelStroke(): void;
+  /** The fingers that moved the view are all up; `at` is where they last were (their middle). */
+  endNavigation?(at: Point): void;
   undo(): void;
   redo(): void;
 }
@@ -64,6 +66,8 @@ export class TouchGestures {
   private anchor: { camera: Camera; points: Point[]; turnedFrom: number } | null = null;
   /** The view turns with the fingers: they turned enough, since the first went down. */
   private rotating = false;
+  /** Where the fingers moving the view last were: their middle. */
+  private lastAt: Point | null = null;
 
   constructor(private readonly host: TouchGestureHost) {}
 
@@ -144,8 +148,10 @@ export class TouchGestures {
       }
     }
     if (this.fingers.size === 0) {
+      if (this.phase === "navigate" && this.lastAt) this.host.endNavigation?.(this.lastAt);
       this.phase = "idle";
       this.anchor = null;
+      this.lastAt = null;
     }
   }
 
@@ -187,6 +193,7 @@ export class TouchGestures {
     if (now.length !== anchor.points.length) return this.reanchor();
     const [a0, b0] = anchor.points;
     const [a, b] = now;
+    this.lastAt = b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
     if (!b0 || !b) {
       this.host.setCamera(pan(anchor.camera, a.x - a0.x, a.y - a0.y));
       return;

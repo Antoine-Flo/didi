@@ -26,6 +26,8 @@
   const MAX_LEAD = 60;
   /** Without a move for this long, the pen has stopped: the pointer goes back under it. */
   const STILL_MS = 40;
+  /** Wheel movement, in pixels, for one zoom level in pixel art: about a mouse wheel's notch. */
+  const WHEEL_NOTCH = 100;
 </script>
 
 <script lang="ts">
@@ -56,6 +58,7 @@
   import { placementOf, selectionOutline } from "#lib/core/selection/selection.js";
   import { shapeMask } from "#lib/core/selection/shape.js";
   import { DrawingView, type BrushCursorState } from "#lib/render/drawing-view.js";
+  import { isFreeZoom, snapZoomDown, snapZoomNearest, stepZoom } from "#lib/render/pixel-zoom.js";
 
   let {
     editor,
@@ -66,6 +69,7 @@
     selectionHandles = false,
     pixelGrid = false,
     touchRotation = false,
+    pixelZoom = false,
     fingerDraws = true,
     onpen,
     insets,
@@ -91,6 +95,8 @@
     pixelGrid?: boolean;
     /** Two fingers may turn the view. */
     touchRotation?: boolean;
+    /** Zoomed out, the zoom keeps to levels where every pixel is the same size (pixel art). */
+    pixelZoom?: boolean;
     /** One finger draws; else it moves the view (see touch-gestures.ts). */
     fingerDraws?: boolean;
     /** A pen was used: see LayoutPrefs.penSeen. */
@@ -159,6 +165,9 @@
       touchStroke = false;
       pen?.cancel();
     },
+    endNavigation: (at) => {
+      if (pixelZoom) zoomAround(at, snapZoomNearest(camera.zoom, devicePixelRatio));
+    },
     undo: () => oncommand?.("history.undo"),
     redo: () => oncommand?.("history.redo"),
   });
@@ -197,7 +206,13 @@
   /** Fits the canvas in the view, unturned; a mirrored view stays mirrored. */
   export function fitView() {
     const area = visibleArea();
-    const fitted = fit(editor.drawing, area);
+    let fitted = fit(editor.drawing, area);
+    if (pixelZoom) {
+      // Around the middle of the area, where the canvas is centered.
+      const middle = { x: area.width / 2, y: area.height / 2 };
+      const zoom = snapZoomDown(fitted.zoom, devicePixelRatio);
+      fitted = zoomAt(fitted, middle, zoom / fitted.zoom);
+    }
     const next = { ...fitted, x: fitted.x + area.x, y: fitted.y + area.y };
     setCamera(camera.mirrored ? mirrorAt(next, center()) : next);
   }
@@ -207,13 +222,19 @@
     setCamera(mirrorAt(camera, center()));
   }
 
-  export function zoomBy(factor: number) {
-    setCamera(zoomAt(camera, center(), factor));
+  /** One step in (1) or out (-1), around the center of the view. */
+  export function zoomStep(direction: 1 | -1) {
+    if (pixelZoom) zoomAround(center(), stepZoom(camera.zoom, devicePixelRatio, direction));
+    else setCamera(zoomAt(camera, center(), direction > 0 ? 1.25 : 0.8));
   }
 
-  /** Sets the zoom to an absolute value, around the center of the view. */
+  /** Sets the zoom to an absolute value (the nearest level in pixel art), around the center. */
   export function zoomTo(zoom: number) {
-    zoomBy(zoom / camera.zoom);
+    zoomAround(center(), pixelZoom ? snapZoomNearest(zoom, devicePixelRatio) : zoom);
+  }
+
+  function zoomAround(at: Point, zoom: number) {
+    if (zoom !== camera.zoom) setCamera(zoomAt(camera, at, zoom / camera.zoom));
   }
 
   /** Shows what a resize would give, without changing the drawing (see DrawingView). */
@@ -240,8 +261,35 @@
     if (e.shiftKey) {
       setCamera(rotateAt(camera, local(e), (Math.sign(delta) * Math.PI) / 12));
     } else {
-      setCamera(zoomAt(camera, local(e), Math.exp(-delta * 0.0015)));
+      wheelZoom(local(e), delta);
     }
+  }
+
+  /** In pixel art, wheel movement toward the next zoom level (see wheelZoom). */
+  let wheelRest = 0;
+
+  /** Zooms with the wheel: smoothly, or in pixel art by levels when zoomed out. */
+  function wheelZoom(at: Point, delta: number) {
+    const factor = Math.exp(-delta * 0.0015);
+    if (!pixelZoom) return setCamera(zoomAt(camera, at, factor));
+    const dpr = devicePixelRatio;
+    const free = isFreeZoom(camera.zoom, dpr);
+    const target = camera.zoom * factor;
+    if (free && isFreeZoom(target, dpr)) {
+      wheelRest = 0;
+      return setCamera(zoomAt(camera, at, factor));
+    }
+    // Leaving the free zone: stops at its edge first.
+    if (free && factor < 1) {
+      wheelRest = 0;
+      return zoomAround(at, stepZoom(camera.zoom, dpr, -1, Infinity));
+    }
+    // One level per notch of a mouse wheel; a touchpad adds up its small moves.
+    if (Math.sign(delta) !== Math.sign(wheelRest)) wheelRest = 0;
+    wheelRest += delta;
+    if (Math.abs(wheelRest) < WHEEL_NOTCH) return;
+    wheelRest = 0;
+    zoomAround(at, stepZoom(camera.zoom, dpr, delta < 0 ? 1 : -1));
   }
 
   /** A drawing sample from a point in view coordinates. */

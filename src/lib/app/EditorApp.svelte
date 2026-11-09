@@ -626,6 +626,7 @@
         selectionHandles={isSelectTool(activeTool)}
         pixelGrid={layout.pixelGrid}
         touchRotation={mode.touchRotation}
+        pixelZoom={mode.pixelZoom}
         fingerDraws={layout.fingerDraws}
         onpen={() => layout.notePen()}
         {insets}

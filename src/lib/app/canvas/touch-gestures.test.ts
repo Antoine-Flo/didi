@@ -4,6 +4,7 @@ import { GESTURE_GRACE_MS, ROTATE_START, TAP_MS, TAP_SLOP, TouchGestures } from 
 
 function setup(options: { fingerDraws?: boolean; mayRotate?: boolean; refuse?: boolean } = {}) {
   const calls: string[] = [];
+  const navigated: string[] = [];
   let camera: Camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
   const gestures = new TouchGestures({
     camera: () => camera,
@@ -19,8 +20,9 @@ function setup(options: { fingerDraws?: boolean; mayRotate?: boolean; refuse?: b
     cancelStroke: () => void calls.push("cancel"),
     undo: () => void calls.push("undo"),
     redo: () => void calls.push("redo"),
+    endNavigation: (at) => void navigated.push(`${at.x},${at.y}`),
   });
-  return { gestures, calls, camera: () => camera };
+  return { gestures, calls, navigated, camera: () => camera };
 }
 
 describe("TouchGestures", () => {
@@ -69,6 +71,18 @@ describe("TouchGestures", () => {
     expect(nowA.y).toBeCloseTo(120);
     expect(nowB.x).toBeCloseTo(240);
     expect(camera().rotation).toBe(0);
+  });
+
+  it("tells where the fingers were when the view stops moving", () => {
+    const { gestures, navigated } = setup({ mayRotate: false });
+    gestures.down(1, { x: 100, y: 100 }, 0);
+    gestures.down(2, { x: 200, y: 100 }, 0);
+    gestures.move(2, { x: 300, y: 100 }, 10);
+    gestures.up(2, 20);
+    expect(navigated).toEqual([]);
+    gestures.move(1, { x: 110, y: 100 }, 30);
+    gestures.up(1, 40);
+    expect(navigated).toEqual(["110,100"]);
   });
 
   it("turns the view only past a threshold, and only where allowed", () => {

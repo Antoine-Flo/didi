@@ -20,7 +20,8 @@ import { m } from "#lib/paraglide/messages.js";
 /** The view controls of the canvas, once it is mounted. */
 export interface ViewControls {
   fitView(): void;
-  zoomBy(factor: number): void;
+  /** One step in (1) or out (-1). */
+  zoomStep(direction: 1 | -1): void;
   zoomTo(zoom: number): void;
   rotateBy(angle: number): void;
   resetRotation(): void;
@@ -165,8 +166,8 @@ export function registerAppCommands(registry: CommandRegistry<Editor>, host: App
 
     view(m.cmd_view_fit(), "view.fit", (v) => v.fitView()),
     view(m.cmd_view_actual_size(), "view.actualSize", (v) => v.zoomTo(1)),
-    view(m.cmd_view_zoom_in(), "view.zoomIn", (v) => v.zoomBy(1.25)),
-    view(m.cmd_view_zoom_out(), "view.zoomOut", (v) => v.zoomBy(0.8)),
+    view(m.cmd_view_zoom_in(), "view.zoomIn", (v) => v.zoomStep(1)),
+    view(m.cmd_view_zoom_out(), "view.zoomOut", (v) => v.zoomStep(-1)),
     view(m.cmd_view_rotate_left(), "view.rotateLeft", (v) => v.rotateBy(-ROTATION_STEP)),
     view(m.cmd_view_rotate_right(), "view.rotateRight", (v) => v.rotateBy(ROTATION_STEP)),
     view(m.cmd_view_reset_rotation(), "view.resetRotation", (v) => v.resetRotation()),

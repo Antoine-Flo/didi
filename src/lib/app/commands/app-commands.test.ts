@@ -13,7 +13,7 @@ function setup(withView = true) {
   const editor = new Editor(new Drawing(100, 100));
   const view: ViewControls = {
     fitView: vi.fn(),
-    zoomBy: vi.fn(),
+    zoomStep: vi.fn(),
     zoomTo: vi.fn(),
     rotateBy: vi.fn(),
     resetRotation: vi.fn(),
@@ -174,7 +174,7 @@ describe("app commands", () => {
     const { editor, view } = setup();
     editor.commands.execute("view.zoomIn");
     editor.commands.execute("view.actualSize");
-    expect(view.zoomBy).toHaveBeenCalledWith(1.25);
+    expect(view.zoomStep).toHaveBeenCalledWith(1);
     expect(view.zoomTo).toHaveBeenCalledWith(1);
     expect(setup(false).editor.commands.isEnabled("view.fit")).toBe(false);
   });

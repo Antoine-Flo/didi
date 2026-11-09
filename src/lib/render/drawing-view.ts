@@ -210,7 +210,12 @@ export class DrawingView {
 
   /** Applies the camera, for a view of the given size in screen pixels. */
   setCamera(camera: Camera, view: { width: number; height: number }) {
-    this.canvasRoot.position.set(camera.x, camera.y);
+    // Unturned, the canvas starts on a device pixel: at a whole zoom, every pixel then covers
+    // the same device pixels, with crisp edges (see pixel-zoom.ts). Only drawn so: the camera
+    // keeps its position, so slow moves don't get lost in the rounding.
+    const r = globalThis.devicePixelRatio || 1;
+    const snap = (v: number) => (camera.rotation === 0 ? Math.round(v * r) / r : v);
+    this.canvasRoot.position.set(snap(camera.x), snap(camera.y));
     this.canvasRoot.scale.set(camera.mirrored ? -camera.zoom : camera.zoom, camera.zoom);
     this.canvasRoot.rotation = camera.rotation;
     this.camera = camera;
