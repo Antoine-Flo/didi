@@ -76,3 +76,25 @@ export async function readAsync(
   gl.deleteBuffer(buffer);
   return { blocked, total: performance.now() - start, pixels };
 }
+
+/** One row of the readback measurement, for a square zone. */
+export interface ReadRow {
+  zone: number;
+  /** Blocking read with an idle GPU. */
+  idle: number;
+  /** Blocking read right after a stroke, the realistic case. */
+  afterStroke: number;
+  asyncBlocked: number;
+  asyncTotal: number;
+}
+
+/** Runs `measure` a few times, one per frame, and returns the median. */
+export async function median(runs: number, measure: () => number | Promise<number>) {
+  const values: number[] = [];
+  for (let i = 0; i < runs; i++) {
+    await nextFrame();
+    values.push(await measure());
+  }
+  values.sort((a, b) => a - b);
+  return values[Math.floor(values.length / 2)];
+}
