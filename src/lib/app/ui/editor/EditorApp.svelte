@@ -120,7 +120,7 @@
     {prefs}
     hidden={app.interfaceHidden}
     {editor}
-    version={changes.version}
+    {changes}
     color={options.color}
     secondary={options.secondary}
     recentColors={modeColors.recent(mode.id)}
@@ -128,8 +128,7 @@
     oncolor={(c) => {
       options.color = c;
     }}
-    palettes={app.palettes}
-    paletteVersion={app.paletteVersion}
+    palettes={app.palettes.current}
     {tip}
     {shortcut}
     {run}

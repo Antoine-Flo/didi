@@ -7,6 +7,7 @@
   import type { RGB } from "#lib/core/color/color.js";
   import type { PaletteLibrary } from "#lib/core/color/palette.js";
   import type { Editor } from "#lib/core/editor/editor.js";
+  import type { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
   import type { PanelTab } from "#lib/app/layout/editor-layout.svelte.js";
   import type { Mode } from "#lib/app/modes/mode.js";
@@ -21,14 +22,13 @@
   let {
     layout,
     editor,
-    version,
+    changes,
     color,
     secondary,
     recentColors,
     mode,
     oncolor,
     palettes,
-    paletteVersion,
     tip,
     shortcut,
     run,
@@ -38,8 +38,8 @@
   }: {
     layout: LayoutPrefs;
     editor: Editor;
-    /** Changes whenever the editor changes, to refresh the panels. */
-    version: number;
+    /** The document, read by the panels. */
+    changes: EditorChanges;
     /** The current color, straight RGB. Null: none. */
     color: RGB | null;
     /** The second color, swapped with the current one. Null: none. */
@@ -49,10 +49,8 @@
     /** The document's mode: the color panel shows what was chosen for it. */
     mode: Mode;
     oncolor: (color: RGB) => void;
-    /** The user's palettes, once loaded. */
+    /** The user's palettes, once loaded: read in a derived value, it follows their changes. */
     palettes: PaletteLibrary | null;
-    /** Changes whenever the palettes change. */
-    paletteVersion: number;
     /** Tooltip of a command, with its shortcut. */
     tip: (command: string) => string;
     /** A command's first shortcut, e.g. "Ctrl+J", if it has one. */
@@ -160,7 +158,6 @@
   >
     <PalettePanel
       library={palettes}
-      version={paletteVersion}
       {color}
       fill={tab !== null || paletteHeight !== undefined}
       {swatchSize}
@@ -184,7 +181,7 @@
   {/if}
 
   <div class="panel grow layers-panel" bind:this={layersPanel}>
-    <LayersPanel {editor} {version} {tip} {shortcut} {run} />
+    <LayersPanel {editor} {changes} {tip} {shortcut} {run} />
   </div>
 </aside>
 

@@ -10,7 +10,6 @@
 
   let {
     library,
-    version,
     color,
     fill = false,
     swatchSize = 18,
@@ -18,9 +17,8 @@
     tip,
     run,
   }: {
+    /** Read in a derived value, it follows the library's changes (see Watched). */
     library: PaletteLibrary | null;
-    /** Changes whenever the library changes, to refresh the panel. */
-    version: number;
     /** The current color, highlighted in the palette. Null: none. */
     color: RGB | null;
     /**
@@ -37,7 +35,6 @@
   } = $props();
 
   const info = $derived.by(() => {
-    void version;
     if (!library) {
       return null;
     }

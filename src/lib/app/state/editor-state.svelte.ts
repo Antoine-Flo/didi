@@ -28,6 +28,7 @@ import { ModeColors } from "#lib/app/prefs/mode-colors.svelte.js";
 import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
 import { PreviewState } from "#lib/app/preview/preview-state.svelte.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
+import { Watched } from "#lib/app/shared/watched.svelte.js";
 import { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
 import { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
 import { Messages, type MessageLevel } from "#lib/app/state/messages.svelte.js";
@@ -92,8 +93,7 @@ export class EditorState {
   cursor = $state<Point | null>(null);
   canvasView = $state<CanvasControls | null>(null);
   /** The user's palettes, once loaded. */
-  palettes = $state.raw<PaletteLibrary | null>(null);
-  paletteVersion = $state(0);
+  readonly palettes = new Watched<PaletteLibrary>();
   /** Opens the system's file picker for images, or for palettes: set by the interface. */
   pickImages = () => {};
   pickPalette = () => {};
@@ -149,12 +149,12 @@ export class EditorState {
     this.preview = new PreviewState(() => this.editor.drawing);
     this.toolPreview = $derived.by(() => this.previewTool());
     this.menus = $derived.by(() => {
-      void this.changes.version;
+      const { history } = this.changes;
       const all = defaultMenus({
         recent: this.session.recent,
         modes: this.modes.list(),
-        undoLabel: this.editor.history.undoLabel,
-        redoLabel: this.editor.history.redoLabel,
+        undoLabel: history.undoLabel,
+        redoLabel: history.redoLabel,
       });
       return availableMenus(all, (id) => this.editor.commands.has(id));
     });
@@ -184,8 +184,8 @@ export class EditorState {
     if (!tool.preview) {
       return null;
     }
-    void changes.version;
-    void changes.pixelVersion;
+    changes.track();
+    changes.trackPixels();
     const opacity = options.tools[this.tools.drawingTool]?.opacity;
     const current = { color: options.color, opacity: typeof opacity === "number" ? opacity : 1 };
     if (!cursor) {
@@ -231,17 +231,17 @@ export class EditorState {
 
   /** Whether a command can run now, for menus. */
   enabled(id: string, params?: unknown): boolean {
-    void this.changes.version;
+    this.changes.track();
     return this.editor.commands.has(id) && this.editor.commands.isEnabled(id, params);
   }
 
   /** Imports images as layers and .hex files as palettes. */
   importFiles(files: Iterable<File>) {
-    void importFiles(this.editor, this.palettes, files, (message) => this.notify(message));
+    void importFiles(this.editor, this.palettes.current, files, (message) => this.notify(message));
   }
 
   importPalette(file: File) {
-    void importPalette(this.palettes, file, (message) => this.notify(message));
+    void importPalette(this.palettes.current, file, (message) => this.notify(message));
   }
 
   /** Loads what the editor needs and was saved; returns what stops it on unmount. */
@@ -256,10 +256,7 @@ export class EditorState {
     void this.colorsSync.load(notify);
     themePrefs.reportErrors(notify);
     loadPalettes(notify)
-      .then((library) => {
-        this.palettes = library;
-        library.subscribe(() => this.paletteVersion++);
-      })
+      .then((library) => this.palettes.set(library))
       .catch((e) => notify(m.files_palettes_load_failed({ error: errorMessage(e) })));
     void closeStalePreview();
     void this.session.start().then((restored) => {
@@ -376,7 +373,7 @@ export class EditorState {
         return state.canvasView;
       },
       get palettes() {
-        return state.palettes;
+        return state.palettes.current;
       },
       recentColors: () => modeColors.recent(this.mode.id),
       clearRecentColors: () => modeColors.clearRecent(this.mode.id),

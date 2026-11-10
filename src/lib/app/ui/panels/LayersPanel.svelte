@@ -13,19 +13,20 @@
   import Slider from "#lib/app/ui/widgets/Slider.svelte";
   import LayerRow from "#lib/app/ui/panels/LayerRow.svelte";
   import type { Editor } from "#lib/core/editor/editor.js";
+  import type { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
   import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
     editor,
-    version,
+    changes,
     tip,
     shortcut,
     run,
   }: {
     editor: Editor;
-    /** Changes whenever the editor changes, to refresh the panel. */
-    version: number;
+    /** The document, read by the panel. */
+    changes: EditorChanges;
     /** Tooltip of a command, with its shortcut. */
     tip: (command: string) => string;
     /** A command's first shortcut, e.g. "Ctrl+J", if it has one. */
@@ -51,9 +52,8 @@
 
   // Top layer first, like every drawing app.
   const layers = $derived.by(() => {
-    void version;
-    const activeId = editor.activeLayer?.id;
-    return [...editor.drawing.layers].reverse().map((l) => ({
+    const activeId = changes.activeLayer?.id;
+    return [...changes.layers].reverse().map((l) => ({
       id: l.id,
       name: l.name,
       visible: l.visible,
@@ -65,8 +65,7 @@
   });
 
   const active = $derived.by(() => {
-    void version;
-    const layer = editor.activeLayer;
+    const layer = changes.activeLayer;
     if (!layer) {
       return null;
     }
@@ -74,7 +73,8 @@
   });
 
   // Previews follow pixel changes, but only when the panel refreshes: not on every frame of
-  // a stroke. Changed layers are noted as they change, and redrawn on the next refresh.
+  // a stroke. Changed layers are noted as they change, and redrawn on the next other change
+  // (the stroke ending in the history).
   let stamps = $state<Record<string, number>>({});
   // Not reactive on purpose: a stroke changes it on every frame.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -92,7 +92,7 @@
     }),
   );
   $effect(() => {
-    void version;
+    changes.track();
     untrack(() => {
       for (const id of changed) {
         stamps[id] = (stamps[id] ?? 0) + 1;
@@ -102,7 +102,7 @@
   });
 
   function enabled(command: string): boolean {
-    void version;
+    changes.track();
     return editor.commands.isEnabled(command);
   }
 
