@@ -1,6 +1,6 @@
 // The color commands (the current colors, the recent ones) and the palette commands.
 
-import { fromHex, sameColor } from "#lib/core/color/color.js";
+import { fromHex } from "#lib/core/color/color.js";
 import { addPaletteColor, removePaletteColor } from "#lib/core/color/palette-edits.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
@@ -42,11 +42,26 @@ export function registerColorCommands(
     registry.register({
       id: "palette.addColor",
       title: m.cmd_palette_add_color(),
-      enabled: () => {
-        const color = host.options.color;
-        return color !== null && editable()?.colors.some((c) => sameColor(c, color)) === false;
+      enabled: () => host.options.color !== null && editable() !== null,
+      run(editor) {
+        const palettes = host.palettes!;
+        editor.history.push(addPaletteColor(palettes, host.options.color!));
+        // The color added is selected, to be edited in the picker.
+        palettes.pick(palettes.active!.colors.length - 1);
       },
-      run: (editor) => editor.history.push(addPaletteColor(host.palettes!, host.options.color!)),
+    }),
+    registry.register<{ index: number }>({
+      id: "palette.pickColor",
+      title: m.cmd_palette_pick_color(),
+      needsParams: true,
+      enabled: (_, { index }) =>
+        Number.isInteger(index) &&
+        index >= 0 &&
+        index < (host.palettes?.active?.colors.length ?? 0),
+      run(_, { index }) {
+        host.palettes!.pick(index);
+        host.options.color = [...host.palettes!.active!.colors[index]];
+      },
     }),
     registry.register<{ index: number }>({
       id: "palette.removeColor",

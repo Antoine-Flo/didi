@@ -2,13 +2,13 @@
 
 import { PaletteLibrary, parsePaletteFile } from "#lib/core/color/palette.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
+import { DataFile } from "#lib/app/shared/data-file.js";
 import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 import { m } from "#lib/paraglide/messages.js";
 
 const FILE = "palettes.json";
 /** A file that could not be read is kept under this name instead of being overwritten. */
 const BACKUP = "palettes-unreadable.json";
-const SAVE_DELAY_MS = 300;
 
 /** Saves now the changes waiting for the delay, if any. */
 let flush: () => Promise<void> = async () => {};
@@ -43,25 +43,13 @@ export async function loadPalettes(onError: (message: string) => void): Promise<
 }
 
 function autosave(library: PaletteLibrary, onError: (message: string) => void) {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const save = () => {
-    timer = null;
-    const text = JSON.stringify(library.toFile(), null, 2) + "\n";
-    return writeDataFile(FILE, text).catch((e) =>
-      onError(m.files_palettes_save_failed({ error: errorMessage(e) })),
-    );
-  };
-  library.subscribe(() => {
-    if (timer !== null) {
-      clearTimeout(timer);
-    }
-    timer = setTimeout(save, SAVE_DELAY_MS);
+  const file = new DataFile(FILE, {
+    content: () => library.toFile(),
+    saveFailed: (error) => m.files_palettes_save_failed({ error }),
   });
-  flush = async () => {
-    if (timer === null) {
-      return;
-    }
-    clearTimeout(timer);
-    await save();
-  };
+  file.onError = onError;
+  // Only made once the file is read.
+  file.markLoaded();
+  library.subscribe(() => file.scheduleSave());
+  flush = () => file.flush();
 }

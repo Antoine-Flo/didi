@@ -145,17 +145,73 @@ describe("PaletteLibrary", () => {
     expect(library.active?.name).toBe("C");
     library.remove();
     expect(library.active).toBeNull();
-    expect(library.addColor(red)).toBe(false);
+    expect(() => library.addColor(red)).toThrow();
   });
 
-  it("adds each color once, and removes colors", () => {
+  it("adds colors, the same one twice too, and removes colors", () => {
     const library = new PaletteLibrary([{ name: "A", colors: [] }], null, []);
-    expect(library.addColor(red)).toBe(true);
-    expect(library.addColor(blue)).toBe(true);
-    expect(library.addColor([255, 0, 0])).toBe(false);
+    library.addColor(red);
+    library.addColor(blue);
+    library.addColor([255, 0, 0]);
+    expect(library.active?.colors).toEqual([red, blue, red]);
     library.removeColor(0);
-    expect(library.active?.colors).toEqual([blue]);
+    expect(library.active?.colors).toEqual([blue, red]);
     expect(() => library.removeColor(5)).toThrow();
+  });
+
+  it("keeps the place of the color clicked as colors come and go before it", () => {
+    const library = new PaletteLibrary([{ name: "A", colors: [red, blue, red] }], null, []);
+    expect(library.picked).toBeNull();
+    expect(() => library.pick(3)).toThrow();
+    library.pick(1);
+    // Inserted at its place: it moves after.
+    library.insertColor(1, blue);
+    expect(library.picked).toBe(2);
+    library.insertColor(0, blue);
+    expect(library.picked).toBe(3);
+    library.removeColor(1);
+    library.removeColor(1);
+    expect(library.picked).toBe(1);
+    // After it: no change.
+    library.addColor(blue);
+    library.removeColor(2);
+    expect(library.picked).toBe(1);
+    library.removeColor(1);
+    expect(library.picked).toBeNull();
+    expect(() => library.pick(5)).toThrow();
+    expect(() => library.pick(-1)).toThrow();
+  });
+
+  it("forgets the color clicked when another palette is shown", () => {
+    const library = new PaletteLibrary(
+      [
+        { name: "A", colors: [red] },
+        { name: "B", colors: [blue] },
+        { name: "C", colors: [red] },
+      ],
+      null,
+      [],
+    );
+    library.pick(0);
+    library.select(1);
+    expect(library.picked).toBeNull();
+    library.pick(0);
+    library.add({ name: "D", colors: [red] });
+    expect(library.picked).toBeNull();
+    library.select(2);
+    library.pick(0);
+    // A palette before it removed: still the same one shown.
+    library.remove(0);
+    expect(library.active?.name).toBe("C");
+    expect(library.picked).toBe(0);
+    library.remove();
+    expect(library.picked).toBeNull();
+    // Colors of a palette not shown leave it alone.
+    library.select(0);
+    library.pick(0);
+    const other = library.palettes[1];
+    library.insertColor(0, red, other);
+    expect(library.picked).toBe(0);
   });
 
   it("notifies changes only", () => {
@@ -165,8 +221,9 @@ describe("PaletteLibrary", () => {
     library.select(0);
     library.rename(0, "A");
     library.addColor(red);
-    library.addColor(red);
-    expect(listener).toHaveBeenCalledTimes(1);
+    library.pick(0);
+    library.pick(0);
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 
   it("saves and reloads any library", () => {

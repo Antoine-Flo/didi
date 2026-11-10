@@ -9,7 +9,7 @@
 // same in every mode: switching modes moves nothing. Except what the color panel shows
 // (selector, shades, recent colors): each mode has its own, from its defaults (see Mode).
 
-import { errorMessage } from "#lib/app/shared/error-message.js";
+import { DataFile } from "#lib/app/shared/data-file.js";
 import type { ColumnEdge } from "#lib/app/layout/edge-columns.js";
 import {
   parseLayoutPrefs,
@@ -19,12 +19,25 @@ import {
   type Hand,
   type LayoutPrefsData,
 } from "#lib/app/prefs/layout-prefs.js";
-import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 import { m } from "#lib/paraglide/messages.js";
 
-const FILE = "layout.json";
 const VERSION = 1;
-const SAVE_DELAY_MS = 300;
+
+/** The preferences holding one value, as opposed to one per mode or per panel. */
+type Field = Exclude<keyof LayoutPrefsData, "colorPanels" | "sizes">;
+const FIELDS: readonly Field[] = [
+  "hand",
+  "toolsEdge",
+  "toolsPosition",
+  "navEdge",
+  "navPosition",
+  "uiScale",
+  "panelsOpen",
+  "pixelGrid",
+  "compact",
+  "fingerDrawing",
+  "penSeen",
+];
 
 export class LayoutPrefs {
   private data = $state<LayoutPrefsData>({
@@ -43,39 +56,23 @@ export class LayoutPrefs {
     sizes: {},
   });
   /** Changed before loading: kept over the saved values. */
-  private changed: {
-    hand?: true;
-    toolsEdge?: true;
-    toolsPosition?: true;
-    navEdge?: true;
-    navPosition?: true;
-    uiScale?: true;
-    panelsOpen?: true;
-    pixelGrid?: true;
-    compact?: true;
-    fingerDrawing?: true;
-    penSeen?: true;
-    sizes: string[];
+  private changed = {
+    fields: {} as Partial<Record<Field, true>>,
+    sizes: [] as string[],
     /** Modes whose color panel changed. */
-    colorPanels: string[];
-  } = { sizes: [], colorPanels: [] };
-  private loaded = false;
-  private timer: ReturnType<typeof setTimeout> | null = null;
-  private onError: (message: string) => void = () => {};
+    colorPanels: [] as string[],
+  };
+  private readonly file = new DataFile("layout.json", {
+    content: () => ({ version: VERSION, ...this.data }),
+    saveFailed: (error) => m.app_layout_save_failed({ error }),
+  });
 
   get hand(): Hand {
     return this.data.hand;
   }
 
   set hand(hand: Hand) {
-    if (hand === this.data.hand) {
-      return;
-    }
-    this.data.hand = hand;
-    if (!this.loaded) {
-      this.changed.hand = true;
-    }
-    this.scheduleSave();
+    this.setField("hand", hand);
   }
 
   get toolsEdge(): ColumnEdge {
@@ -106,11 +103,7 @@ export class LayoutPrefs {
     }
     this.data[edgeKey] = edge;
     this.data[positionKey] = p;
-    if (!this.loaded) {
-      this.changed[edgeKey] = true;
-      this.changed[positionKey] = true;
-    }
-    this.scheduleSave();
+    this.changedFields(edgeKey, positionKey);
   }
 
   /** A thin column back where it starts: at the top of its edge (the tools beside the panels). */
@@ -123,14 +116,7 @@ export class LayoutPrefs {
   }
 
   set uiScale(scale: number) {
-    if (scale === this.data.uiScale) {
-      return;
-    }
-    this.data.uiScale = scale;
-    if (!this.loaded) {
-      this.changed.uiScale = true;
-    }
-    this.scheduleSave();
+    this.setField("uiScale", scale);
   }
 
   get panelsOpen(): boolean {
@@ -138,14 +124,7 @@ export class LayoutPrefs {
   }
 
   set panelsOpen(open: boolean) {
-    if (open === this.data.panelsOpen) {
-      return;
-    }
-    this.data.panelsOpen = open;
-    if (!this.loaded) {
-      this.changed.panelsOpen = true;
-    }
-    this.scheduleSave();
+    this.setField("panelsOpen", open);
   }
 
   get pixelGrid(): boolean {
@@ -153,14 +132,7 @@ export class LayoutPrefs {
   }
 
   set pixelGrid(shown: boolean) {
-    if (shown === this.data.pixelGrid) {
-      return;
-    }
-    this.data.pixelGrid = shown;
-    if (!this.loaded) {
-      this.changed.pixelGrid = true;
-    }
-    this.scheduleSave();
+    this.setField("pixelGrid", shown);
   }
 
   get compact(): CompactMode {
@@ -168,14 +140,7 @@ export class LayoutPrefs {
   }
 
   set compact(mode: CompactMode) {
-    if (mode === this.data.compact) {
-      return;
-    }
-    this.data.compact = mode;
-    if (!this.loaded) {
-      this.changed.compact = true;
-    }
-    this.scheduleSave();
+    this.setField("compact", mode);
   }
 
   get fingerDrawing(): FingerDrawing {
@@ -183,14 +148,7 @@ export class LayoutPrefs {
   }
 
   set fingerDrawing(mode: FingerDrawing) {
-    if (mode === this.data.fingerDrawing) {
-      return;
-    }
-    this.data.fingerDrawing = mode;
-    if (!this.loaded) {
-      this.changed.fingerDrawing = true;
-    }
-    this.scheduleSave();
+    this.setField("fingerDrawing", mode);
   }
 
   get penSeen(): boolean {
@@ -199,14 +157,7 @@ export class LayoutPrefs {
 
   /** A pen was used: kept for good. */
   notePen() {
-    if (this.data.penSeen) {
-      return;
-    }
-    this.data.penSeen = true;
-    if (!this.loaded) {
-      this.changed.penSeen = true;
-    }
-    this.scheduleSave();
+    this.setField("penSeen", true);
   }
 
   /** One finger draws, from the setting and whether a pen was used. */
@@ -222,10 +173,7 @@ export class LayoutPrefs {
 
   setColorPanel(mode: string, change: Partial<ColorPanelPrefs>) {
     this.data.colorPanels[mode] = { ...this.data.colorPanels[mode], ...change };
-    if (!this.loaded) {
-      this.changed.colorPanels.push(mode);
-    }
-    this.scheduleSave();
+    this.changedIn(this.changed.colorPanels, mode);
   }
 
   /** The size of a panel, or undefined for its default size. */
@@ -235,10 +183,7 @@ export class LayoutPrefs {
 
   setSize(id: string, size: number) {
     this.data.sizes[id] = Math.round(size);
-    if (!this.loaded) {
-      this.changed.sizes.push(id);
-    }
-    this.scheduleSave();
+    this.changedIn(this.changed.sizes, id);
   }
 
   /** Back to the default size. */
@@ -247,51 +192,20 @@ export class LayoutPrefs {
       return;
     }
     delete this.data.sizes[id];
-    if (!this.loaded) {
-      this.changed.sizes.push(id);
-    }
-    this.scheduleSave();
+    this.changedIn(this.changed.sizes, id);
   }
 
   /** Reads the saved preferences. Those changed before keep their value. */
   async load(onError: (message: string) => void): Promise<void> {
-    this.onError = onError;
+    this.file.onError = onError;
     try {
-      const text = await readDataFile(FILE);
+      const text = await this.file.load();
       if (text !== null) {
         const saved = parseLayoutPrefs(text);
-        if (saved.hand && !this.changed.hand) {
-          this.data.hand = saved.hand;
-        }
-        if (saved.toolsPosition !== undefined && !this.changed.toolsPosition) {
-          this.data.toolsPosition = saved.toolsPosition;
-        }
-        if (saved.toolsEdge !== undefined && !this.changed.toolsEdge) {
-          this.data.toolsEdge = saved.toolsEdge;
-        }
-        if (saved.navEdge !== undefined && !this.changed.navEdge) {
-          this.data.navEdge = saved.navEdge;
-        }
-        if (saved.navPosition !== undefined && !this.changed.navPosition) {
-          this.data.navPosition = saved.navPosition;
-        }
-        if (saved.uiScale !== undefined && !this.changed.uiScale) {
-          this.data.uiScale = saved.uiScale;
-        }
-        if (saved.panelsOpen !== undefined && !this.changed.panelsOpen) {
-          this.data.panelsOpen = saved.panelsOpen;
-        }
-        if (saved.pixelGrid !== undefined && !this.changed.pixelGrid) {
-          this.data.pixelGrid = saved.pixelGrid;
-        }
-        if (saved.compact !== undefined && !this.changed.compact) {
-          this.data.compact = saved.compact;
-        }
-        if (saved.fingerDrawing !== undefined && !this.changed.fingerDrawing) {
-          this.data.fingerDrawing = saved.fingerDrawing;
-        }
-        if (saved.penSeen !== undefined && !this.changed.penSeen) {
-          this.data.penSeen = saved.penSeen;
+        for (const field of FIELDS) {
+          if (saved[field] !== undefined && !this.changed.fields[field]) {
+            this.take(field, saved[field]);
+          }
         }
         for (const [mode, panel] of Object.entries(saved.colorPanels ?? {})) {
           if (!this.changed.colorPanels.includes(mode)) {
@@ -307,36 +221,39 @@ export class LayoutPrefs {
     } catch {
       // An unreadable file only loses the preferences: start from the defaults.
     }
-    this.loaded = true;
+    this.file.markLoaded();
   }
 
   /** Saves now the changes waiting for the delay, if any: call before the app closes. */
-  async flush(): Promise<void> {
-    if (this.timer === null) {
+  flush(): Promise<void> {
+    return this.file.flush();
+  }
+
+  private take<K extends Field>(field: K, value: LayoutPrefsData[K]) {
+    this.data[field] = value;
+  }
+
+  private setField<K extends Field>(field: K, value: LayoutPrefsData[K]) {
+    if (value === this.data[field]) {
       return;
     }
-    clearTimeout(this.timer);
-    await this.save();
+    this.take(field, value);
+    this.changedFields(field);
   }
 
-  private scheduleSave() {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
+  private changedFields(...fields: Field[]) {
+    if (!this.file.loaded) {
+      for (const field of fields) {
+        this.changed.fields[field] = true;
+      }
     }
-    this.timer = setTimeout(() => void this.save(), SAVE_DELAY_MS);
+    this.file.scheduleSave();
   }
 
-  private async save() {
-    this.timer = null;
-    // Before loading, saving would overwrite the file with the defaults: try again later.
-    if (!this.loaded) {
-      return this.scheduleSave();
+  private changedIn(list: string[], key: string) {
+    if (!this.file.loaded) {
+      list.push(key);
     }
-    const text = JSON.stringify({ version: VERSION, ...this.data }, null, 2) + "\n";
-    try {
-      await writeDataFile(FILE, text);
-    } catch (e) {
-      this.onError(m.app_layout_save_failed({ error: errorMessage(e) }));
-    }
+    this.file.scheduleSave();
   }
 }

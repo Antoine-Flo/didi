@@ -3,14 +3,11 @@
 // with lately, the latest first. A color enters the recent ones when a stroke drawn with it
 // is done, not while choosing it: the picker's in-between colors would fill the list.
 
-import { errorMessage } from "#lib/app/shared/error-message.js";
+import { DataFile } from "#lib/app/shared/data-file.js";
 import { fromHex, sameColor, toHex, type RGB } from "#lib/core/color/color.js";
-import { readDataFile, writeDataFile } from "#lib/platform/storage.js";
 import { m } from "#lib/paraglide/messages.js";
 
-const FILE = "colors.json";
 const VERSION = 1;
-const SAVE_DELAY_MS = 300;
 /** How many recent colors each mode keeps: one row of the color panel. */
 export const RECENT_COLORS_MAX = 12;
 
@@ -70,9 +67,10 @@ export function parseModeColors(text: string): Record<string, ColorsOfMode> {
 
 export class ModeColors {
   private modes = $state<Record<string, ColorsOfMode>>({});
-  private loaded = false;
-  private timer: ReturnType<typeof setTimeout> | null = null;
-  private onError: (message: string) => void = () => {};
+  private readonly file = new DataFile("colors.json", {
+    content: () => this.toFile(),
+    saveFailed: (error) => m.app_colors_save_failed({ error }),
+  });
 
   /** A mode's saved current and second colors, if any. */
   current(mode: string): { color: RGB | null; secondary: RGB | null } | null {
@@ -87,7 +85,7 @@ export class ModeColors {
    * are applied then.
    */
   setCurrent(mode: string, color: RGB | null, secondary: RGB | null) {
-    if (!this.loaded) {
+    if (!this.file.loaded) {
       return;
     }
     const saved = this.current(mode);
@@ -96,7 +94,7 @@ export class ModeColors {
       return;
     }
     this.modes[mode] = { ...this.of(mode), color, secondary };
-    this.scheduleSave();
+    this.file.scheduleSave();
   }
 
   /** A mode's recent colors, the latest first. */
@@ -111,13 +109,13 @@ export class ModeColors {
       return;
     }
     this.modes[mode] = { ...this.of(mode), recent: withRecent(list, color) };
-    this.scheduleSave();
+    this.file.scheduleSave();
   }
 
   clearRecent(mode: string) {
     if (this.recent(mode).length > 0) {
       this.modes[mode] = { ...this.of(mode), recent: [] };
-      this.scheduleSave();
+      this.file.scheduleSave();
     }
   }
 
@@ -127,9 +125,9 @@ export class ModeColors {
 
   /** Reads the saved colors. Recent colors added before keep their place, first. */
   async load(onError: (message: string) => void): Promise<void> {
-    this.onError = onError;
+    this.file.onError = onError;
     try {
-      const text = await readDataFile(FILE);
+      const text = await this.file.load();
       if (text !== null) {
         for (const [mode, saved] of Object.entries(parseModeColors(text))) {
           let recent = saved.recent;
@@ -142,31 +140,15 @@ export class ModeColors {
     } catch {
       // An unreadable file only loses the colors.
     }
-    this.loaded = true;
+    this.file.markLoaded();
   }
 
   /** Saves now the changes waiting for the delay, if any: call before the app closes. */
-  async flush(): Promise<void> {
-    if (this.timer === null) {
-      return;
-    }
-    clearTimeout(this.timer);
-    await this.save();
+  flush(): Promise<void> {
+    return this.file.flush();
   }
 
-  private scheduleSave() {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-    }
-    this.timer = setTimeout(() => void this.save(), SAVE_DELAY_MS);
-  }
-
-  private async save() {
-    this.timer = null;
-    // Before loading, saving would overwrite the file: try again later.
-    if (!this.loaded) {
-      return this.scheduleSave();
-    }
+  private toFile() {
     const hex = (c: RGB | null | undefined) => (c ? toHex(c) : c);
     const modes = Object.fromEntries(
       Object.entries(this.modes).map(([mode, { color, secondary, recent }]) => [
@@ -174,11 +156,6 @@ export class ModeColors {
         { color: hex(color), secondary: hex(secondary), recent: recent.map(toHex) },
       ]),
     );
-    const text = JSON.stringify({ version: VERSION, modes }, null, 2) + "\n";
-    try {
-      await writeDataFile(FILE, text);
-    } catch (e) {
-      this.onError(m.app_colors_save_failed({ error: errorMessage(e) }));
-    }
+    return { version: VERSION, modes };
   }
 }

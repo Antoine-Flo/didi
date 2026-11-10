@@ -113,6 +113,8 @@ export class PaletteLibrary {
   private shown = 0;
   private changes = new Emitter<void>();
   private isLocked = true;
+  /** The color clicked in the shown palette, by place: null for none. */
+  private pickedIndex: number | null = null;
 
   /**
    * The user's `palettes`, then `builtins`. Shows the palette named `active` (the user's
@@ -169,6 +171,29 @@ export class PaletteLibrary {
     this.changes.emit();
   }
 
+  /**
+   * The place of the color clicked in the shown palette, or null. A place, not a color: a
+   * palette may hold the same color twice. Follows the colors added or removed before it.
+   */
+  get picked(): number | null {
+    return this.pickedIndex;
+  }
+
+  /** Clicks a color of the shown palette, or none (null). */
+  pick(index: number | null) {
+    if (
+      index !== null &&
+      (!Number.isInteger(index) || index < 0 || index >= (this.active?.colors.length ?? 0))
+    ) {
+      throw new RangeError(`No color at ${index}`);
+    }
+    if (index === this.pickedIndex) {
+      return;
+    }
+    this.pickedIndex = index;
+    this.changes.emit();
+  }
+
   /** Calls `listener` after every change. */
   subscribe(listener: () => void): () => void {
     return this.changes.subscribe(listener);
@@ -180,6 +205,7 @@ export class PaletteLibrary {
       return;
     }
     this.shown = index;
+    this.pickedIndex = null;
     this.changes.emit();
   }
 
@@ -187,6 +213,7 @@ export class PaletteLibrary {
   add(palette: Readonly<Palette>) {
     this.list.push({ ...copy(palette), name: this.uniqueName(palette.name) });
     this.shown = this.list.length - 1;
+    this.pickedIndex = null;
     this.changes.emit();
   }
 
@@ -194,6 +221,9 @@ export class PaletteLibrary {
   remove(index = this.shown) {
     this.own(index);
     this.list.splice(index, 1);
+    if (this.shown === index) {
+      this.pickedIndex = null;
+    }
     if (this.shown >= index) {
       this.shown = Math.max(0, this.shown - 1);
     }
@@ -213,26 +243,26 @@ export class PaletteLibrary {
     this.changes.emit();
   }
 
-  /** Adds a color at the end of the shown palette, unless it is already there. */
-  addColor(color: RGB): boolean {
-    const palette = this.active;
-    if (!palette || palette.colors.some((c) => sameColor(c, color))) {
-      return false;
-    }
-    this.own(this.shown).colors.push([...color]);
-    this.changes.emit();
-    return true;
+  /** Adds a color at the end of the shown palette, even if it is already there. */
+  addColor(color: RGB) {
+    this.insertColor(this.active?.colors.length ?? 0, color);
   }
 
   /** Removes a color of a palette, the shown one by default. */
   removeColor(index: number, palette = this.active) {
     this.colorsOf(palette, index).splice(index, 1);
+    if (palette === this.active && this.pickedIndex !== null && this.pickedIndex >= index) {
+      this.pickedIndex = this.pickedIndex === index ? null : this.pickedIndex - 1;
+    }
     this.changes.emit();
   }
 
   /** Inserts a color in a palette (the shown one by default), duplicates allowed. */
   insertColor(index: number, color: RGB, palette = this.active) {
     this.colorsOf(palette, index, true).splice(index, 0, [...color]);
+    if (palette === this.active && this.pickedIndex !== null && this.pickedIndex >= index) {
+      this.pickedIndex++;
+    }
     this.changes.emit();
   }
 

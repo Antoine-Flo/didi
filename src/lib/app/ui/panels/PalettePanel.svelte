@@ -50,6 +50,7 @@
       colors: library.active?.colors.map((c) => [...c] as RGB) ?? [],
       hasActive: library.active !== null,
       locked: library.locked,
+      picked: library.picked,
       editable: library.editable !== null,
     };
   });
@@ -181,11 +182,11 @@
       {#each info.colors as c, i (i)}
         <button
           class="swatch"
-          class:current={color && sameColor(c, color)}
+          class:current={i === info.picked && color && sameColor(c, color)}
           style:background={toHex(c)}
           title={editable ? m.palette_swatch_tip({ hex: toHex(c) }) : toHex(c)}
           aria-label={toHex(c)}
-          onclick={() => run("color.set", { color: toHex(c) })}
+          onclick={() => run("palette.pickColor", { index: i })}
           oncontextmenu={(e) => {
             e.preventDefault();
             run("palette.removeColor", { index: i });

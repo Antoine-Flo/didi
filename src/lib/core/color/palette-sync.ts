@@ -1,6 +1,7 @@
 // The color picker edits the palette color being used: when the palettes are unlocked and
-// the current color is one of the shown palette's, changing it in the picker changes that
-// palette color too, live while dragging. A drag is one undo step.
+// the current color is the one clicked in the shown palette (see PaletteLibrary.picked),
+// changing it in the picker changes that palette color too, live while dragging. A drag is
+// one undo step. A color merely equal to one of the palette's is not followed.
 
 import { sameColor, type RGB } from "#lib/core/color/color.js";
 import type { Palette, PaletteLibrary } from "#lib/core/color/palette.js";
@@ -67,11 +68,12 @@ export class PaletteColorSync {
   }
 
   private find(color: RGB | null): Target | null {
-    const palette = this.library()?.editable;
-    if (!palette || !color) {
+    const library = this.library();
+    const palette = library?.editable;
+    const index = library?.picked ?? null;
+    if (!palette || !color || index === null || !sameColor(palette.colors[index], color)) {
       return null;
     }
-    const index = palette.colors.findIndex((c) => sameColor(c, color));
-    return index < 0 ? null : { palette, index, before: [...color] as RGB };
+    return { palette, index, before: [...color] as RGB };
   }
 }

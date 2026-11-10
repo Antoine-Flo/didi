@@ -26,6 +26,7 @@ function setup(locked: boolean) {
 describe("PaletteColorSync", () => {
   it("changes the palette color live while dragging, as one undo step", () => {
     const { library, history, sync } = setup(false);
+    library.pick(1);
     sync.start(green);
     sync.change(green, [0, 200, 0]);
     expect(library.active!.colors[1]).toEqual([0, 200, 0]);
@@ -41,6 +42,7 @@ describe("PaletteColorSync", () => {
 
   it("changes it in one step from the hex code, and leaves no step for a click", () => {
     const { library, history, sync } = setup(false);
+    library.pick(0);
     sync.start(red);
     sync.end();
     expect(history.steps).toBe(0);
@@ -51,6 +53,7 @@ describe("PaletteColorSync", () => {
 
   it("does nothing when locked, or for a color not in the palette", () => {
     const locked = setup(true);
+    locked.library.pick(0);
     locked.sync.start(red);
     locked.sync.change(red, blue);
     locked.sync.end();
@@ -58,8 +61,24 @@ describe("PaletteColorSync", () => {
     expect(locked.library.active!.colors).toEqual([red, green]);
 
     const other = setup(false);
+    other.library.pick(0);
     other.sync.change(blue, red);
     expect(other.library.active!.colors).toEqual([red, green]);
     expect(other.history.steps).toBe(0);
+  });
+
+  it("follows the color clicked, not one merely equal to it", () => {
+    const { library, sync } = setup(false);
+    // None clicked: a color of the palette is left alone.
+    sync.change(red, blue);
+    sync.start(green);
+    sync.change(green, blue);
+    sync.end();
+    expect(library.active!.colors).toEqual([red, green]);
+    // The same color twice: only the one clicked changes.
+    library.addColor(red);
+    library.pick(2);
+    sync.change(red, blue);
+    expect(library.active!.colors).toEqual([red, green, blue]);
   });
 });

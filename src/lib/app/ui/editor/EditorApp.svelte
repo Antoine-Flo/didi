@@ -124,7 +124,9 @@
     secondary={options.secondary}
     recentColors={modeColors.recent(mode.id)}
     {mode}
-    oncolor={(c) => (options.color = c)}
+    oncolor={(c) => {
+      options.color = c;
+    }}
     palettes={app.palettes}
     paletteVersion={app.paletteVersion}
     {tip}

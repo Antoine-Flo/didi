@@ -156,6 +156,38 @@ describe("app commands", () => {
     expect(host.clearRecentColors).toHaveBeenCalledOnce();
   });
 
+  it("adds the current color even if already there, and uses a palette color by its place", () => {
+    const { editor, host } = setup();
+    const palettes = host.palettes!;
+    editor.commands.execute("palette.toggleLock");
+    editor.commands.execute("color.set", { color: "#ff8000" });
+    editor.commands.execute("palette.addColor");
+    editor.commands.execute("color.set", { color: "#0000ff" });
+    editor.commands.execute("palette.addColor");
+    expect(editor.commands.isEnabled("palette.addColor")).toBe(true);
+    editor.commands.execute("palette.addColor");
+    expect(palettes.active?.colors).toEqual([
+      [255, 128, 0],
+      [0, 0, 255],
+      [0, 0, 255],
+    ]);
+    expect(editor.commands.isEnabled("palette.pickColor", { index: 3 })).toBe(false);
+    // The color added is selected.
+    expect(palettes.picked).toBe(2);
+    editor.commands.execute("palette.pickColor", { index: 0 });
+    expect(palettes.picked).toBe(0);
+    expect(host.options.color).toEqual([255, 128, 0]);
+    editor.commands.execute("palette.pickColor", { index: 1 });
+    expect(host.options.color).toEqual([0, 0, 255]);
+    editor.commands.execute("palette.addColor");
+    expect(palettes.picked).toBe(3);
+    // Taken from a locked palette too, without editing it.
+    editor.commands.execute("palette.toggleLock");
+    editor.commands.execute("palette.pickColor", { index: 0 });
+    expect(host.options.color).toEqual([255, 128, 0]);
+    expect(palettes.picked).toBe(0);
+  });
+
   it("sets the color, and edits palettes", async () => {
     const { editor, host } = setup();
     const palettes = host.palettes!;

@@ -125,6 +125,7 @@
   "cmd_color_swap": "Swap colors",
   "cmd_color_clear_recent": "Clear recent colors",
   "cmd_palette_add_color": "Add color to palette",
+  "cmd_palette_pick_color": "Use palette color",
   "cmd_palette_remove_color": "Remove color from palette",
   "cmd_palette_toggle_lock": "Lock or unlock palettes",
   "cmd_palette_select": "Show palette",
