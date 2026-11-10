@@ -45,7 +45,7 @@ export function registerEditCommands(registry: CommandRegistry<Editor>, host: Ap
         void toPaste(editor)
           .then((paste) => {
             if (!paste) {
-              return host.notify(m.app_nothing_to_paste());
+              return host.notify(m.app_nothing_to_paste(), "info");
             }
             if (editor.paste(paste.image, paste.at)) {
               selectionTool();
@@ -60,7 +60,7 @@ export function registerEditCommands(registry: CommandRegistry<Editor>, host: Ap
         void toPaste(editor)
           .then((paste) => {
             if (!paste) {
-              return host.notify(m.app_nothing_to_paste());
+              return host.notify(m.app_nothing_to_paste(), "info");
             }
             editor.pasteAsLayer(paste.image, paste.at);
           })
@@ -74,7 +74,7 @@ export function registerEditCommands(registry: CommandRegistry<Editor>, host: Ap
         if (editor.transform()) {
           selectionTool();
         } else {
-          host.notify(m.app_nothing_to_transform());
+          host.notify(m.app_nothing_to_transform(), "info");
         }
       },
     }),

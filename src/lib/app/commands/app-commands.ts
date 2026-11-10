@@ -2,6 +2,7 @@
 // so they can be bound to shortcuts, listed in the command palette and later put in the
 // quick wheel; those that need params are marked `needsParams`.
 
+import type { MessageLevel } from "#lib/app/state/messages.svelte.js";
 import type { DrawingView } from "#lib/render/drawing-view.js";
 import type { RGB } from "#lib/core/color/color.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
@@ -89,7 +90,7 @@ export interface AppHost {
   /** Opens the dialog changing the canvas size, or the image size. */
   openSizeDialog(kind: "canvas" | "image"): void;
   /** Shows a short message to the user, e.g. why a command did nothing. */
-  notify(message: string): void;
+  notify(message: string, level?: MessageLevel): void;
   /** Closes the app (offering to save first). Null where it cannot: no such command. */
   readonly quit: (() => void) | null;
 }

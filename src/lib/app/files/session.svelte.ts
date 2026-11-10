@@ -1,6 +1,7 @@
 // The open document: its editor, mode, file and unsaved changes, and the file actions (new,
 // open, save, save as, export), recent files and crash recovery (see recovery-copy).
 
+import type { MessageLevel } from "#lib/app/state/messages.svelte.js";
 import {
   DEFAULT_TILE_GRID,
   documentFromEditor,
@@ -38,7 +39,7 @@ export type UnsavedChoice = "save" | "discard" | "cancel";
 
 export interface SessionHost {
   /** Shows a message to the user. */
-  notify(message: string): void;
+  notify(message: string, level?: MessageLevel): void;
   /** Asks what to do with the unsaved changes of a document. */
   askUnsaved(name: string): Promise<UnsavedChoice>;
 }
@@ -332,7 +333,7 @@ export class Session {
     if (canUseFiles()) {
       return true;
     }
-    this.host.notify(m.files_desktop_only());
+    this.host.notify(m.files_desktop_only(), "info");
     return false;
   }
 

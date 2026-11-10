@@ -110,9 +110,7 @@
         oncamera={(c) => (app.camera = c)}
         oncursor={(p) => (app.cursor = p)}
         oncommand={(id) => run(id)}
-        onerror={(e) => {
-          app.error = m.editor_canvas_unavailable({ error: errorMessage(e) });
-        }}
+        onerror={(e) => app.notify(m.editor_canvas_unavailable({ error: errorMessage(e) }))}
       />
     {/key}
   </div>
@@ -198,8 +196,9 @@
 
   <!-- Messages float at the bottom. -->
   <MessageBar
-    message={session.busy ?? app.error}
-    error={!session.busy}
+    busy={session.busy}
+    messages={app.messages.list}
+    ondismiss={(id) => app.messages.dismiss(id)}
     left={layout.panelsOnLeft}
     sliding={layout.sliding}
     hidden={app.interfaceHidden}

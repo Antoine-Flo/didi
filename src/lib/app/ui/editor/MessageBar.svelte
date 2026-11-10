@@ -1,18 +1,26 @@
 <script lang="ts">
   // From the panels' column to the window's other edge, empty: the canvas's bottom inset.
-  // Messages float above it, in the middle.
+  // Messages float above it, in the middle, stacked: the latest at the bottom, then the
+  // work in progress (saving, opening…).
+  import { X } from "@lucide/svelte";
+  import type { Message } from "#lib/app/state/messages.svelte.js";
+  import { m } from "#lib/paraglide/messages.js";
+
   let {
-    message,
-    error,
+    messages,
+    busy,
+    ondismiss,
     left,
     sliding,
     hidden,
     element = $bindable(),
   }: {
-    /** The message shown, if any. */
-    message: string | null;
-    /** It is an error. */
-    error: boolean;
+    /** The messages shown, the oldest first (see Messages). */
+    messages: readonly Message[];
+    /** The work in progress, if any: under the messages. */
+    busy: string | null;
+    /** Closes a message: errors have a button for it. */
+    ondismiss: (id: number) => void;
     /** The panels' column is on the left. */
     left: boolean;
     /** The column is opening or closing: the bar follows it. */
@@ -24,9 +32,26 @@
 </script>
 
 <div class="bottom" class:left class:sliding class:hidden bind:this={element}>
-  {#if message}
-    <div class="panel message" class:error>{message}</div>
-  {/if}
+  <div class="stack">
+    {#each messages as message (message.id)}
+      <div class="panel message" class:error={message.level === "error"}>
+        <span class="text">{message.text}</span>
+        {#if message.level === "error"}
+          <button
+            class="icon"
+            title={m.common_close()}
+            aria-label={m.common_close()}
+            onclick={() => ondismiss(message.id)}
+          >
+            <X class="icon-small" />
+          </button>
+        {/if}
+      </div>
+    {/each}
+    {#if busy}
+      <div class="panel message"><span class="text">{busy}</span></div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -47,17 +72,34 @@
     right: var(--space);
   }
 
+  .stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--space) / 2);
+    max-width: 100%;
+  }
+
   .message {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space) / 2);
     max-width: 100%;
     padding: calc(var(--space) / 2) var(--space);
-    overflow: hidden;
     color: var(--text-muted);
+  }
+
+  .text {
+    min-width: 0;
+    overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
+  /* With its close button: the rest lets the pointer through to the canvas. */
   .message.error {
     color: var(--danger);
+    pointer-events: auto;
   }
 
   /* Only the canvas (Tab). */

@@ -30,6 +30,7 @@ import { PreviewState } from "#lib/app/preview/preview-state.svelte.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
 import { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
 import { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
+import { Messages, type MessageLevel } from "#lib/app/state/messages.svelte.js";
 import { ModeColorsSync } from "#lib/app/state/mode-colors-sync.svelte.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { pickerTool } from "#lib/app/tools/picker-tool.js";
@@ -81,8 +82,8 @@ export class EditorState {
   /** The preview of the whole drawing, over the canvas or in a window of its own. */
   readonly preview: PreviewState;
 
-  /** The message shown at the bottom. */
-  error = $state<string | null>(null);
+  /** The messages shown at the bottom. */
+  readonly messages = new Messages();
   /** The window (or the browser's page) is full screen: followed, F11 and Esc change it too. */
   fullScreen = $state(false);
   /** Only the canvas shows: every panel and bar is hidden (Tab). */
@@ -103,7 +104,10 @@ export class EditorState {
     // comes back (see `session.start`).
     this.dialogs = new EditorDialogs(!initial && capabilities.userFiles);
     this.session = new Session(
-      { notify: (message) => this.notify(message), askUnsaved: (n) => this.dialogs.askUnsaved(n) },
+      {
+        notify: (message, level) => this.notify(message, level),
+        askUnsaved: (n) => this.dialogs.askUnsaved(n),
+      },
       initial ?? blankEditor(this.modes.get(START_MODE)),
       initial ? DEFAULT_MODE : START_MODE,
     );
@@ -126,7 +130,7 @@ export class EditorState {
       options: () => $state.snapshot(this.options),
       onPick: (picked) => this.tools.pick(picked),
       onPainted: (color) => this.modeColors.addRecent(this.mode.id, color),
-      onMessage: (message) => this.notify(message),
+      onMessage: (message) => this.notify(message, "info"),
       modifiers: heldModifiers,
     });
     $effect.pre(() => this.painter.setEditor(this.editor));
@@ -190,14 +194,9 @@ export class EditorState {
     return tool.preview(this.editor, options.tools[tool.id], cursor, current);
   }
 
-  /** Shows a message at the bottom for a few seconds. */
-  notify(message: string) {
-    this.error = message;
-    setTimeout(() => {
-      if (this.error === message) {
-        this.error = null;
-      }
-    }, 6000);
+  /** Shows a message at the bottom: an error by default, which stays until closed. */
+  notify(message: string, level: MessageLevel = "error") {
+    this.messages.show(message, level);
   }
 
   /**
@@ -252,7 +251,7 @@ export class EditorState {
     heldModifiers();
     loadMyPaint()
       .then((engine) => this.painter.setEngine(engine))
-      .catch((e) => (this.error = m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
+      .catch((e) => this.notify(m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
     void this.prefs.load(notify);
     void this.colorsSync.load(notify);
     themePrefs.reportErrors(notify);
@@ -381,7 +380,7 @@ export class EditorState {
       },
       recentColors: () => modeColors.recent(this.mode.id),
       clearRecentColors: () => modeColors.clearRecent(this.mode.id),
-      notify: (message) => this.notify(message),
+      notify: (message, level) => this.notify(message, level),
       openSizeDialog: (kind) => (dialogs.size = kind),
       importImage: () => this.pickImages(),
       newDocument: () => (dialogs.start = true),
