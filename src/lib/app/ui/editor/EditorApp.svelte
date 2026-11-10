@@ -110,6 +110,9 @@
         oncamera={(c) => (app.camera = c)}
         oncursor={(p) => (app.cursor = p)}
         oncommand={(id) => run(id)}
+        onerror={(e) => {
+          app.error = m.editor_canvas_unavailable({ error: errorMessage(e) });
+        }}
       />
     {/key}
   </div>

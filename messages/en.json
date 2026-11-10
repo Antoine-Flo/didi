@@ -394,6 +394,7 @@
   "tool_column_grip": "Move the tools",
   "editor_command_tip": "{title} ({keys})",
   "editor_brush_engine_unavailable": "Brush engine unavailable: {error}",
+  "editor_canvas_unavailable": "The canvas could not start: {error}",
   "editor_cannot_import": "Cannot import {name}: {error}",
   "editor_window_title": "{name} — Didi",
   "editor_window_title_unsaved": "● {name} — Didi",

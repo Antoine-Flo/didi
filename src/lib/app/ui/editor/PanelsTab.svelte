@@ -10,7 +10,7 @@
     PanelRightOpen,
   } from "@lucide/svelte";
   import type { RGB } from "#lib/core/color/color.js";
-  import type { PanelTab } from "#lib/app/ui/panels/PanelColumn.svelte";
+  import type { PanelTab } from "#lib/app/layout/editor-layout.svelte.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {

@@ -1,7 +1,9 @@
 // The editor's dialogs: which one is open, and the questions waiting for an answer.
 
 import type { UnsavedChoice } from "#lib/app/files/session.svelte.js";
-import type { SizeKind } from "#lib/app/ui/dialogs/ImageSizeDialog.svelte";
+
+/** Which size the size dialog changes: the canvas (cut or extend) or the image (scale). */
+export type SizeKind = "canvas" | "image";
 
 export interface ConfirmQuestion {
   title: string;

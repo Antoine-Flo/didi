@@ -12,6 +12,11 @@ const TAURI = {
   group: ["@tauri-apps/*"],
   message: "Use src/lib/platform (capabilities, storage, window, pen) instead.",
 };
+/** The logic does not depend on the interface: components only in ui/ folders. */
+const UI = {
+  group: ["\\#lib/**/ui/**"],
+  message: "Logic must not import components: move the type out of the component.",
+};
 /** Only for tests (see src/lib/core/testing). */
 const TESTING = {
   group: ["\\#lib/core/testing/*"],
@@ -24,10 +29,14 @@ const TESTING = {
  * Dependencies go one way: core, then render, mypaint and platform, then app; lab only for
  * the lab pages. Tauri stays in platform.
  */
-function layer(name, allowed, { tauri = false } = {}) {
+function layer(
+  name,
+  allowed,
+  { tauri = false, files = [`src/lib/${name}/**`], ignores = [], extra = [] } = {},
+) {
   return {
-    files: [`src/lib/${name}/**`],
-    ignores: ["**/*.test.ts"],
+    files,
+    ignores: ["**/*.test.ts", ...ignores],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -35,6 +44,7 @@ function layer(name, allowed, { tauri = false } = {}) {
           patterns: [
             ...(tauri ? [] : [TAURI]),
             TESTING,
+            ...extra,
             {
               group: [
                 "\\#lib/*",
@@ -148,9 +158,23 @@ export default ts.config(
       ],
     },
   },
+  {
+    // A promise whose failure nobody handles fails silently: catch it, or mark it `void` when
+    // it cannot fail. Needs the types, hence the project service here too.
+    files: ["src/**/*.ts", "src/**/*.svelte"],
+    ignores: ["**/*.test.ts"],
+    languageOptions: { parserOptions: { projectService: true } },
+    rules: { "@typescript-eslint/no-floating-promises": "error" },
+  },
   layer("render", ["core", "render"]),
   layer("mypaint", ["core", "mypaint"]),
   layer("platform", ["core", "platform"], { tauri: true }),
-  // Everything but the lab pages' code.
-  layer("app", ["core", "render", "mypaint", "platform", "app"]),
+  // Everything but the lab pages' code; outside ui/, no components.
+  layer("app", ["core", "render", "mypaint", "platform", "app"], {
+    ignores: ["src/lib/app/ui/**"],
+    extra: [UI],
+  }),
+  layer("app", ["core", "render", "mypaint", "platform", "app"], {
+    files: ["src/lib/app/ui/**"],
+  }),
 );

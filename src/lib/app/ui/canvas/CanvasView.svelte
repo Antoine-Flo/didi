@@ -1,6 +1,5 @@
 <script lang="ts" module>
   import { CullerPlugin, extensions } from "pixi.js";
-  import type { Insets as PanelInsets } from "#lib/app/input/view-navigation.js";
 
   // Skips off-screen tiles when rendering.
   extensions.add(CullerPlugin);
@@ -10,13 +9,11 @@
     /** Tile sprites on the GPU. */
     tiles: number;
   }
-
-  /** Space taken by panels over the view, in pixels, on each side. */
-  export type Insets = PanelInsets;
 </script>
 
 <script lang="ts">
   import { onMount, untrack } from "svelte";
+  import type { Insets } from "#lib/app/input/view-navigation.js";
   import { Application } from "pixi.js";
   import { held } from "#lib/app/input/modifiers.svelte.js";
   import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
@@ -50,6 +47,7 @@
     oncursor,
     onstats,
     oncommand,
+    onerror,
   }: {
     editor: Editor;
     painter?: Painter;
@@ -84,6 +82,8 @@
     onstats?: (stats: ViewStats) => void;
     /** A gesture asks for a command: a two-finger tap undoes, a three-finger tap redoes. */
     oncommand?: (id: string) => void;
+    /** The view could not start (no WebGL, for instance): nothing will be drawn. */
+    onerror?: (error: unknown) => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -289,7 +289,8 @@
             elapsed = 0;
           }
         });
-      });
+      })
+      .catch((e) => onerror?.(e));
 
     input.connectNativePen(() => destroyed);
 

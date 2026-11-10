@@ -44,8 +44,9 @@ export class PenInput {
   constructor(private readonly host: PenInputHost) {}
 
   /** Native pen events draw from now on. */
-  useNative() {
-    this.native = true;
+  /** The pen's events come from the native module (true), or from the DOM again (false). */
+  useNative(native = true) {
+    this.native = native;
   }
 
   /**

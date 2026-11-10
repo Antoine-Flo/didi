@@ -246,7 +246,7 @@
     let unsubscribeTick: (() => void) | null = null;
     app = new Application();
 
-    app
+    void app
       .init({
         canvas,
         resizeTo: host,
@@ -265,7 +265,7 @@
         info = readGpuInfo(app.renderer);
         buildDocument();
         if (native) {
-          subscribeNativePen(onNative);
+          void subscribeNativePen(onNative);
         }
 
         let sinceUi = 0;
@@ -287,7 +287,7 @@
         ready = true;
         // ?measure starts the readback measurement on load (handy for headless runs).
         if (new URLSearchParams(location.search).has("measure")) {
-          measureReadback();
+          void measureReadback();
         }
       });
 

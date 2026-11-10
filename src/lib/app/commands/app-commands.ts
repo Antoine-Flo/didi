@@ -2,6 +2,7 @@
 // so they can be bound to shortcuts, listed in the command palette and later put in the
 // quick wheel; those that need params are marked `needsParams`.
 
+import type { DrawingView } from "#lib/render/drawing-view.js";
 import type { RGB } from "#lib/core/color/color.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
@@ -25,6 +26,12 @@ export interface ViewControls {
   resetRotation(): void;
   /** Shows the drawing reversed, left to right, or back. */
   mirrorView(): void;
+}
+
+/** What the editor drives in the canvas's view (see CanvasView, bound to it). */
+export interface CanvasControls extends ViewControls {
+  /** Shows the document's new size while the size dialog is open; null when it closes. */
+  previewResize(preview: Parameters<DrawingView["setResizePreview"]>[0]): void;
 }
 
 /** What the commands act on, provided by the editor interface. */

@@ -34,10 +34,11 @@
     if (!appWindow || e.button !== 0) {
       return;
     }
+    // Nothing to do if the window refuses.
     if (e.detail === 2) {
-      appWindow.toggleMaximize();
+      void appWindow.toggleMaximize();
     } else {
-      appWindow.startDragging();
+      void appWindow.startDragging();
     }
   }
 </script>

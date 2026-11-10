@@ -11,8 +11,7 @@ import {
   type ColumnEdge,
 } from "#lib/app/layout/edge-columns.js";
 import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
-import type { Insets } from "#lib/app/ui/canvas/CanvasView.svelte";
-import type { PanelTab } from "#lib/app/ui/panels/PanelColumn.svelte";
+import type { Insets } from "#lib/app/input/view-navigation.js";
 
 const MIN_PANEL_WIDTH = 180;
 const MAX_PANEL_WIDTH = 480;
@@ -40,6 +39,9 @@ export interface LayoutElements {
   /** Where the thin columns can go, on either edge (see edge-columns.ts). */
   tracks: Record<ColumnEdge, HTMLElement | undefined>;
 }
+
+/** The tab of the panels' column shown, when short of height. */
+export type PanelTab = "color" | "layers";
 
 export class EditorLayout {
   /** The editor's size. */
@@ -151,6 +153,8 @@ export class EditorLayout {
       return () => window.removeEventListener("pointerdown", onPointer, { capture: true });
     });
     $effect(() => document.documentElement.style.setProperty("--ui-scale", String(this.uiScale)));
+    // Effects, not derived values: they react to a change (becoming compact, another tool),
+    // which a derived value only sees if it is read in between.
     $effect(() => {
       if (this.compact) {
         this.openWhileCompact = false;

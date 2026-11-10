@@ -15,7 +15,7 @@
       return;
     }
     const update = async () => (maximized = await appWindow.isMaximized());
-    update();
+    void update();
     const unlisten = appWindow.onResized(update);
     return () => void unlisten.then((fn) => fn());
   });

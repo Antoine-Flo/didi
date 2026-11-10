@@ -1,8 +1,3 @@
-<script lang="ts" module>
-  /** Which size it changes: the canvas (cut or extend) or the image (scale). */
-  export type SizeKind = "canvas" | "image";
-</script>
-
 <script lang="ts">
   // Changes the size of the document. The canvas: a new size, and where the pixels stay (the
   // anchor, a 3 × 3 grid: the middle by default). The image: a new size, its proportions kept
@@ -11,6 +6,7 @@
   import { Dialog } from "bits-ui";
   import { Link, Unlink } from "@lucide/svelte";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
+  import type { SizeKind } from "#lib/app/state/dialogs.svelte.js";
   import Segmented from "#lib/app/ui/widgets/Segmented.svelte";
   import { MAX_CANVAS_SIZE } from "#lib/core/editor/image-edits.js";
   import { m } from "#lib/paraglide/messages.js";

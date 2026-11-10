@@ -1,7 +1,3 @@
-<script lang="ts" module>
-  export type PanelTab = "color" | "layers";
-</script>
-
 <script lang="ts">
   // The column of panels beside the canvas: separate panels, with a small gap between them
   // (like Blender): the color, the palette and the layers, the first two resizable. Their
@@ -12,6 +8,7 @@
   import type { PaletteLibrary } from "#lib/core/color/palette.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
+  import type { PanelTab } from "#lib/app/layout/editor-layout.svelte.js";
   import type { Mode } from "#lib/app/modes/mode.js";
   import Segmented from "#lib/app/ui/widgets/Segmented.svelte";
   import Splitter from "#lib/app/ui/widgets/Splitter.svelte";

@@ -3,7 +3,11 @@
 // dialogs. Created by EditorApp, while it initializes (its effects belong to it).
 
 import { untrack } from "svelte";
-import { registerAppCommands, type AppHost } from "#lib/app/commands/app-commands.js";
+import {
+  registerAppCommands,
+  type AppHost,
+  type CanvasControls,
+} from "#lib/app/commands/app-commands.js";
 import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
 import { availableMenus, defaultMenus } from "#lib/app/commands/default-menus.js";
 import { isTyping, keyInput } from "#lib/app/commands/keyboard.js";
@@ -31,7 +35,6 @@ import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { pickerTool } from "#lib/app/tools/picker-tool.js";
 import { ToolState } from "#lib/app/tools/tool-state.svelte.js";
 import type { Tool, ToolOptions } from "#lib/app/tools/tool.js";
-import type CanvasView from "#lib/app/ui/canvas/CanvasView.svelte";
 import type { PaletteLibrary } from "#lib/core/color/palette.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { loadMyPaint } from "#lib/mypaint/engine.js";
@@ -86,7 +89,7 @@ export class EditorState {
   interfaceHidden = $state(false);
   camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
   cursor = $state<Point | null>(null);
-  canvasView = $state<CanvasView | null>(null);
+  canvasView = $state<CanvasControls | null>(null);
   /** The user's palettes, once loaded. */
   palettes = $state.raw<PaletteLibrary | null>(null);
   paletteVersion = $state(0);
@@ -160,7 +163,8 @@ export class EditorState {
         ? m.editor_window_title_unsaved({ name })
         : m.editor_window_title({ name });
       if (appWindow) {
-        appWindow.setTitle(title);
+        // Nothing to do if it fails: the title is only a hint.
+        void appWindow.setTitle(title);
       } else {
         document.title = title;
       }
@@ -252,10 +256,12 @@ export class EditorState {
     void this.prefs.load(notify);
     void this.colorsSync.load(notify);
     themePrefs.reportErrors(notify);
-    loadPalettes(notify).then((library) => {
-      this.palettes = library;
-      library.subscribe(() => this.paletteVersion++);
-    });
+    loadPalettes(notify)
+      .then((library) => {
+        this.palettes = library;
+        library.subscribe(() => this.paletteVersion++);
+      })
+      .catch((e) => notify(m.files_palettes_load_failed({ error: errorMessage(e) })));
     void closeStalePreview();
     void this.session.start().then((restored) => {
       if (!this.initial && !capabilities.userFiles && !restored) {
@@ -339,16 +345,16 @@ export class EditorState {
       togglePanels: () => layout.togglePanels(),
       togglePixelGrid: () => (prefs.pixelGrid = !prefs.pixelGrid),
       toggleTileGrid: () => session.setGrid({ ...session.grid, shown: !session.grid.shown }),
-      shown: (what) =>
-        what === "panels"
-          ? layout.panelsOpen
-          : what === "interface"
-            ? !this.interfaceHidden
-            : what === "pixelGrid"
-              ? prefs.pixelGrid
-              : what === "preview"
-                ? preview.place !== "off"
-                : session.grid.shown,
+      shown: (what) => {
+        const on: Record<typeof what, () => boolean> = {
+          panels: () => layout.panelsOpen,
+          interface: () => !this.interfaceHidden,
+          pixelGrid: () => prefs.pixelGrid,
+          preview: () => preview.place !== "off",
+          tileGrid: () => session.grid.shown,
+        };
+        return on[what]();
+      },
       togglePreview: () => (preview.place = preview.place === "off" ? "in" : "off"),
       openGridSettings: () => (dialogs.grid = true),
       toggleInterface: () => (this.interfaceHidden = !this.interfaceHidden),

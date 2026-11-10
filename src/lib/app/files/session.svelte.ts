@@ -358,7 +358,10 @@ export class Session {
       this.saved = { ...this.saved, marker: {} };
     }
     if (!replacement.keepCopy) {
-      void this.copy.remove();
+      this.copy.remove().catch((e) => {
+        // At worst, the next start offers to recover the previous document.
+        console.warn("Could not remove the recovery copy:", e);
+      });
     }
   }
 

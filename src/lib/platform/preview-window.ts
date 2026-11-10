@@ -40,7 +40,13 @@ export function openPreviewWindow(onClosed: () => void): OpenWindow {
 
 /** A preview left open by a reload of the editor: the editor no longer knows about it. */
 export async function closeStalePreview() {
-  if (capabilities.windows) {
+  if (!capabilities.windows) {
+    return;
+  }
+  try {
     await (await WebviewWindow.getByLabel(LABEL))?.destroy();
+  } catch (e) {
+    // Only a window left open: the user can close it.
+    console.warn("Could not close the old preview window:", e);
   }
 }

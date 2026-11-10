@@ -5,8 +5,8 @@
   import type { KeymapIndex } from "#lib/app/commands/keymap.js";
   import type { Mode, ModeRegistry } from "#lib/app/modes/mode.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
+  import type { CanvasControls } from "#lib/app/commands/app-commands.js";
   import type { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
-  import type CanvasView from "#lib/app/ui/canvas/CanvasView.svelte";
   import AboutDialog from "#lib/app/ui/dialogs/AboutDialog.svelte";
   import CommandPalette from "#lib/app/ui/dialogs/CommandPalette.svelte";
   import ConfirmDialog from "#lib/app/ui/dialogs/ConfirmDialog.svelte";
@@ -44,7 +44,7 @@
     mode: Mode;
     touchScreen: boolean;
     canvasSize: { width: number; height: number };
-    canvasView: CanvasView | null;
+    canvasView: CanvasControls | null;
     /** Where the dialogs that leave the canvas seen go: away from the panels. */
     side: "left" | "right";
     tip: (id: string) => string;

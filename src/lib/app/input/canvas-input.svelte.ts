@@ -239,7 +239,8 @@ export class CanvasInput {
 
   /** Draws with the native pen events when there are (Linux), until `destroyed`. */
   connectNativePen(destroyed: () => boolean) {
-    nativePenAvailable().then((available) => {
+    // Never fails: without the native module, the pen's DOM events are used.
+    void nativePenAvailable().then((available) => {
       const pen = this.pen;
       if (!available || destroyed() || !pen) {
         return;
@@ -252,6 +253,10 @@ export class CanvasInput {
         if (!destroyed()) {
           pen.onNative(e);
         }
+      }).catch((e) => {
+        // No native events after all: back to the DOM's, or the pen would not draw at all.
+        console.warn("Native pen unavailable:", e);
+        pen.useNative(false);
       });
     });
   }

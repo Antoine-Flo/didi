@@ -38,10 +38,11 @@
     if ((e.target as Element).closest("button, input, label, select, [role='slider']")) {
       return;
     }
+    // Nothing to do if the window refuses.
     if (e.detail === 2) {
-      appWindow.toggleMaximize();
+      void appWindow.toggleMaximize();
     } else {
-      appWindow.startDragging();
+      void appWindow.startDragging();
     }
   }
 </script>

@@ -177,7 +177,7 @@
     window.addEventListener("resize", resize);
 
     if (native) {
-      subscribeNativePen(onNative);
+      void subscribeNativePen(onNative);
     }
 
     // Update the live readout at most once per frame.
