@@ -42,6 +42,9 @@ export default defineConfig(() => ({
     }),
     paraglide(),
   ],
+  // In tests, Svelte's browser build: the server one never runs `$effect`, which the editor's
+  // state classes rely on (see the *.svelte.test.ts files).
+  resolve: process.env.VITEST ? { conditions: ["browser"] } : undefined,
   define: { __APP_VERSION__: JSON.stringify(version) },
   // The file worker shows messages too (errors in a damaged file).
   worker: { plugins: () => [paraglide()] },

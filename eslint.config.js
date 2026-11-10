@@ -7,6 +7,52 @@ import { loadConfig } from "@sveltejs/load-config";
 
 const svelteConfig = (await loadConfig("./", { traverse: false }))?.config;
 
+// Escaped in these patterns: a leading # starts a comment.
+const TAURI = {
+  group: ["@tauri-apps/*"],
+  message: "Use src/lib/platform (capabilities, storage, window, pen) instead.",
+};
+/** Only for tests (see src/lib/core/testing). */
+const TESTING = {
+  group: ["\\#lib/core/testing/*"],
+  message: "Test helpers are for tests only.",
+};
+
+/**
+ * The folders of src/lib a layer may import, besides packages: one rule per layer, as a
+ * second "no-restricted-imports" on the same files replaces the first instead of adding to it.
+ * Dependencies go one way: core, then render, mypaint and platform, then app; lab only for
+ * the lab pages. Tauri stays in platform.
+ */
+function layer(name, allowed, { tauri = false } = {}) {
+  return {
+    files: [`src/lib/${name}/**`],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...(tauri ? [] : [TAURI]),
+            TESTING,
+            {
+              group: [
+                "\\#lib/*",
+                ...allowed.map((folder) => `!\\#lib/${folder}`),
+                // Its texts are messages, like everywhere else.
+                "!\\#lib/paraglide",
+                "\\#lib/paraglide/*",
+                "!\\#lib/paraglide/messages.js",
+              ],
+              message: `src/lib/${name} may only use ${allowed.join(", ")}.`,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
 export default ts.config(
   {
     ignores: [
@@ -49,22 +95,13 @@ export default ts.config(
     files: ["src/**"],
     ignores: ["src/lib/platform/**", "src/routes/(app)/lab/**"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@tauri-apps/*"],
-              message: "Use src/lib/platform (capabilities, storage, window, pen) instead.",
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", { patterns: [TAURI] }],
     },
   },
   {
     // The core must stay independent from UI, rendering and platform.
     files: ["src/lib/core/**"],
+    ignores: ["**/*.test.ts", "src/lib/core/testing/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -77,7 +114,6 @@ export default ts.config(
                 "svelte/*",
                 "@tauri-apps/*",
                 "$app/*",
-                // Escaped: a leading # starts a comment in these patterns.
                 "\\#lib/*",
                 // Itself, like everywhere else: "#lib/core/…".
                 "!\\#lib/core",
@@ -88,9 +124,33 @@ export default ts.config(
               ],
               message: "src/lib/core must not depend on UI, rendering or platform code.",
             },
+            TESTING,
           ],
         },
       ],
     },
   },
+  {
+    // Tests: the core's own rule, with its helpers (vitest and fast-check are packages).
+    files: ["src/lib/core/**/*.test.ts", "src/lib/core/testing/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            TAURI,
+            {
+              group: ["\\#lib/*", "!\\#lib/core", "!\\#lib/paraglide"],
+              message: "src/lib/core must not depend on UI, rendering or platform code.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  layer("render", ["core", "render"]),
+  layer("mypaint", ["core", "mypaint"]),
+  layer("platform", ["core", "platform"], { tauri: true }),
+  // Everything but the lab pages' code.
+  layer("app", ["core", "render", "mypaint", "platform", "app"]),
 );
