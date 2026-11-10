@@ -5,12 +5,20 @@ import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { movable } from "#lib/core/editor/editor-commands.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
-import type { AppHost } from "#lib/app/commands/app-commands.js";
+import type { DialogOpener, Notifier } from "#lib/app/commands/app-commands.js";
 import { copy, toPaste } from "#lib/app/commands/clipboard.js";
+import type { ToolHost } from "#lib/app/commands/tool-commands.js";
 import { m } from "#lib/paraglide/messages.js";
 
+/** What the edit commands act on: pasting or transforming picks the selection's tool. */
+export interface EditHost
+  extends Pick<ToolHost, "mode" | "modes" | "tool">, DialogOpener, Notifier {}
+
 /** Registers the edit and image commands. Returns a function that unregisters them. */
-export function registerEditCommands(registry: CommandRegistry<Editor>, host: AppHost): () => void {
+export function registerEditCommands(
+  registry: CommandRegistry<Editor>,
+  host: EditHost,
+): () => void {
   /** Tells the user a clipboard operation failed. */
   const failed = (what: (params: { error: string }) => string) => (e: unknown) =>
     host.notify(what({ error: errorMessage(e) }));
@@ -82,12 +90,12 @@ export function registerEditCommands(registry: CommandRegistry<Editor>, host: Ap
     registry.register({
       id: "image.canvasSize",
       title: m.cmd_image_canvas_size(),
-      run: () => host.openSizeDialog("canvas"),
+      run: () => host.openDialog("canvasSize"),
     }),
     registry.register({
       id: "image.imageSize",
       title: m.cmd_image_image_size(),
-      run: () => host.openSizeDialog("image"),
+      run: () => host.openDialog("imageSize"),
     }),
   ];
   return () => unregister.forEach((fn) => fn());

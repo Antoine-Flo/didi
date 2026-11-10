@@ -3,11 +3,7 @@
 // dialogs. Created by EditorApp, while it initializes (its effects belong to it).
 
 import { untrack } from "svelte";
-import {
-  registerAppCommands,
-  type AppHost,
-  type CanvasControls,
-} from "#lib/app/commands/app-commands.js";
+import { registerAppCommands } from "#lib/app/commands/app-commands.js";
 import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
 import { availableMenus, defaultMenus } from "#lib/app/commands/default-menus.js";
 import { isTyping, keyInput } from "#lib/app/commands/keyboard.js";
@@ -19,6 +15,7 @@ import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
 import { Session } from "#lib/app/files/session.svelte.js";
 import { held, heldModifiers } from "#lib/app/input/modifiers.svelte.js";
 import { Painter } from "#lib/app/input/painter.js";
+import { ViewController } from "#lib/app/input/view-controller.svelte.js";
 import { EditorLayout } from "#lib/app/layout/editor-layout.svelte.js";
 import { windowTitle } from "#lib/app/layout/window-title.svelte.js";
 import { createModeRegistry } from "#lib/app/modes/builtin.js";
@@ -30,6 +27,7 @@ import { PreviewState } from "#lib/app/preview/preview-state.svelte.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
 import { Watched } from "#lib/app/shared/watched.svelte.js";
 import { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
+import { commandHost } from "#lib/app/state/command-host.js";
 import { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
 import { Messages, type MessageLevel } from "#lib/app/state/messages.svelte.js";
 import { ModeColorsSync } from "#lib/app/state/mode-colors-sync.svelte.js";
@@ -43,8 +41,8 @@ import { loadMyPaint } from "#lib/mypaint/engine.js";
 import { m } from "#lib/paraglide/messages.js";
 import { capabilities } from "#lib/platform/capabilities.js";
 import { closeStalePreview } from "#lib/platform/preview-window.js";
-import { appWindow, toggleFullScreen, watchFullScreen } from "#lib/platform/window.js";
-import type { Camera, Point } from "#lib/render/camera.js";
+import { appWindow, watchFullScreen } from "#lib/platform/window.js";
+import type { Point } from "#lib/render/camera.js";
 
 /** A new empty document in a mode, with its default size and background. */
 function blankEditor(mode: Mode): Editor {
@@ -89,9 +87,9 @@ export class EditorState {
   fullScreen = $state(false);
   /** Only the canvas shows: every panel and bar is hidden (Tab). */
   interfaceHidden = $state(false);
-  camera = $state<Camera>({ x: 0, y: 0, zoom: 1, rotation: 0 });
   cursor = $state<Point | null>(null);
-  canvasView = $state<CanvasControls | null>(null);
+  /** The canvas's view: its camera, and what moves it. */
+  readonly view: ViewController;
   /** The user's palettes, once loaded. */
   readonly palettes = new Watched<PaletteLibrary>();
   /** Opens the system's file picker for images, or for palettes: set by the interface. */
@@ -147,6 +145,11 @@ export class EditorState {
     $effect(() => watchFullScreen((on) => (this.fullScreen = on)));
     this.layout = new EditorLayout(this.prefs, () => this.shownTool.id);
     this.preview = new PreviewState(() => this.editor.drawing);
+    this.view = new ViewController({
+      canvas: () => this.editor.drawing,
+      insets: () => this.layout.insets(),
+      pixelZoom: () => this.mode.pixelZoom,
+    });
     this.toolPreview = $derived.by(() => this.previewTool());
     this.menus = $derived.by(() => {
       const { history } = this.changes;
@@ -159,7 +162,7 @@ export class EditorState {
       return availableMenus(all, (id) => this.editor.commands.has(id));
     });
     // Registered before the first render, which shows the commands' titles.
-    $effect.pre(() => registerAppCommands(this.editor.commands, this.commandHost()));
+    $effect.pre(() => registerAppCommands(this.editor.commands, commandHost(this)));
     // "● name — Didi" while there are unsaved changes, in the taskbar or the browser's tab.
     $effect(() => {
       const { name } = this.session;
@@ -317,79 +320,5 @@ export class EditorState {
     }
     e.preventDefault();
     this.run(binding.command, binding.params);
-  }
-
-  /** What the app's commands act on (see app-commands.ts). */
-  private commandHost(): AppHost {
-    const { session, prefs, layout, preview, dialogs, tools, modeColors } = this;
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const state = this;
-    return {
-      get mode() {
-        return session.mode;
-      },
-      set mode(id) {
-        session.setMode(id);
-      },
-      modes: this.modes,
-      get hand() {
-        return prefs.hand;
-      },
-      set hand(hand) {
-        prefs.hand = hand;
-      },
-      togglePanels: () => layout.togglePanels(),
-      togglePixelGrid: () => (prefs.pixelGrid = !prefs.pixelGrid),
-      toggleTileGrid: () => session.setGrid({ ...session.grid, shown: !session.grid.shown }),
-      shown: (what) => {
-        const on: Record<typeof what, () => boolean> = {
-          panels: () => layout.panelsOpen,
-          interface: () => !this.interfaceHidden,
-          pixelGrid: () => prefs.pixelGrid,
-          preview: () => preview.place !== "off",
-          tileGrid: () => session.grid.shown,
-        };
-        return on[what]();
-      },
-      togglePreview: () => (preview.place = preview.place === "off" ? "in" : "off"),
-      openGridSettings: () => (dialogs.grid = true),
-      toggleInterface: () => (this.interfaceHidden = !this.interfaceHidden),
-      toggleFullScreen: () =>
-        void toggleFullScreen().catch((e) =>
-          this.notify(m.app_full_screen_failed({ error: errorMessage(e) })),
-        ),
-      openShortcuts: () => (dialogs.shortcuts = true),
-      openAbout: () => (dialogs.about = true),
-      openPreferences: () => (dialogs.preferences = true),
-      get tool() {
-        return tools.id;
-      },
-      set tool(id) {
-        tools.id = id;
-      },
-      tools: tools.registry,
-      options: this.options,
-      get view() {
-        return state.canvasView;
-      },
-      get palettes() {
-        return state.palettes.current;
-      },
-      recentColors: () => modeColors.recent(this.mode.id),
-      clearRecentColors: () => modeColors.clearRecent(this.mode.id),
-      notify: (message, level) => this.notify(message, level),
-      openSizeDialog: (kind) => (dialogs.size = kind),
-      importImage: () => this.pickImages(),
-      newDocument: () => (dialogs.start = true),
-      openDocument: (path) => session.open(path),
-      saveDocument: () => session.save(),
-      saveDocumentAs: () => session.saveAs(),
-      exportPng: () => session.exportPng(),
-      importPalette: () => this.pickPalette(),
-      confirm: (question) => dialogs.confirm(question),
-      openCommandPalette: () => (dialogs.commandPalette = true),
-      canUseFiles: capabilities.userFiles,
-      quit: appWindow ? () => void appWindow?.close() : null,
-    };
   }
 }

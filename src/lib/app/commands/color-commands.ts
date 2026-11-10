@@ -1,16 +1,31 @@
 // The color commands (the current colors, the recent ones) and the palette commands.
 
-import { fromHex } from "#lib/core/color/color.js";
+import { fromHex, type RGB } from "#lib/core/color/color.js";
 import { addPaletteColor, removePaletteColor } from "#lib/core/color/palette-edits.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import type { AppHost } from "#lib/app/commands/app-commands.js";
+import type { PaletteLibrary } from "#lib/core/color/palette.js";
+import type { ToolHost } from "#lib/app/commands/tool-commands.js";
 import { m } from "#lib/paraglide/messages.js";
+
+/** What the color and palette commands act on. */
+export interface ColorHost extends Pick<ToolHost, "options"> {
+  /** The user's palettes, once loaded. */
+  readonly palettes: PaletteLibrary | null;
+  /** The colors drawn with lately, in the document's mode, the latest first. */
+  recentColors(): readonly RGB[];
+  /** Empties the recent colors of the document's mode. */
+  clearRecentColors(): void;
+  /** Asks for a .hex file and adds it as a new palette. */
+  importPalette(): void;
+  /** Asks the user to confirm an action that cannot be undone. Resolves to their answer. */
+  confirm(question: { title: string; text: string; action: string }): Promise<boolean>;
+}
 
 /** Registers the color and palette commands. Returns a function that unregisters them. */
 export function registerColorCommands(
   registry: CommandRegistry<Editor>,
-  host: AppHost,
+  host: ColorHost,
 ): () => void {
   /** The shown palette, if it can be edited. */
   const editable = () => host.palettes?.editable ?? null;

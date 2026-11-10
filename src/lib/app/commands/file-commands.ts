@@ -3,13 +3,35 @@
 
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import type { AppHost } from "#lib/app/commands/app-commands.js";
+import type { DialogOpener } from "#lib/app/commands/app-commands.js";
 import { m } from "#lib/paraglide/messages.js";
 
+/** What the file and app commands act on. */
+export interface FileHost extends DialogOpener {
+  /** Whether documents can be opened and saved as files. Without it, no such commands. */
+  readonly canUseFiles: boolean;
+  /** Opens a document: asks which one, unless `path` is given (e.g. a recent file). */
+  openDocument(path?: string): void;
+  saveDocument(): void;
+  saveDocumentAs(): void;
+  exportPng(): void;
+  importImage(): void;
+  /** Closes the app (offering to save first). Null where it cannot: no such command. */
+  readonly quit: (() => void) | null;
+}
+
 /** Registers the file and app commands. Returns a function that unregisters them. */
-export function registerFileCommands(registry: CommandRegistry<Editor>, host: AppHost): () => void {
+export function registerFileCommands(
+  registry: CommandRegistry<Editor>,
+  host: FileHost,
+): () => void {
   const unregister = [
-    registry.register({ id: "file.new", title: m.cmd_file_new(), run: () => host.newDocument() }),
+    // The start screen, to create a document or open a recent one.
+    registry.register({
+      id: "file.new",
+      title: m.cmd_file_new(),
+      run: () => host.openDialog("start"),
+    }),
     registry.register({
       id: "file.exportPng",
       title: m.cmd_file_export_png(),
@@ -23,19 +45,23 @@ export function registerFileCommands(registry: CommandRegistry<Editor>, host: Ap
     registry.register({
       id: "app.commandPalette",
       title: m.cmd_app_command_palette(),
-      run: () => host.openCommandPalette(),
+      run: () => host.openDialog("commandPalette"),
     }),
     registry.register({
       id: "app.shortcuts",
       title: m.cmd_app_shortcuts(),
-      run: () => host.openShortcuts(),
+      run: () => host.openDialog("shortcuts"),
     }),
     registry.register({
       id: "app.preferences",
       title: m.cmd_app_preferences(),
-      run: () => host.openPreferences(),
+      run: () => host.openDialog("preferences"),
     }),
-    registry.register({ id: "app.about", title: m.cmd_app_about(), run: () => host.openAbout() }),
+    registry.register({
+      id: "app.about",
+      title: m.cmd_app_about(),
+      run: () => host.openDialog("about"),
+    }),
   ];
   if (host.canUseFiles) {
     unregister.push(

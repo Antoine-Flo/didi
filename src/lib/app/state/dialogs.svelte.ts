@@ -5,6 +5,17 @@ import type { UnsavedChoice } from "#lib/app/files/session.svelte.js";
 /** Which size the size dialog changes: the canvas (cut or extend) or the image (scale). */
 export type SizeKind = "canvas" | "image";
 
+/** The dialogs the commands open. */
+export type DialogName =
+  | "start"
+  | "commandPalette"
+  | "shortcuts"
+  | "about"
+  | "preferences"
+  | "grid"
+  | "canvasSize"
+  | "imageSize";
+
 export interface ConfirmQuestion {
   title: string;
   text: string;
@@ -44,6 +55,14 @@ export class EditorDialogs {
       this.unsaved !== null ||
       this.confirmRequest !== null
     );
+  }
+
+  open(name: DialogName) {
+    if (name === "canvasSize" || name === "imageSize") {
+      this.size = name === "canvasSize" ? "canvas" : "image";
+    } else {
+      this[name] = true;
+    }
   }
 
   /** Asks what to do with a document's unsaved changes. */

@@ -4,13 +4,28 @@ import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { setOfBrush } from "#lib/mypaint/brush-sets.js";
 import { bundledBrush, findBundledBrush } from "#lib/mypaint/brushes.js";
-import type { AppHost } from "#lib/app/commands/app-commands.js";
+import type { ModeRegistry } from "#lib/app/modes/mode.js";
+import type { ToolOptions, ToolRegistry } from "#lib/app/tools/tool.js";
 import { m } from "#lib/paraglide/messages.js";
+
+/** What the tool commands act on. */
+export interface ToolHost {
+  /** Id of the document's mode. */
+  mode: string;
+  readonly modes: ModeRegistry;
+  /** Id of the active tool. */
+  tool: string;
+  readonly tools: ToolRegistry;
+  readonly options: ToolOptions;
+}
 
 const selectionTitle = { rectangle: m.tool_rectangle_selection, lasso: m.tool_lasso_selection };
 
 /** Registers the mode, tool, selection and brush commands. Returns their unregister function. */
-export function registerToolCommands(registry: CommandRegistry<Editor>, host: AppHost): () => void {
+export function registerToolCommands(
+  registry: CommandRegistry<Editor>,
+  host: ToolHost,
+): () => void {
   const current = () => host.tools.get(host.tool);
   const resize = (direction: 1 | -1) => {
     const settings = host.options.tools[host.tool];

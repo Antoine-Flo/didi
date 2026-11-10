@@ -13,24 +13,24 @@
 
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import type { Insets } from "#lib/app/input/view-navigation.js";
   import { Application } from "pixi.js";
   import { held } from "#lib/app/input/modifiers.svelte.js";
   import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
   import type { Painter } from "#lib/app/input/painter.js";
   import { CanvasInput } from "#lib/app/input/canvas-input.svelte.js";
-  import { ViewNavigation } from "#lib/app/input/view-navigation.js";
+  import type { ViewController } from "#lib/app/input/view-controller.svelte.js";
   import { brushCursorState } from "#lib/app/tools/brush-cursor.js";
   import type { BrushCursor } from "#lib/app/tools/tool.js";
   import type { RGB } from "#lib/core/color/color.js";
   import type { Editor } from "#lib/core/editor/editor.js";
-  import { toCanvas, type Camera, type Point } from "#lib/render/camera.js";
+  import { toCanvas, type Point } from "#lib/render/camera.js";
   import { placementOf, selectionOutline } from "#lib/core/selection/selection.js";
   import { shapeMask } from "#lib/core/selection/shape.js";
   import { DrawingView } from "#lib/render/drawing-view.js";
 
   let {
     editor,
+    controller,
     painter,
     brushCursor,
     brushColor = null,
@@ -39,17 +39,16 @@
     pixelGrid = false,
     tileGrid = null,
     touchRotation = false,
-    pixelZoom = false,
     fingerDraws = true,
     onpen,
-    insets,
-    oncamera,
     oncursor,
     onstats,
     oncommand,
     onerror,
   }: {
     editor: Editor;
+    /** The view, driven by the editor: this canvas shows it while mounted. */
+    controller: ViewController;
     painter?: Painter;
     /**
      * Brush outline for the current tool. `eraser`: the pen's eraser end is used. Reactive:
@@ -68,15 +67,10 @@
     tileGrid?: { width: number; height: number } | null;
     /** Two fingers may turn the view. */
     touchRotation?: boolean;
-    /** Zoomed out, the zoom keeps to levels where every pixel is the same size (pixel art). */
-    pixelZoom?: boolean;
     /** One finger draws; else it moves the view (see touch-gestures.ts). */
     fingerDraws?: boolean;
     /** A pen was used: see LayoutPrefs.penSeen. */
     onpen?: () => void;
-    /** Panels over the view: fitting and zooming use the area between them. */
-    insets?: () => Insets;
-    oncamera?: (camera: Camera) => void;
     oncursor?: (point: Point | null) => void;
     /** Called twice a second with rendering statistics. */
     onstats?: (stats: ViewStats) => void;
@@ -93,15 +87,9 @@
 
   const viewSize = () => ({ width: host.clientWidth, height: host.clientHeight });
 
-  const navigation = new ViewNavigation({
-    size: viewSize,
-    insets: () => insets?.(),
-    pixelZoom: () => pixelZoom,
-    changed: (next) => {
-      view?.setCamera(next, viewSize());
-      oncamera?.(next);
-    },
-  });
+  // The editor's one controller: it does not change while this view lives.
+  // svelte-ignore state_referenced_locally
+  const { navigation } = controller;
 
   /** Where the pen hovers, for the tool's pointer. It stays put during a stroke. */
   let hoverPoint = $state<Point | null>(null);
@@ -125,39 +113,6 @@
   });
   const pen = input.pen;
   const stroking = $derived(input.stroking);
-
-  /** Fits the canvas in the view, unturned; a mirrored view stays mirrored. */
-  export function fitView() {
-    navigation.fit(editor.drawing);
-  }
-
-  /** Shows the drawing reversed, left to right, or back: the drawing doesn't change. */
-  export function mirrorView() {
-    navigation.mirror();
-  }
-
-  /** One step in (1) or out (-1), around the center of the view. */
-  export function zoomStep(direction: 1 | -1) {
-    navigation.zoomStep(direction);
-  }
-
-  /** Sets the zoom to an absolute value (the nearest level in pixel art), around the center. */
-  export function zoomTo(zoom: number) {
-    navigation.zoomTo(zoom);
-  }
-
-  /** Shows what a resize would give, without changing the drawing (see DrawingView). */
-  export function previewResize(preview: Parameters<DrawingView["setResizePreview"]>[0]) {
-    view?.setResizePreview(preview);
-  }
-
-  export function rotateBy(angle: number) {
-    navigation.rotateBy(angle);
-  }
-
-  export function resetRotation() {
-    navigation.resetRotation();
-  }
 
   /**
    * Moves the pointer, the shown position and the tool's hover to the last move.
@@ -255,6 +210,11 @@
   });
 
   onMount(() => {
+    const detach = controller.attach({
+      size: viewSize,
+      show: (camera) => view?.setCamera(camera, viewSize()),
+      previewResize: (preview) => view?.setResizePreview(preview),
+    });
     const pixi = new Application();
     pixi
       .init({
@@ -276,7 +236,7 @@
         view = new DrawingView(editor.drawing);
         view.setGridShown(pixelGrid, tileGrid, navigation.camera, viewSize());
         pixi.stage.addChild(view.root);
-        fitView();
+        controller.fitView();
         syncSelection();
         let elapsed = 0;
         pixi.ticker.add((ticker) => {
@@ -306,6 +266,7 @@
 
     return () => {
       destroyed = true;
+      detach();
       unsubscribeSelection();
       window.removeEventListener("blur", onBlur);
       pen?.end();

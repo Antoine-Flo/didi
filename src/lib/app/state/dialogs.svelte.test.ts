@@ -18,6 +18,20 @@ describe("EditorDialogs", () => {
     expect(dialogs.anyOpen).toBe(false);
   });
 
+  it("opens a dialog by its name", () => {
+    const names = ["start", "commandPalette", "shortcuts", "about", "preferences", "grid"] as const;
+    for (const name of names) {
+      const dialogs = new EditorDialogs(false);
+      dialogs.open(name);
+      expect(dialogs[name], name).toBe(true);
+    }
+    const dialogs = new EditorDialogs(false);
+    dialogs.open("canvasSize");
+    expect(dialogs.size).toBe("canvas");
+    dialogs.open("imageSize");
+    expect(dialogs.size).toBe("image");
+  });
+
   it("starts on the start screen if asked", () => {
     expect(new EditorDialogs(true).start).toBe(true);
     expect(new EditorDialogs(true).anyOpen).toBe(true);

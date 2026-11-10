@@ -2,18 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
 import { PaletteLibrary } from "#lib/core/color/palette.js";
-import {
-  registerAppCommands,
-  type AppHost,
-  type ViewControls,
-} from "#lib/app/commands/app-commands.js";
+import { registerAppCommands, type AppHost } from "#lib/app/commands/app-commands.js";
+import type { ViewControls } from "#lib/app/commands/view-commands.js";
 import { DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
 import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 
 const tools = createToolRegistry();
 
-function setup(withView = true) {
+function setup() {
   const editor = new Editor(new Drawing(100, 100));
   const view: ViewControls = {
     fitView: vi.fn(),
@@ -29,33 +26,27 @@ function setup(withView = true) {
     tool: "brush",
     tools,
     options: tools.defaultOptions(),
-    view: withView ? view : null,
+    view,
     hand: "right",
     togglePanels: vi.fn(),
     togglePixelGrid: vi.fn(),
     toggleTileGrid: vi.fn(),
     togglePreview: vi.fn(),
     shown: vi.fn(() => true),
-    openGridSettings: vi.fn(),
     toggleInterface: vi.fn(),
     toggleFullScreen: vi.fn(),
-    openShortcuts: vi.fn(),
-    openAbout: vi.fn(),
-    openPreferences: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
     recentColors: vi.fn(() => []),
     clearRecentColors: vi.fn(),
     notify: vi.fn(),
-    openSizeDialog: vi.fn(),
     importImage: vi.fn(),
-    newDocument: vi.fn(),
     openDocument: vi.fn(),
     saveDocument: vi.fn(),
     saveDocumentAs: vi.fn(),
     exportPng: vi.fn(),
     importPalette: vi.fn(),
     confirm: vi.fn(async () => true),
-    openCommandPalette: vi.fn(),
+    openDialog: vi.fn(),
     canUseFiles: true,
     quit: vi.fn(),
   };
@@ -241,13 +232,41 @@ describe("app commands", () => {
     expect(editor.commands.isChecked("view.zoomIn")).toBeUndefined();
   });
 
-  it("controls the view, once there is one", () => {
+  it("controls the view", () => {
     const { editor, view } = setup();
     editor.commands.execute("view.zoomIn");
     editor.commands.execute("view.actualSize");
     expect(view.zoomStep).toHaveBeenCalledWith(1);
     expect(view.zoomTo).toHaveBeenCalledWith(1);
-    expect(setup(false).editor.commands.isEnabled("view.fit")).toBe(false);
+    editor.commands.execute("view.fit");
+    editor.commands.execute("view.zoomOut");
+    editor.commands.execute("view.rotateLeft");
+    editor.commands.execute("view.resetRotation");
+    editor.commands.execute("view.mirror");
+    expect(view.fitView).toHaveBeenCalledOnce();
+    expect(view.zoomStep).toHaveBeenCalledWith(-1);
+    expect(view.rotateBy).toHaveBeenCalledWith(-Math.PI / 12);
+    expect(view.resetRotation).toHaveBeenCalledOnce();
+    expect(view.mirrorView).toHaveBeenCalledOnce();
+  });
+
+  it("opens each dialog", () => {
+    const { editor, host } = setup();
+    const dialogs = {
+      "file.new": "start",
+      "app.commandPalette": "commandPalette",
+      "app.shortcuts": "shortcuts",
+      "app.preferences": "preferences",
+      "app.about": "about",
+      "view.gridSettings": "grid",
+      "image.canvasSize": "canvasSize",
+      "image.imageSize": "imageSize",
+    };
+    for (const [command, dialog] of Object.entries(dialogs)) {
+      vi.mocked(host.openDialog).mockClear();
+      editor.commands.execute(command);
+      expect(host.openDialog, command).toHaveBeenCalledExactlyOnceWith(dialog);
+    }
   });
 
   it("unregisters its commands", () => {

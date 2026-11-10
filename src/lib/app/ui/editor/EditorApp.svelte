@@ -93,8 +93,8 @@
     <!-- A new view for each document, fitted to the window, and when its size changes. -->
     {#key viewKey}
       <CanvasView
-        bind:this={app.canvasView}
         {editor}
+        controller={app.view}
         painter={app.painter}
         brushCursor={(eraser) => tools.cursor(eraser)}
         brushColor={options.color}
@@ -103,11 +103,8 @@
         pixelGrid={prefs.pixelGrid}
         tileGrid={session.grid.shown ? session.grid : null}
         touchRotation={mode.touchRotation}
-        pixelZoom={mode.pixelZoom}
         fingerDraws={prefs.fingerDraws}
         onpen={() => prefs.notePen()}
-        insets={() => layout.insets()}
-        oncamera={(c) => (app.camera = c)}
         oncursor={(p) => (app.cursor = p)}
         oncommand={(id) => run(id)}
         onerror={(e) => app.notify(m.editor_canvas_unavailable({ error: errorMessage(e) }))}
@@ -155,7 +152,7 @@
     tools={tools.inBar}
     active={shownTool.id}
     settings={options.tools}
-    camera={app.camera}
+    camera={app.view.camera}
     pixelGrid={prefs.pixelGrid}
     tileGrid={session.grid}
     ontilegrid={(grid) => session.setGrid(grid)}
@@ -302,7 +299,7 @@
   {mode}
   touchScreen={layout.touchScreen}
   canvasSize={changes.canvasSize}
-  canvasView={app.canvasView}
+  view={app.view}
   side={awaySide}
   {tip}
   {run}

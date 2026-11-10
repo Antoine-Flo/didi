@@ -5,7 +5,7 @@
   import type { KeymapIndex } from "#lib/app/commands/keymap.js";
   import type { Mode, ModeRegistry } from "#lib/app/modes/mode.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
-  import type { CanvasControls } from "#lib/app/commands/app-commands.js";
+  import type { ViewController } from "#lib/app/input/view-controller.svelte.js";
   import type { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
   import AboutDialog from "#lib/app/ui/dialogs/AboutDialog.svelte";
   import CommandPalette from "#lib/app/ui/dialogs/CommandPalette.svelte";
@@ -28,7 +28,7 @@
     mode,
     touchScreen,
     canvasSize,
-    canvasView,
+    view,
     side,
     tip,
     run,
@@ -44,7 +44,8 @@
     mode: Mode;
     touchScreen: boolean;
     canvasSize: { width: number; height: number };
-    canvasView: CanvasControls | null;
+    /** The canvas's view: the size dialog previews the new size in it. */
+    view: ViewController;
     /** Where the dialogs that leave the canvas seen go: away from the panels. */
     side: "left" | "right";
     tip: (id: string) => string;
@@ -65,7 +66,7 @@
   smoothByDefault={mode.smoothScaling}
   {side}
   {run}
-  onpreview={(preview) => canvasView?.previewResize(preview)}
+  onpreview={(preview) => view.previewResize(preview)}
 />
 <GridDialog
   bind:open={dialogs.grid}
