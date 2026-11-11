@@ -16,11 +16,6 @@ A drawing app for pixel art and painting, with lessons built in (coming soon) to
 
 Coming next: animation, then drawing lessons for both painting and pixel art.
 
-## AI disclosure
-
-- Your art stays on your device. No AI will ever train on it through Didi, or be built into Didi.
-- AI is used to write code. To me, art and code are different questions. If you see it differently, I respect that. This is where I draw the line for this project.
-
 ## Platforms
 
 | Platform | Status                                                       |
@@ -92,7 +87,7 @@ Before sending a pull request, please make sure `npm run lint`, `npm run check` 
 
 Please sign off your commits (`git commit -s`). This adds a `Signed-off-by` line, which says that you wrote the change, or have the right to send it, under the project's license (the [Developer Certificate of Origin](https://developercertificate.org)).
 
-AI-assisted code is fine, as long as you understand and stand behind what you send. Art is different: please don't contribute AI-generated images, brushes or lesson content (see [AI disclosure](#ai-disclosure)).
+AI-assisted code is fine, as long as you understand and stand behind what you send. Art is different: please don't contribute AI-generated images, brushes or lesson content.
 
 ## Acknowledgements
 
