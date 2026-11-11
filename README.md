@@ -8,29 +8,29 @@ A drawing app for pixel art and painting, with lessons built in (coming soon) to
 
 ## Features
 
-- **Two modes**, Pixel art and Painting, each with its own tools and shortcuts. Every document remembers its mode.
-- **196 MyPaint brushes** for painting, with pen pressure and tilt.
-- **Pixel art tools**: pixel brush with pixel-perfect lines, pixel eraser, paint bucket, shapes, pixel and tile grids, and a zoom that keeps every pixel the same size.
-- **Layers, selections and transforms**, copy and paste, canvas and image size.
-- **A command palette** (Ctrl+K) to find any command, dark and light themes, a resizable interface, left- or right-handed layout.
-- **Touch screens**: two-finger gestures, finger drawing, palm rejection, and a compact layout for small screens.
-- **Open files**: a `.didi` file is a plain zip, with one standard PNG per layer.
+- **Painting**: 196 MyPaint brushes, with pen pressure and tilt.
+- **Pixel art**: pixel-perfect lines, pixel and tile grids.
+- **Editing**: layers, selections, transforms, palettes.
+- **Any device**: pen, mouse or touch, from phone to desktop.
+- **Open files**: a `.didi` file is a plain zip, with one PNG per layer.
 
 Coming next: animation, then drawing lessons for both painting and pixel art.
 
 ## AI disclosure
 
 - Your art stays on your device. No AI will ever train on it through Didi, or be built into Didi.
-- AI is used to write code. To me, art and code are different questions, if you see it differently, I respect that. This is where I draw the line for this project
+- AI is used to write code. To me, art and code are different questions. If you see it differently, I respect that. This is where I draw the line for this project.
 
 ## Platforms
 
-| Platform | Status                                                         |
-| -------- | -------------------------------------------------------------- |
-| Browser  | Available at [didipaint.com/app](https://didipaint.com/app).   |
-| Linux    | Builds from source, with native pen input (pressure and tilt). |
-| Windows  | Builds from source.                                            |
-| macOS    | Planned.                                                       |
+| Platform | Status                                                       |
+| -------- | ------------------------------------------------------------ |
+| Browser  | Available at [didipaint.com/app](https://didipaint.com/app). |
+| Linux    | Planned.                                                     |
+| Windows  | Planned.                                                     |
+| macOS    | Planned.                                                     |
+
+The web version is free. Ready-made downloads will be sold, and you can always build Didi from source.
 
 ## Building from source
 
@@ -56,7 +56,7 @@ npm install
 npm run tauri dev
 ```
 
-To run only the browser version: `npx vite dev --port 1430`. Port 1420 is kept for `tauri dev`.
+Browser only: `npm run dev`.
 
 To build a standalone executable: `npm run tauri build -- --no-bundle`.
 
@@ -70,7 +70,9 @@ To build a standalone executable: `npm run tauri build -- --no-bundle`.
 | `npm run check`     | Checks types (TypeScript, Svelte).                        |
 | `npm run format`    | Formats all the code.                                     |
 
-The compiled libmypaint (`src/lib/mypaint/wasm/libmypaint.mjs`) is committed, so you don't need Emscripten unless you change it. To rebuild it: `source ~/emsdk/emsdk_env.sh`, then `native/mypaint/build.sh`.
+To check formatting before each commit: `git config core.hooksPath .githooks`.
+
+The compiled libmypaint (`src/lib/mypaint/wasm/libmypaint.mjs`) is committed, so you don't need Emscripten unless you change it. To rebuild it, with [Emscripten](https://emscripten.org) set up: `native/mypaint/build.sh`.
 
 ### Documentation and devlog
 
@@ -94,7 +96,7 @@ AI-assisted code is fine, as long as you understand and stand behind what you se
 
 ## Acknowledgements
 
-Didi stands on the shoulders of great open-source projects:
+Thanks to these amazing projects that make Didi possible:
 
 - [libmypaint](https://github.com/mypaint/libmypaint) (ISC license), the brush engine. Notice: `native/mypaint/LICENSE-libmypaint`.
 - [MyPaint brushes](https://github.com/mypaint/mypaint-brushes) (CC0). Notice: `src/lib/mypaint/brushes/LICENSE-mypaint-brushes`.
