@@ -30,7 +30,7 @@
       menu={windowTitle.menu}
       end={windowTitle.end}
       center={windowTitle.center}
-      dimmed={windowTitle.dimmed}
+      dimLayers={windowTitle.dimLayers}
     />
   {/if}
   <div class="content">{@render children()}</div>

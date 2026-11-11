@@ -25,6 +25,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
+# Only in the builds that update themselves (the testers'), see the `updater` feature.
+tauri-plugin-updater = { version = "2", optional = true }
+tauri-plugin-process = { version = "2", optional = true }
+
+[features]
+# The app updates itself: `npm run tauri build -- --features updater --config
+# src-tauri/tauri.updater.conf.json`. Not in the store builds, which the stores update.
+updater = ["dep:tauri-plugin-updater", "dep:tauri-plugin-process"]
 
 # Native tablet input: WebKitGTK reports the pen as a mouse without pressure,
 # so we read GTK events directly from the webview widget.

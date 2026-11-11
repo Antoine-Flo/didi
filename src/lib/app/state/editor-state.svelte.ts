@@ -26,10 +26,11 @@ import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
 import { PreviewState } from "#lib/app/preview/preview-state.svelte.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
 import { Watched } from "#lib/app/shared/watched.svelte.js";
+import { AppUpdate } from "#lib/app/state/app-update.svelte.js";
 import { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
 import { commandHost } from "#lib/app/state/command-host.js";
 import { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
-import { Messages, type MessageLevel } from "#lib/app/state/messages.svelte.js";
+import { Messages, type MessageAction, type MessageLevel } from "#lib/app/state/messages.svelte.js";
 import { ModeColorsSync } from "#lib/app/state/mode-colors-sync.svelte.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { pickerTool } from "#lib/app/tools/picker-tool.js";
@@ -41,6 +42,7 @@ import { loadMyPaint } from "#lib/mypaint/engine.js";
 import { m } from "#lib/paraglide/messages.js";
 import { capabilities } from "#lib/platform/capabilities.js";
 import { closeStalePreview } from "#lib/platform/preview-window.js";
+import { findUpdate, restartApp } from "#lib/platform/updater.js";
 import { appWindow, watchFullScreen } from "#lib/platform/window.js";
 import type { Point } from "#lib/render/camera.js";
 
@@ -83,6 +85,14 @@ export class EditorState {
 
   /** The messages shown at the bottom. */
   readonly messages = new Messages();
+  /** A newer version of the app, offered at start (in the builds that update themselves). */
+  readonly update = new AppUpdate({
+    find: findUpdate,
+    startScreenOpen: () => this.dialogs.start,
+    notify: (text, level, action) => this.notify(text, level, action),
+    prepareToQuit: () => this.prepareToQuit(),
+    restart: restartApp,
+  });
   /** The window (or the browser's page) is full screen: followed, F11 and Esc change it too. */
   fullScreen = $state(false);
   /** Only the canvas shows: every panel and bar is hidden (Tab). */
@@ -177,8 +187,7 @@ export class EditorState {
       }
     });
     $effect(() => {
-      // Not behind the preferences: the whole interface is seen while choosing its look.
-      windowTitle.dimmed = this.dialogs.anyOpen && !this.dialogs.preferences;
+      windowTitle.dimLayers = this.dialogs.dimLayers;
     });
   }
 
@@ -197,9 +206,17 @@ export class EditorState {
     return tool.preview(this.editor, options.tools[tool.id], cursor, current);
   }
 
+  /**
+   * The work in progress, under the messages: saving, opening… or the update, unless the
+   * start screen shows it already.
+   */
+  get busy(): string | null {
+    return this.session.busy ?? (this.dialogs.start ? null : this.update.busy);
+  }
+
   /** Shows a message at the bottom: an error by default, which stays until closed. */
-  notify(message: string, level: MessageLevel = "error") {
-    this.messages.show(message, level);
+  notify(message: string, level: MessageLevel = "error", action?: MessageAction) {
+    this.messages.show(message, level, action);
   }
 
   /**
@@ -267,6 +284,7 @@ export class EditorState {
         this.dialogs.start = true;
       }
     });
+    void this.update.check();
     if (!appWindow) {
       return () => {};
     }
@@ -274,20 +292,30 @@ export class EditorState {
     const window = appWindow;
     const unlisten = window.onCloseRequested(async (event) => {
       event.preventDefault();
-      if (!(await this.session.confirmDiscard())) {
-        return;
+      if (await this.prepareToQuit()) {
+        await window.destroy();
       }
-      await Promise.all([
-        this.session.closing(),
-        flushPalettes(),
-        this.prefs.flush(),
-        this.modeColors.flush(),
-        themePrefs.flush(),
-      ]);
-      this.preview.closeWindow();
-      await window.destroy();
     });
     return () => void unlisten.then((fn) => fn());
+  }
+
+  /**
+   * Before quitting (closing the window, installing an update): offers to save unsaved changes,
+   * writes what is pending, closes the preview's window. False if the user cancels.
+   */
+  private async prepareToQuit(): Promise<boolean> {
+    if (!(await this.session.confirmDiscard())) {
+      return false;
+    }
+    await Promise.all([
+      this.session.closing(),
+      flushPalettes(),
+      this.prefs.flush(),
+      this.modeColors.flush(),
+      themePrefs.flush(),
+    ]);
+    this.preview.closeWindow();
+    return true;
   }
 
   /** In a browser, closing the tab would lose the latest changes: the browser asks first. */

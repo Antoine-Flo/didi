@@ -68,4 +68,20 @@ describe("Messages", () => {
     vi.advanceTimersByTime(INFO_MS);
     expect(texts(messages)).toEqual(["error:e1", "error:e2"]);
   });
+
+  it("keeps a message with a button until it is pressed or closed", () => {
+    const messages = new Messages();
+    const run = vi.fn();
+    messages.show("Didi 0.2 is available", "info", { label: "Update", run });
+    vi.advanceTimersByTime(INFO_MS * 10);
+    expect(messages.list).toHaveLength(1);
+    messages.act(messages.list[0].id);
+    expect(messages.list).toEqual([]);
+    expect(run).toHaveBeenCalledOnce();
+    // Closed instead: the action does not run.
+    messages.show("Didi 0.2 is available", "info", { label: "Update", run });
+    messages.dismiss(messages.list[0].id);
+    messages.act(0);
+    expect(run).toHaveBeenCalledOnce();
+  });
 });

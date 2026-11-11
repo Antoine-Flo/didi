@@ -1,0 +1,13 @@
+#!/bin/sh
+# Before a commit: the files committed are formatted (as `npm run lint` checks). Fix with
+# `npm run format`. Enabled once per clone with `git config core.hooksPath .githooks`.
+set -e
+
+git diff --cached --name-only --diff-filter=ACMR -z |
+  xargs -0 --no-run-if-empty npx prettier --check --ignore-unknown ||
+  { echo "Not formatted: run npm run format" >&2; exit 1; }
+
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '\.rs$'; then
+  cargo fmt --check --manifest-path src-tauri/Cargo.toml ||
+    { echo "Rust not formatted: run npm run format" >&2; exit 1; }
+fi

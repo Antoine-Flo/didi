@@ -17,7 +17,7 @@
     menu,
     end,
     center,
-    dimmed = false,
+    dimLayers = 0,
   }: {
     title: string;
     dirty: boolean;
@@ -26,8 +26,8 @@
     end?: Snippet | null;
     /** Instead of the title, in the middle, e.g. the tool's options. */
     center?: Snippet | null;
-    /** Under a dialog's overlay, except the window buttons. */
-    dimmed?: boolean;
+    /** Under as many dialogs' overlays (one per dialog open), except the window buttons. */
+    dimLayers?: number;
   } = $props();
 
   function onMouseDown(e: MouseEvent) {
@@ -48,7 +48,10 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<header class="titlebar" class:dimmed onmousedown={onMouseDown}>
+<header class="titlebar" class:dimmed={dimLayers > 0} onmousedown={onMouseDown}>
+  {#each { length: dimLayers }, i (i)}
+    <span class="dim"></span>
+  {/each}
   <div class="bar">
     {#if menu}
       <div class="group">{@render menu()}</div>
@@ -95,10 +98,9 @@
     user-select: none;
   }
 
-  /* While a dialog is open: dimmed like the rest of the window, but the window buttons
-     stay above, and the bar can still be dragged through. */
-  .dimmed::after {
-    content: "";
+  /* While dialogs are open: dimmed like the rest of the window, a layer per dialog, but the
+     window buttons stay above, and the bar can still be dragged through. */
+  .dim {
     position: absolute;
     inset: 0;
     z-index: 1;

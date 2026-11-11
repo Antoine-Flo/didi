@@ -3,13 +3,14 @@
   // Messages float above it, in the middle, stacked: the latest at the bottom, then the
   // work in progress (saving, opening…).
   import { X } from "@lucide/svelte";
-  import type { Message } from "#lib/app/state/messages.svelte.js";
+  import { staysUntilClosed, type Message } from "#lib/app/state/messages.svelte.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
     messages,
     busy,
     ondismiss,
+    onact,
     left,
     sliding,
     hidden,
@@ -19,8 +20,10 @@
     messages: readonly Message[];
     /** The work in progress, if any: under the messages. */
     busy: string | null;
-    /** Closes a message: errors have a button for it. */
+    /** Closes a message: errors, and messages with a button, have a button for it. */
     ondismiss: (id: number) => void;
+    /** Presses a message's button (see Message.action). */
+    onact: (id: number) => void;
     /** The panels' column is on the left. */
     left: boolean;
     /** The column is opening or closing: the bar follows it. */
@@ -34,9 +37,16 @@
 <div class="bottom" class:left class:sliding class:hidden bind:this={element}>
   <div class="stack">
     {#each messages as message (message.id)}
-      <div class="panel message" class:error={message.level === "error"}>
+      <div
+        class="panel message"
+        class:error={message.level === "error"}
+        class:closable={staysUntilClosed(message)}
+      >
         <span class="text">{message.text}</span>
-        {#if message.level === "error"}
+        {#if message.action}
+          <button class="primary" onclick={() => onact(message.id)}>{message.action.label}</button>
+        {/if}
+        {#if staysUntilClosed(message)}
           <button
             class="icon"
             title={m.common_close()}
@@ -96,10 +106,13 @@
     text-overflow: ellipsis;
   }
 
-  /* With its close button: the rest lets the pointer through to the canvas. */
+  /* With its buttons: the rest lets the pointer through to the canvas. */
+  .message.closable {
+    pointer-events: auto;
+  }
+
   .message.error {
     color: var(--danger);
-    pointer-events: auto;
   }
 
   /* Only the canvas (Tab). */

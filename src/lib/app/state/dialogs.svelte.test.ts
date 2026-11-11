@@ -18,6 +18,19 @@ describe("EditorDialogs", () => {
     expect(dialogs.anyOpen).toBe(false);
   });
 
+  it("counts the dialogs that dim the window, one above another dimming it too", () => {
+    const dialogs = new EditorDialogs(true);
+    expect(dialogs.dimLayers).toBe(1);
+    dialogs.whatsNew = true;
+    expect(dialogs.dimLayers).toBe(2);
+    dialogs.whatsNew = false;
+    dialogs.start = false;
+    // The preferences don't dim: the interface is seen while choosing its look.
+    dialogs.preferences = true;
+    expect(dialogs.dimLayers).toBe(0);
+    expect(dialogs.anyOpen).toBe(true);
+  });
+
   it("opens a dialog by its name", () => {
     const names = ["start", "commandPalette", "shortcuts", "about", "preferences", "grid"] as const;
     for (const name of names) {

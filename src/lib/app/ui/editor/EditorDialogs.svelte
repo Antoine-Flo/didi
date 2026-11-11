@@ -6,6 +6,7 @@
   import type { Mode, ModeRegistry } from "#lib/app/modes/mode.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
   import type { ViewController } from "#lib/app/input/view-controller.svelte.js";
+  import type { AppUpdate } from "#lib/app/state/app-update.svelte.js";
   import type { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
   import AboutDialog from "#lib/app/ui/dialogs/AboutDialog.svelte";
   import CommandPalette from "#lib/app/ui/dialogs/CommandPalette.svelte";
@@ -33,6 +34,7 @@
     tip,
     run,
     onchoosenew,
+    update,
   }: {
     dialogs: EditorDialogs;
     editor: Editor;
@@ -52,6 +54,8 @@
     run: (id: string, params?: unknown) => void;
     /** A mode, a size or a background chosen in the start screen, before creating. */
     onchoosenew: (width: number, height: number, background: Background, mode: string) => void;
+    /** A newer version of the app: offered in the start screen. */
+    update: AppUpdate;
   } = $props();
 </script>
 
@@ -90,6 +94,8 @@
   onopen={(path) => session.open(path)}
   onrecover={() => session.recover()}
   ondiscardrecovery={() => session.discardRecovery()}
+  {update}
+  bind:whatsNew={dialogs.whatsNew}
 />
 <UnsavedDialog request={dialogs.unsaved} />
 <ConfirmDialog request={dialogs.confirmRequest} onclose={() => dialogs.closeConfirm()} />

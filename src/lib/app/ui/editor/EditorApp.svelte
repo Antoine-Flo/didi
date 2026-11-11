@@ -55,7 +55,7 @@
     windowTitle.center = app.interfaceHidden ? null : toolBar;
     return () => {
       windowTitle.center = null;
-      windowTitle.dimmed = false;
+      windowTitle.dimLayers = 0;
       windowTitle.name = "Didi";
       windowTitle.dirty = false;
       windowTitle.menu = null;
@@ -192,9 +192,10 @@
 
   <!-- Messages float at the bottom. -->
   <MessageBar
-    busy={session.busy}
+    busy={app.busy}
     messages={app.messages.list}
     ondismiss={(id) => app.messages.dismiss(id)}
+    onact={(id) => app.messages.act(id)}
     left={layout.panelsOnLeft}
     sliding={layout.sliding}
     hidden={app.interfaceHidden}
@@ -304,6 +305,7 @@
   {tip}
   {run}
   onchoosenew={(...choice) => app.previewNew(...choice)}
+  update={app.update}
 />
 
 <style>

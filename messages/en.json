@@ -442,5 +442,17 @@
   "theme_canvas_reset": "Back to the theme's color",
   "theme_color": "Color",
   "theme_grayscale": "Grayscale",
-  "editor_history": "Undo and redo"
+  "editor_history": "Undo and redo",
+  "update_available": "Didi {version} is available",
+  "update_install": "Update",
+  "update_downloading": "Downloading the update…",
+  "update_downloading_percent": "Downloading the update… {percent}%",
+  "update_installing": "Installing the update…",
+  "update_failed": "The update failed: {error}",
+  "update_new_version": "A new version is available",
+  "update_versions": "{current} → {version}",
+  "update_restart_note": "Didi will need to restart.",
+  "update_whats_new": "See what's new",
+  "update_whats_new_title": "What's new",
+  "common_ok": "OK"
 }

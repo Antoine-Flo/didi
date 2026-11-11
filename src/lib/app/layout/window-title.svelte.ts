@@ -11,8 +11,8 @@ export const windowTitle = $state<{
   end: Snippet | null;
   /** After the menus, instead of the name, e.g. the tool's options. */
   center: Snippet | null;
-  /** A dialog is open: the bar is dimmed like the rest of the window. */
-  dimmed: boolean;
+  /** Dialogs are open: the bar is dimmed like the rest of the window, once per dialog. */
+  dimLayers: number;
   /** No title bar: the page has its own (e.g. the preview window). */
   hidden: boolean;
 }>({
@@ -21,6 +21,6 @@ export const windowTitle = $state<{
   menu: null,
   end: null,
   center: null,
-  dimmed: false,
+  dimLayers: 0,
   hidden: false,
 });

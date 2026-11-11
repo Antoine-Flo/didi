@@ -1,20 +1,23 @@
 <script lang="ts">
   // Shown at start (like Blender's splash screen) and by "New document": create a document
   // (choose a mode, a size and a background, then "New document"), or open a recent one.
-  // Clicking outside keeps the current document.
-  //
-  // A new document is created in a mode (pixel art, painting…), chosen first: each mode
-  // offers its own sizes and background.
+  // Clicking outside keeps the current document. A newer version of the app shows at the top.
+  // The choice of the new document: see NewDocumentForm.
 
   import { Dialog } from "bits-ui";
-  import { untrack } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
   import { capabilities } from "#lib/platform/capabilities.js";
-  import type { Background } from "#lib/app/files/new-drawing.js";
+  import {
+    NewDocumentChoice,
+    type ChoiceListener,
+  } from "#lib/app/files/new-document-choice.svelte.js";
   import type { Mode } from "#lib/app/modes/mode.js";
   import type { RecentFile } from "#lib/app/files/recent.js";
   import type { RecoveryInfo } from "#lib/app/files/session.svelte.js";
+  import type { AppUpdate } from "#lib/app/state/app-update.svelte.js";
+  import NewDocumentForm from "#lib/app/ui/dialogs/NewDocumentForm.svelte";
   import RecentFiles from "#lib/app/ui/dialogs/RecentFiles.svelte";
+  import UpdateOffer from "#lib/app/ui/dialogs/UpdateOffer.svelte";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
@@ -28,6 +31,8 @@
     onopen,
     onrecover,
     ondiscardrecovery,
+    update,
+    whatsNew = $bindable(false),
   }: {
     open?: boolean;
     modes: readonly Mode[];
@@ -35,64 +40,26 @@
     mode: string;
     recent: readonly RecentFile[];
     recovery: RecoveryInfo | null;
-    oncreate: (width: number, height: number, background: Background, mode: string) => void;
+    oncreate: ChoiceListener;
     /** The mode, the size or the background was changed by the user (a valid size only). */
-    onchange?: (width: number, height: number, background: Background, mode: string) => void;
+    onchange?: ChoiceListener;
     /** Opens a recent file, or asks for one without a path. */
     onopen: (path?: string) => void;
     onrecover: () => void;
     ondiscardrecovery: () => void;
+    /** A newer version of the app, shown at the top if there is one. */
+    update: AppUpdate;
+    /** What changed in the newer versions is shown, above. */
+    whatsNew?: boolean;
   } = $props();
-
-  const MAX_SIZE = 8192;
 
   // The last choice is kept while the app runs.
   // svelte-ignore state_referenced_locally
-  // An id, not the mode itself: $state would wrap the mode in a proxy, and comparing it
-  // with the modes would then always fail.
-  let chosenId = $state(mode);
-  const chosen = $derived(modes.find((m) => m.id === chosenId) ?? modes[0]);
-  const defaults = $derived(chosen.newDocument);
-  let background = $state<Background>(untrack(() => defaults.background));
-  let width = $state(untrack(() => defaults.size.width));
-  let height = $state(untrack(() => defaults.size.height));
-  const validSize = (v: number) => Number.isInteger(v) && v >= 1 && v <= MAX_SIZE;
+  const choice = new NewDocumentChoice(modes, mode, (...args) => onchange?.(...args));
 
-  function choose(next: Mode) {
-    if (next.id === chosen.id) {
-      return;
-    }
-    chosenId = next.id;
-    ({ width, height } = next.newDocument.size);
-    background = next.newDocument.background;
-    changed();
-  }
-
-  function changed() {
-    if (validSize(width) && validSize(height)) {
-      onchange?.(width, height, background, chosen.id);
-    }
-  }
-
-  function setSize(w: number, h: number) {
-    if (w === width && h === height) {
-      return;
-    }
-    ({ width, height } = { width: w, height: h });
-    changed();
-  }
-
-  function setBackground(next: Background) {
-    if (next === background) {
-      return;
-    }
-    background = next;
-    changed();
-  }
-
-  function create(w: number, h: number) {
+  function create() {
     open = false;
-    oncreate(w, h, background, chosen.id);
+    oncreate(choice.width, choice.height, choice.background, choice.mode.id);
   }
 
   let content = $state<HTMLElement | null>(null);
@@ -126,76 +93,11 @@
     >
       <Dialog.Title class="sr-only">{m.start_new_document()}</Dialog.Title>
 
+      <UpdateOffer {update} bind:whatsNew />
+
       <section class="new">
         <span class="section-title">{m.start_new_document()}</span>
-        <div class="modes" role="radiogroup" aria-label={m.start_mode()}>
-          {#each modes as m (m.id)}
-            {@const Icon = m.icon}
-            <button
-              class="mode"
-              class:active={m.id === chosen.id}
-              role="radio"
-              aria-checked={m.id === chosen.id}
-              onclick={() => choose(m)}
-            >
-              <span class="mode-title"><Icon class="icon-large" /> {m.title}</span>
-              <span class="mode-description">{m.description}</span>
-            </button>
-          {/each}
-        </div>
-
-        {#each defaults.presets as { group, sizes } (group)}
-          <div class="group">
-            <span class="label">{group}</span>
-            <div class="sizes">
-              {#each sizes as [w, h] (`${w}x${h}`)}
-                <button
-                  class="size"
-                  class:active={w === width && h === height}
-                  onclick={() => setSize(w, h)}>{w} × {h}</button
-                >
-              {/each}
-            </div>
-          </div>
-        {/each}
-
-        <div class="group">
-          <span class="label">{m.start_custom()}</span>
-          <div class="custom">
-            <input
-              type="number"
-              min="1"
-              max={MAX_SIZE}
-              bind:value={width}
-              oninput={changed}
-              aria-label={m.image_size_width()}
-            />
-            <span>×</span>
-            <input
-              type="number"
-              min="1"
-              max={MAX_SIZE}
-              bind:value={height}
-              oninput={changed}
-              aria-label={m.image_size_height()}
-            />
-          </div>
-        </div>
-
-        <div class="group">
-          <span class="label">{m.start_background()}</span>
-          <div class="toggle">
-            <button class:active={background === "white"} onclick={() => setBackground("white")}>
-              {m.start_white()}
-            </button>
-            <button
-              class:active={background === "transparent"}
-              onclick={() => setBackground("transparent")}
-            >
-              {m.start_transparent()}
-            </button>
-          </div>
-        </div>
+        <NewDocumentForm {choice} {modes} />
       </section>
 
       {#if capabilities.userFiles}
@@ -220,10 +122,8 @@
       {/if}
 
       <div class="footer">
-        <button
-          class="primary"
-          disabled={!validSize(width) || !validSize(height)}
-          onclick={() => create(width, height)}>{m.start_new_document_action()}</button
+        <button class="primary" disabled={!choice.valid} onclick={create}
+          >{m.start_new_document_action()}</button
         >
         {#if capabilities.userFiles}
           <button
@@ -277,114 +177,12 @@
     border-left: 1px solid var(--border);
   }
 
-  .group {
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--space) / 2);
-  }
-
-  .label {
-    color: var(--text-muted);
-  }
-
-  /* The mode comes first and must be obvious: two large cards. */
-  .modes {
-    display: grid;
-    grid-auto-columns: 1fr;
-    grid-auto-flow: column;
-    gap: var(--space);
-  }
-
-  .mode {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: calc(var(--space) / 2);
-    height: auto;
-    padding: var(--space);
-    text-align: left;
-    white-space: normal;
-    background: var(--field);
-    border: 1px solid var(--field-border);
-    border-radius: var(--radius);
-  }
-
-  .mode:hover {
-    background: var(--hover);
-  }
-
-  /* The chosen mode: the same highlighted border as the chosen size. */
-  .mode.active {
-    border-color: var(--text-faint);
-  }
-
-  .mode-title {
-    display: flex;
-    align-items: center;
-    gap: calc(var(--space) / 2);
-    font-weight: 600;
-  }
-
-  .mode-description {
-    color: var(--text-muted);
-  }
-
-  .sizes {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(calc(88px * var(--ui-scale)), 1fr));
-    gap: calc(var(--space) / 2);
-  }
-
-  .size {
-    background: var(--field);
-    border: 1px solid var(--field-border);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .size:hover {
-    background: var(--hover);
-    border-color: var(--text-faint);
-  }
-
-  /* The size that will be created: the same highlighted border as the chosen mode. */
-  .size.active {
-    border-color: var(--text-faint);
-  }
-
-  .custom,
-  .toggle,
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: calc(var(--space) / 2);
-  }
-
-  .custom input {
-    box-sizing: border-box;
-    width: calc(72px * var(--ui-scale));
-    height: var(--control-height);
-    padding: 0 var(--space);
-    color: inherit;
-    font: inherit;
-    font-variant-numeric: tabular-nums;
-    background: var(--field);
-    border: 1px solid var(--field-border);
-    border-radius: var(--radius-small);
-  }
-
-  .toggle button {
-    flex: 1;
-    background: var(--field);
-    border: 1px solid var(--field-border);
-  }
-
-  .toggle button.active {
-    background: var(--selected);
-  }
-
   /* Actions at the bottom left: create, open. */
   .footer {
     grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space) / 2);
     padding: var(--space) calc(var(--space) * 2);
     border-top: 1px solid var(--border);
   }

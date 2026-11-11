@@ -8,6 +8,11 @@ import type { Editor } from "#lib/core/editor/editor.js";
 import type { ReadonlyLayer } from "#lib/core/document/layer.js";
 import type { History } from "#lib/core/history/history.js";
 
+/** One stop for several subscriptions. */
+function stopAll(...stops: (() => void)[]): () => void {
+  return () => stops.forEach((stop) => stop());
+}
+
 /** One editor's subscriptions, started while something reads them. */
 class Subscriptions {
   readonly layers: () => void;
@@ -21,14 +26,13 @@ class Subscriptions {
     // Pixels change on every frame of a stroke: only what shows them follows them.
     const layers = (update: () => void) =>
       drawing.subscribe((change) => change.type !== "pixels-changed" && update());
-    const all = (...stops: (() => void)[]) => () => stops.forEach((stop) => stop());
     this.layers = createSubscriber(layers);
     this.active = createSubscriber((update) =>
-      all(layers(update), editor.onActiveLayerChange(update)),
+      stopAll(layers(update), editor.onActiveLayerChange(update)),
     );
     this.history = createSubscriber((update) => history.subscribe(update));
     this.anything = createSubscriber((update) =>
-      all(
+      stopAll(
         layers(update),
         history.subscribe(update),
         selection.subscribe(update),

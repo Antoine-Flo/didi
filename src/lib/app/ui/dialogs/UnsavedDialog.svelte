@@ -80,11 +80,12 @@
 </AlertDialog.Root>
 
 <style>
-  /* Below the title bar, which stays usable. */
+  /* Below the title bar, which stays usable. On the dialogs' level: a dialog opened above
+     another (What's new above the start screen) dims it too, as it comes later. */
   :global(.dialog-overlay) {
     position: fixed;
     inset: var(--titlebar-height) 0 0;
-    z-index: 50;
+    z-index: 51;
     background: var(--overlay);
   }
 

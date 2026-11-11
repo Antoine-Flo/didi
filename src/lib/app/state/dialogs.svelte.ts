@@ -30,6 +30,8 @@ export class EditorDialogs {
   about = $state(false);
   preferences = $state(false);
   grid = $state(false);
+  /** What changed in the newer versions, above the start screen (see UpdateOffer). */
+  whatsNew = $state(false);
   /** The image or canvas size dialog. */
   size = $state<SizeKind | null>(null);
   /** What to do with unsaved changes (see UnsavedDialog). */
@@ -42,19 +44,28 @@ export class EditorDialogs {
     this.start = startOpen;
   }
 
-  /** A dialog is open: the menus do nothing, and the title bar is dimmed. */
+  /** A dialog is open: the menus do nothing. */
   get anyOpen(): boolean {
-    return (
-      this.start ||
-      this.commandPalette ||
-      this.shortcuts ||
-      this.about ||
-      this.preferences ||
-      this.size !== null ||
-      this.grid ||
-      this.unsaved !== null ||
-      this.confirmRequest !== null
-    );
+    return this.preferences || this.dimLayers > 0;
+  }
+
+  /**
+   * How many dialogs dim what is behind them: one above another (What's new above the start
+   * screen) dims it too. The title bar takes as many layers. Not the preferences: the whole
+   * interface is seen while choosing its look.
+   */
+  get dimLayers(): number {
+    return [
+      this.start,
+      this.commandPalette,
+      this.shortcuts,
+      this.about,
+      this.size !== null,
+      this.grid,
+      this.whatsNew,
+      this.unsaved !== null,
+      this.confirmRequest !== null,
+    ].filter(Boolean).length;
   }
 
   open(name: DialogName) {

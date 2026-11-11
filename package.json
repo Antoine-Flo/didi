@@ -19,15 +19,23 @@
     "measure:brushes": "DIDI_MEASURE=1 vitest run src/lib/mypaint/brush-sizes.test.ts",
     "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
     "website": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'build', { recursive: true })\"",
-    "deploy": "npm run build && npm run website && wrangler deploy"
+    "deploy": "npm run build && npm run website && wrangler deploy",
+    "dev:fake-update": "VITE_DIDI_FAKE_UPDATE=1 tauri dev",
+    "build:linux": "tools/build/linux.sh",
+    "release:alpha": "node tools/build/release-alpha.mjs"
   },
   "license": "GPL-3.0-or-later",
+  "engines": {
+    "node": ">=26 <27"
+  },
   "dependencies": {
     "@lucide/svelte": "^1.66.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
     "bits-ui": "^2.20.2",
     "comlink": "^4.4.2",
     "fflate": "^0.8.3",
