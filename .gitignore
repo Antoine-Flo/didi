@@ -12,7 +12,7 @@ vite.config.ts.timestamp-*
 # Brush comparison output (npm run compare:brushes)
 tools/brush-compare/out/
 
-# Documentation, locale uniquement
+# Local-only notes
 /doc/
 
 # Interface texts compiled from messages/ by Paraglide
