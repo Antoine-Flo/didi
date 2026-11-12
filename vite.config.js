@@ -25,7 +25,7 @@ const paraglide = () =>
   });
 
 /** The website's paths (website/): its pages, and the files they load. */
-const WEBSITE_PATH = /^\/(doc|devlog|_astro|pagefind)(\/|$)/;
+const WEBSITE_PATH = /^\/(doc|_astro|pagefind)(\/|$)/;
 /** @type {Record<string, string>} */
 const WEBSITE_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -40,7 +40,7 @@ const WEBSITE_TYPES = {
 };
 
 /**
- * In dev, the website's last build (website/dist, see `npm run dev:website`) at its paths, so
+ * In dev, the website's last build (website/dist, see `npm run build:site`) at its paths, so
  * that the landing page's links work as online, where `npm run deploy` puts it next to the app.
  */
 /** @returns {import("vite").Plugin} */
@@ -76,10 +76,10 @@ export default defineConfig(() => ({
       preprocess: vitePreprocess(),
       adapter: adapter(),
       prerender: {
-        // /doc and /devlog are the website (website/), added to build/ at deploy time: the
-        // landing page links to them, but they are not pages of the app.
+        // /doc is the website (website/), added to build/ at deploy time: the
+        // landing page links to it, but it is not a page of the app.
         handleHttpError: ({ path, message }) => {
-          if (/^\/(doc|devlog)(\/|$)/.test(path)) {
+          if (/^\/doc(\/|$)/.test(path)) {
             return;
           }
           throw new Error(message);

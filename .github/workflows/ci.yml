@@ -23,7 +23,7 @@ jobs:
       - run: npm run check
       - run: npm test
 
-  # The documentation and the devlog (website/), a project of its own.
+  # The documentation (website/), a project of its own.
   website:
     runs-on: ubuntu-latest
     defaults:

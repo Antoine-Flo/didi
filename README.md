@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/Antoine-Flo/didi/actions/workflows/ci.yml/badge.svg)](https://github.com/Antoine-Flo/didi/actions/workflows/ci.yml)
 
-A drawing app for pixel art and painting, with lessons built in (coming soon) to help you learn to draw.
+A drawing app for pixel art and painting, with lessons built in (coming soon).
 
-**[Try it in your browser](https://didipaint.com/app)** · [Website](https://didipaint.com) · [Documentation](https://didipaint.com/doc/) · [Devlog](https://didipaint.com/devlog/)
+**[Try it in your browser](https://didipaint.com/app)** · [Website](https://didipaint.com) · [Documentation](https://didipaint.com/doc/)
 
 ## Features
 
@@ -47,41 +47,39 @@ Didi is a [Tauri 2](https://v2.tauri.app) app with a [SvelteKit](https://svelte.
 ### Run it
 
 ```sh
-npm install
-npm run tauri dev
+npm run setup         # once: installs the app and the website
+npm run dev
 ```
 
-Browser only: `npm run dev`.
+This opens the desktop app. For the browser version, open the link that the terminal shows (http://localhost:1420).
 
 To build a standalone executable: `npm run tauri build -- --no-bundle`.
 
 ## Development
 
-| Command             | What it does                                              |
-| ------------------- | --------------------------------------------------------- |
-| `npm run tauri dev` | Runs the desktop app (and rebuilds the Rust side).        |
-| `npm test`          | Runs the tests (Vitest).                                  |
-| `npm run lint`      | Checks formatting (Prettier, rustfmt) and lints (ESLint). |
-| `npm run check`     | Checks types (TypeScript, Svelte).                        |
-| `npm run format`    | Formats all the code.                                     |
+| Command            | What it does                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `npm run dev`      | Runs the desktop app (and rebuilds the Rust side). For the browser version, open the link in the terminal. |
+| `npm run dev:site` | To write the docs.                                                                                         |
+| `npm test`         | Runs the tests (Vitest).                                                                                   |
+| `npm run lint`     | Checks formatting (Prettier, rustfmt) and lints (ESLint).                                                  |
+| `npm run check`    | Checks types (TypeScript, Svelte).                                                                         |
+| `npm run format`   | Formats all the code.                                                                                      |
 
 To check formatting before each commit: `git config core.hooksPath .githooks`.
 
 The compiled libmypaint (`src/lib/mypaint/wasm/libmypaint.mjs`) is committed, so you don't need Emscripten unless you change it. To rebuild it, with [Emscripten](https://emscripten.org) set up: `native/mypaint/build.sh`.
 
-### Documentation and devlog
+### Website and docs
 
-```sh
-cd website
-npm install
-npm run dev
-```
+The pages are Markdown files in `website/src/content/docs/`:
 
-The pages are Markdown files in `website/src/content/docs/`: `doc/` for the documentation, `devlog/` for the devlog posts.
+- `doc/`: the user guide.
+- `doc/dev/`: the developer docs, how Didi works inside (architecture, algorithms, optimizations). Also online at [didipaint.com/doc/dev](https://didipaint.com/doc/dev/).
 
 ## Contributing
 
-Bug reports, ideas and feedback are all welcome: please open an [issue](https://github.com/Antoine-Flo/didi/issues). If you'd like to work on something bigger, opening an issue first is the best way to talk it through.
+Bug reports, ideas and feedback are all welcome: please open an [issue](https://github.com/Antoine-Flo/didi/issues). If you'd like to work on something bigger, opening an issue first is the best way to talk it through. To find your way in the code, start with the [developer docs](https://didipaint.com/doc/dev/).
 
 Before sending a pull request, please make sure `npm run lint`, `npm run check` and `npm test` pass.
 

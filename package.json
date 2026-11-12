@@ -4,7 +4,9 @@
   "description": "A drawing app for pixel art and painting, with lessons built in.",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "setup": "npm install && npm --prefix website install",
+    "dev": "tauri dev",
+    "dev:site": "npm --prefix website run dev",
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync && npm run messages || echo ''",
@@ -18,9 +20,8 @@
     "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts",
     "measure:brushes": "DIDI_MEASURE=1 vitest run src/lib/mypaint/brush-sizes.test.ts",
     "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
-    "website": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'build', { recursive: true })\"",
-    "deploy": "npm run build && npm run website && wrangler deploy",
-    "dev:website": "npm --prefix website run build && vite dev --port 1430 --open /",
+    "build:site": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'build', { recursive: true })\"",
+    "deploy": "npm run build && npm run build:site && wrangler deploy",
     "dev:fake-update": "VITE_DIDI_FAKE_UPDATE=1 tauri dev",
     "build:linux": "tools/build/linux.sh",
     "release:alpha": "node tools/build/release-alpha.mjs"

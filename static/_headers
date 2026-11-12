@@ -3,6 +3,6 @@
 /_app/immutable/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The same for the website's files (/doc, /devlog: website/, built by Astro).
+# The same for the website's files (/doc: website/, built by Astro).
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
