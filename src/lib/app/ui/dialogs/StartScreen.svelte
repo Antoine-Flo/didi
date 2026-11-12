@@ -1,7 +1,8 @@
 <script lang="ts">
   // Shown at start (like Blender's splash screen) and by "New document": create a document
   // (choose a mode, a size and a background, then "New document"), or open a recent one.
-  // Clicking outside keeps the current document. A newer version of the app shows at the top.
+  // Clicking outside keeps the current document. A newer version of the app shows at the top,
+  // and the way to the Discord at the bottom.
   // The choice of the new document: see NewDocumentForm.
 
   import { Dialog } from "bits-ui";
@@ -18,6 +19,7 @@
   import NewDocumentForm from "#lib/app/ui/dialogs/NewDocumentForm.svelte";
   import RecentFiles from "#lib/app/ui/dialogs/RecentFiles.svelte";
   import UpdateOffer from "#lib/app/ui/dialogs/UpdateOffer.svelte";
+  import DiscordLogo from "#lib/app/ui/widgets/DiscordLogo.svelte";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
@@ -33,6 +35,7 @@
     ondiscardrecovery,
     update,
     whatsNew = $bindable(false),
+    ondiscord,
   }: {
     open?: boolean;
     modes: readonly Mode[];
@@ -51,6 +54,8 @@
     update: AppUpdate;
     /** What changed in the newer versions is shown, above. */
     whatsNew?: boolean;
+    /** Opens the Discord (outside the app: the screen stays). */
+    ondiscord: () => void;
   } = $props();
 
   // The last choice is kept while the app runs.
@@ -133,6 +138,10 @@
             }}>{m.start_open_image()}</button
           >
         {/if}
+        <span class="spacer"></span>
+        <button class="discord" onclick={ondiscord}>
+          <span class="discord-icon"><DiscordLogo /></span>{m.start_discord()}
+        </button>
       </div>
     </Dialog.Content>
   </Dialog.Portal>
@@ -177,7 +186,7 @@
     border-left: 1px solid var(--border);
   }
 
-  /* Actions at the bottom left: create, open. */
+  /* Actions at the bottom left: create, open; the Discord at the right. */
   .footer {
     grid-column: 1 / -1;
     display: flex;
@@ -185,5 +194,26 @@
     gap: calc(var(--space) / 2);
     padding: var(--space) calc(var(--space) * 2);
     border-top: 1px solid var(--border);
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  /* A link more than an action: muted, with the text's color on hover. */
+  .discord {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space) * 0.75);
+    color: var(--text-muted);
+  }
+
+  .discord:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  .discord-icon {
+    width: var(--icon-size);
+    height: var(--icon-size);
   }
 </style>

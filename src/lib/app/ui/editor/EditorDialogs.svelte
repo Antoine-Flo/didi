@@ -96,6 +96,7 @@
   ondiscardrecovery={() => session.discardRecovery()}
   {update}
   bind:whatsNew={dialogs.whatsNew}
+  ondiscord={() => run("app.discord")}
 />
 <UnsavedDialog request={dialogs.unsaved} />
 <ConfirmDialog request={dialogs.confirmRequest} onclose={() => dialogs.closeConfirm()} />

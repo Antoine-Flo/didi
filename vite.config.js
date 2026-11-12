@@ -7,7 +7,8 @@ import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import adapter from "@sveltejs/adapter-static";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import process from "node:process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { extname, join, normalize } from "node:path";
 
 /** The app's version, shown in About (package.json, kept equal to tauri.conf.json's). */
 const version = JSON.parse(readFileSync("./package.json", "utf8")).version;
@@ -22,6 +23,51 @@ const paraglide = () =>
     emitTsDeclarations: true,
     strategy: ["localStorage", "preferredLanguage", "baseLocale"],
   });
+
+/** The website's paths (website/): its pages, and the files they load. */
+const WEBSITE_PATH = /^\/(doc|devlog|_astro|pagefind)(\/|$)/;
+/** @type {Record<string, string>} */
+const WEBSITE_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css",
+  ".js": "text/javascript",
+  ".json": "application/json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".woff2": "font/woff2",
+  ".xml": "application/xml",
+};
+
+/**
+ * In dev, the website's last build (website/dist, see `npm run dev:website`) at its paths, so
+ * that the landing page's links work as online, where `npm run deploy` puts it next to the app.
+ */
+/** @returns {import("vite").Plugin} */
+const websitePages = () => ({
+  name: "didi-website-pages",
+  configureServer(server) {
+    const root = join(process.cwd(), "website/dist");
+    server.middlewares.use((req, res, next) => {
+      const path = decodeURIComponent((req.url ?? "").split("?")[0]);
+      if (!WEBSITE_PATH.test(path)) {
+        return next();
+      }
+      let file = join(root, normalize(path));
+      if (!file.startsWith(root)) {
+        return next();
+      }
+      if (existsSync(file) && statSync(file).isDirectory()) {
+        file = join(file, "index.html");
+      }
+      if (!existsSync(file)) {
+        return next();
+      }
+      res.setHeader("Content-Type", WEBSITE_TYPES[extname(file)] ?? "application/octet-stream");
+      res.end(readFileSync(file));
+    });
+  },
+});
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
@@ -41,6 +87,7 @@ export default defineConfig(() => ({
       },
     }),
     paraglide(),
+    websitePages(),
   ],
   // In tests, Svelte's browser build: the server one never runs `$effect`, which the editor's
   // state classes rely on (see the *.svelte.test.ts files).

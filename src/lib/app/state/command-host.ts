@@ -1,10 +1,13 @@
 // What the app's commands act on (see app-commands.ts), provided by the editor's state.
 
 import type { AppHost } from "#lib/app/commands/app-commands.js";
+import { lastPointer } from "#lib/app/input/last-pointer.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
 import type { EditorState } from "#lib/app/state/editor-state.svelte.js";
 import { m } from "#lib/paraglide/messages.js";
 import { capabilities } from "#lib/platform/capabilities.js";
+import { openLink } from "#lib/platform/open-link.js";
+import { systemInfo } from "#lib/platform/system.js";
 import { appWindow, toggleFullScreen } from "#lib/platform/window.js";
 
 export function commandHost(state: EditorState): AppHost {
@@ -68,6 +71,22 @@ export function commandHost(state: EditorState): AppHost {
     exportPng: () => session.exportPng(),
     importImage: () => state.pickImages(),
     quit: appWindow ? () => void appWindow?.close() : null,
+
+    version: __APP_VERSION__,
+    system: systemInfo,
+    editorFacts: () => {
+      const { width, height, layers } = state.editor.drawing;
+      return {
+        input: lastPointer(),
+        mode: session.mode,
+        tool: tools.id,
+        doc: `${width}x${height}, ${layers.length} layers`,
+        screen: `${innerWidth}x${innerHeight}@${devicePixelRatio}`,
+        layout: layout.compact ? "compact" : "normal",
+        error: state.messages.lastError,
+      };
+    },
+    openLink,
 
     openDialog: (name) => dialogs.open(name),
     notify: (message, level) => state.notify(message, level),

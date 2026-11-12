@@ -49,6 +49,18 @@ function setup() {
     openDialog: vi.fn(),
     canUseFiles: true,
     quit: vi.fn(),
+    version: "1.0.0",
+    system: () => ({ source: "linux", browser: "", os: "linux" }),
+    editorFacts: () => ({
+      input: "pen",
+      mode: "painting",
+      tool: "brush",
+      doc: "100x100, 1 layers",
+      screen: "800x600@1",
+      layout: "normal",
+      error: "",
+    }),
+    openLink: vi.fn(async () => {}),
   };
   const unregister = registerAppCommands(editor.commands, host);
   return { editor, host, view, unregister };
@@ -267,6 +279,32 @@ describe("app commands", () => {
       editor.commands.execute(command);
       expect(host.openDialog, command).toHaveBeenCalledExactlyOnceWith(dialog);
     }
+  });
+
+  it("opens the docs, the bug and feedback forms and the Discord, with what they are told", () => {
+    const { editor, host } = setup();
+    const opened = (command: string) => {
+      vi.mocked(host.openLink).mockClear();
+      editor.commands.execute(command);
+      return new URL(vi.mocked(host.openLink).mock.calls[0][0]);
+    };
+    const bug = opened("app.reportBug");
+    expect(bug.href).toContain("tally.so/r/rDa0PX");
+    expect(bug.searchParams.get("tool")).toBe("brush");
+    expect(bug.searchParams.get("source")).toBe("linux");
+    const feedback = opened("app.feedback");
+    expect(feedback.href).toContain("tally.so/r/dba2rq");
+    expect(feedback.searchParams.get("version")).toBe("1.0.0");
+    expect(feedback.searchParams.has("tool")).toBe(false);
+    expect(opened("app.discord").host).toBe("discord.gg");
+    expect(opened("app.documentation").href).toBe("https://didipaint.com/doc/");
+  });
+
+  it("tells when a link cannot open", async () => {
+    const { editor, host } = setup();
+    vi.mocked(host.openLink).mockRejectedValueOnce(new Error("no browser"));
+    editor.commands.execute("app.discord");
+    await vi.waitFor(() => expect(host.notify).toHaveBeenCalledOnce());
   });
 
   it("unregisters its commands", () => {

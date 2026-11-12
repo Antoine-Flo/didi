@@ -30,10 +30,15 @@ export const INFO_MS = 6000;
 export class Messages {
   /** The messages shown, the oldest first. */
   list = $state<readonly Message[]>([]);
+  /** The last error shown, even closed since: told in bug reports. */
+  lastError = "";
   private nextId = 0;
   private timers: Record<number, ReturnType<typeof setTimeout>> = {};
 
   show(text: string, level: MessageLevel, action?: MessageAction) {
+    if (level === "error") {
+      this.lastError = text;
+    }
     const last = this.list.at(-1);
     if (last?.text === text && last.level === level) {
       // Again: it stays as long as if it were new.

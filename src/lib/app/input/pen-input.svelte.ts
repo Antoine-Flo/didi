@@ -5,6 +5,7 @@
 // When native pen events are available, they draw, and DOM pointer events only pan the view,
 // except for fingers: they always come as DOM events (see touch-gestures.ts).
 
+import { pointerPressed } from "#lib/app/input/last-pointer.js";
 import type { Painter } from "#lib/app/input/painter.js";
 import type { Sample } from "#lib/app/tools/tool.js";
 import type { PenEvent } from "#lib/platform/pen.js";
@@ -81,6 +82,9 @@ export class PenInput {
   onNative(e: PenEvent) {
     if (e.source === "pen" || e.source === "eraser") {
       this.hoverEraser = e.source === "eraser";
+      if (e.phase === "down") {
+        pointerPressed("pen");
+      }
     }
     // Fingers come as DOM events too: they are handled there. A finger is drawing: the pen waits.
     if (e.source === "touch" || this.domStroke) {

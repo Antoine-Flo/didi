@@ -34,6 +34,10 @@ export default defineConfig({
         starlightBlog({
           prefix: "devlog",
           title: "Devlog",
+          // No link to the devlog nor RSS feed (2026-11-12): news go to the Discord for now.
+          // Its pages still build, at their URL.
+          navigation: "none",
+          rss: false,
           authors: { antoine: { name: "Antoine" } },
         }),
       ],

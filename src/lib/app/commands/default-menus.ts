@@ -209,7 +209,15 @@ export function defaultMenus({ recent, modes, undoLabel, redoLabel }: MenuState)
     },
     {
       title: m.menu_help(),
-      items: [{ command: "app.shortcuts" }, { command: "app.about" }],
+      items: [
+        { command: "app.documentation" },
+        { command: "app.reportBug" },
+        { command: "app.feedback" },
+        { command: "app.discord" },
+        "separator",
+        { command: "app.shortcuts" },
+        { command: "app.about" },
+      ],
     },
   ];
 }

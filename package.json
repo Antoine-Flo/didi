@@ -20,6 +20,7 @@
     "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
     "website": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'build', { recursive: true })\"",
     "deploy": "npm run build && npm run website && wrangler deploy",
+    "dev:website": "npm --prefix website run build && vite dev --port 1430 --open /",
     "dev:fake-update": "VITE_DIDI_FAKE_UPDATE=1 tauri dev",
     "build:linux": "tools/build/linux.sh",
     "release:alpha": "node tools/build/release-alpha.mjs"

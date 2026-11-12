@@ -15,6 +15,15 @@ describe("Messages", () => {
     expect(texts(messages)).toEqual(["error:saving failed", "info:nothing to paste"]);
   });
 
+  it("remembers the last error, even closed, for bug reports", () => {
+    const messages = new Messages();
+    expect(messages.lastError).toBe("");
+    messages.show("saving failed", "error");
+    messages.show("nothing to paste", "info");
+    messages.dismiss(messages.list[0].id);
+    expect(messages.lastError).toBe("saving failed");
+  });
+
   it("lets information go after a while, and keeps errors until closed", () => {
     const messages = new Messages();
     messages.show("saving failed", "error");

@@ -13,6 +13,7 @@ import { importFiles, importPalette } from "#lib/app/files/import-image.js";
 import { newEditor, type Background } from "#lib/app/files/new-drawing.js";
 import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
 import { Session } from "#lib/app/files/session.svelte.js";
+import { watchLastPointer } from "#lib/app/input/last-pointer.js";
 import { held, heldModifiers } from "#lib/app/input/modifiers.svelte.js";
 import { Painter } from "#lib/app/input/painter.js";
 import { ViewController } from "#lib/app/input/view-controller.svelte.js";
@@ -267,8 +268,9 @@ export class EditorState {
   /** Loads what the editor needs and was saved; returns what stops it on unmount. */
   mount(): () => void {
     const notify = (message: string) => this.notify(message);
-    // Follows Shift and Ctrl from now on, for the shape tools.
+    // Follows Shift and Ctrl from now on, for the shape tools, and the pointers for bug reports.
     heldModifiers();
+    const stopPointers = watchLastPointer();
     loadMyPaint()
       .then((engine) => this.painter.setEngine(engine))
       .catch((e) => this.notify(m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
@@ -286,7 +288,7 @@ export class EditorState {
     });
     void this.update.check();
     if (!appWindow) {
-      return () => {};
+      return stopPointers;
     }
     // Closing the window: offer to save unsaved changes first.
     const window = appWindow;
@@ -296,7 +298,10 @@ export class EditorState {
         await window.destroy();
       }
     });
-    return () => void unlisten.then((fn) => fn());
+    return () => {
+      stopPointers();
+      void unlisten.then((fn) => fn());
+    };
   }
 
   /**
