@@ -12,6 +12,7 @@
   import Select from "#lib/app/ui/widgets/Select.svelte";
   import Slider from "#lib/app/ui/widgets/Slider.svelte";
   import LayerRow from "#lib/app/ui/panels/LayerRow.svelte";
+  import type { CommandRegistry } from "#lib/core/editor/commands.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
   import { BLEND_MODES, type BlendMode, type LayerProps } from "#lib/core/document/layer.js";
@@ -20,6 +21,7 @@
   let {
     editor,
     changes,
+    commands,
     tip,
     shortcut,
     run,
@@ -27,6 +29,7 @@
     editor: Editor;
     /** The document, read by the panel. */
     changes: EditorChanges;
+    commands: CommandRegistry<Editor>;
     /** Tooltip of a command, with its shortcut. */
     tip: (command: string) => string;
     /** A command's first shortcut, e.g. "Ctrl+J", if it has one. */
@@ -103,7 +106,7 @@
 
   function enabled(command: string): boolean {
     changes.track();
-    return editor.commands.isEnabled(command);
+    return commands.isEnabled(command);
   }
 
   function update(id: string, changes: Partial<LayerProps>) {
@@ -227,7 +230,7 @@
       {:else}
         {@const keys = shortcut(entry)}
         <Item class="menu-item" disabled={!enabled(entry)} onSelect={() => run(entry)}>
-          {editor.commands.get(entry)?.title ?? entry}
+          {commands.get(entry)?.title ?? entry}
           {#if keys}<span class="menu-item-end">{keys}</span>{/if}
         </Item>
       {/if}

@@ -7,7 +7,7 @@ sidebar:
 
 ## Purpose
 
-The `Editor` class joins the parts of the core into one editing session: a [drawing](/doc/dev/core/document/), its [history](/doc/dev/core/history/), the [selection](/doc/dev/core/selection/), the active layer and the commands. The interface does not change the drawing directly. It runs commands, and the commands use the editor.
+The `Editor` class joins the parts of the core into one editing session: a [drawing](/doc/dev/core/document/), its [history](/doc/dev/core/history/), the [selection](/doc/dev/core/selection/) and the active layer. The interface does not change the drawing directly. It runs commands, and the commands use the editor.
 
 ## Files
 
@@ -55,6 +55,8 @@ Parameters must be JSON values, so that a shortcut file can keep them. For examp
 
 `execute(id, params)` calls `enabled` first. If the command is disabled, `execute` returns `false` and does nothing. Each command that changes the drawing pushes its edits to the history itself.
 
+The commands get the editor as their first argument. The app keeps the registry (see [Commands](/doc/dev/app/commands/)).
+
 Many layer commands accept an optional `id`. Without it, they use the active layer. Thus, a shortcut can run them without parameters.
 
 ### One user action, one undo step
@@ -97,6 +99,7 @@ Each selection action makes a new selection state and pushes a `selectionEdit`. 
 | `selectLayerContent` | Selects the pixels of a layer that are not transparent.                           |
 | `transform`          | Lifts the selected pixels, so that the handles can transform them.                |
 | `flip`               | Mirrors the selected pixels, or the full layer if there is no selection.          |
+| `addLayer`           | Adds an empty layer above the active layer, and makes it the active layer.        |
 | `paste`              | Puts an image as floating content on the active layer.                            |
 | `pasteAsLayer`       | Puts an image in a new layer above the active layer.                              |
 | `clear`              | Makes the selected pixels transparent, or the full layer.                         |

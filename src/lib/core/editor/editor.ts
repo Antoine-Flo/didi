@@ -4,12 +4,11 @@
 // kept valid after every history change.
 
 import { m } from "#lib/paraglide/messages.js";
-import { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Drawing } from "#lib/core/document/drawing.js";
 import { Emitter } from "#lib/core/shared/emitter.js";
 import { History, type HistoryOptions } from "#lib/core/history/history.js";
-import type { ReadonlyLayer } from "#lib/core/document/layer.js";
-import { addLayer, group, writePixels } from "#lib/core/history/edits.js";
+import type { LayerProps, ReadonlyLayer } from "#lib/core/document/layer.js";
+import { addLayer, writePixels } from "#lib/core/history/edits.js";
 import { intersect, type Rect } from "#lib/core/shared/geometry.js";
 import { floatingImage, lift, showFloating } from "#lib/core/selection/floating.js";
 import { mirrored } from "#lib/core/selection/placement.js";
@@ -28,7 +27,6 @@ import {
   type Floating,
   type SelectionState,
 } from "#lib/core/selection/selection.js";
-import { registerEditorCommands } from "#lib/core/editor/editor-commands.js";
 import {
   clearedPixels,
   cropped,
@@ -40,7 +38,6 @@ import {
 
 export class Editor {
   readonly history: History;
-  readonly commands: CommandRegistry<Editor>;
   readonly selection = new Selection();
   private activeId: string | null = null;
   private activeChanges = new Emitter<string | null>();
@@ -53,8 +50,6 @@ export class Editor {
   ) {
     this.history = new History(drawing, options);
     this.history.subscribe(() => this.keepActiveLayerValid());
-    this.commands = new CommandRegistry<Editor>(this);
-    registerEditorCommands(this.commands);
     // Start on the top layer, like most drawing apps.
     this.activeIndex = Math.max(0, drawing.layers.length - 1);
     this.keepActiveLayerValid();
@@ -298,22 +293,32 @@ export class Editor {
     return true;
   }
 
-  /** Puts an image in a new layer above the active one, at `at`, cut to the canvas. */
-  pasteAsLayer(image: Image, at: { x: number; y: number }) {
+  /** Adds an empty layer, above the active one by default, and makes it active. */
+  addLayer(props: Partial<LayerProps> = {}, index?: number) {
     const { drawing } = this;
     const active = this.activeLayer;
-    const index = active ? drawing.indexOf(active.id) + 1 : drawing.layers.length;
     const layer = drawing.createLayer({
       name: m.layer_default_numbered({ number: drawing.layers.length + 1 }),
+      ...props,
     });
-    const edits = [addLayer(layer, index)];
+    index ??= active ? drawing.indexOf(active.id) + 1 : drawing.layers.length;
+    this.history.push(addLayer(layer, index));
+    this.setActiveLayer(layer.id);
+  }
+
+  /** Puts an image in a new layer above the active one, at `at`, cut to the canvas. */
+  pasteAsLayer(image: Image, at: { x: number; y: number }) {
     const from = { x: at.x, y: at.y, width: image.width, height: image.height };
     const rect = intersect(from, this.canvas);
-    if (rect) {
-      edits.push(writePixels(layer.id, rect, cropped(image, from, rect)));
+    this.history.begin(m.cmd_edit_paste_as_layer());
+    try {
+      this.addLayer();
+      if (rect) {
+        this.history.push(writePixels(this.activeLayer!.id, rect, cropped(image, from, rect)));
+      }
+    } finally {
+      this.history.end();
     }
-    this.history.push(group(m.cmd_edit_paste_as_layer(), edits));
-    this.setActiveLayer(layer.id);
   }
 
   /** Floating content of the active layer, lifted from the selection or the whole layer. */

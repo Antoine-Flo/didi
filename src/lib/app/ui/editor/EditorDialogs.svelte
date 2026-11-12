@@ -2,6 +2,7 @@
   // The editor's dialogs, opened through `dialogs` (see EditorDialogs).
   import type { Background } from "#lib/app/files/new-drawing.js";
   import type { Session } from "#lib/app/files/session.svelte.js";
+  import type { CommandRegistry } from "#lib/core/editor/commands.js";
   import type { KeymapIndex } from "#lib/app/commands/keymap.js";
   import type { Mode, ModeRegistry } from "#lib/app/modes/mode.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
@@ -21,7 +22,7 @@
 
   let {
     dialogs,
-    editor,
+    commands,
     session,
     keymap,
     prefs,
@@ -37,7 +38,7 @@
     update,
   }: {
     dialogs: EditorDialogs;
-    editor: Editor;
+    commands: CommandRegistry<Editor>;
     session: Session;
     keymap: KeymapIndex;
     prefs: LayoutPrefs;
@@ -59,8 +60,8 @@
   } = $props();
 </script>
 
-<CommandPalette {editor} {keymap} {run} bind:open={dialogs.commandPalette} />
-<ShortcutsDialog {editor} {keymap} bind:open={dialogs.shortcuts} />
+<CommandPalette {commands} {keymap} {run} bind:open={dialogs.commandPalette} />
+<ShortcutsDialog {commands} {keymap} bind:open={dialogs.shortcuts} />
 <AboutDialog bind:open={dialogs.about} />
 <PreferencesDialog bind:open={dialogs.preferences} layout={prefs} {touchScreen} />
 <ImageSizeDialog

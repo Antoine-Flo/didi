@@ -11,6 +11,7 @@ import {
   fill,
   randomEdit,
   type DrawingState,
+  commandsOf,
 } from "#lib/core/testing/test-utils.js";
 
 function record(d: Drawing) {
@@ -192,13 +193,13 @@ describe("active layer notifications", () => {
     const editor = new Editor(new Drawing(64, 64));
     const listener = vi.fn();
     editor.onActiveLayerChange(listener);
-    editor.commands.execute("layer.add");
+    commandsOf(editor).execute("layer.add");
     const first = editor.activeLayer!.id;
-    editor.commands.execute("layer.add");
+    commandsOf(editor).execute("layer.add");
     const second = editor.activeLayer!.id;
     editor.setActiveLayer(second); // unchanged: no notification
-    editor.commands.execute("history.undo");
-    editor.commands.execute("history.undo");
+    commandsOf(editor).execute("history.undo");
+    commandsOf(editor).execute("history.undo");
     expect(listener.mock.calls).toEqual([[first], [second], [first], [null]]);
   });
 });

@@ -38,6 +38,8 @@ import { pickerTool } from "#lib/app/tools/picker-tool.js";
 import { ToolState } from "#lib/app/tools/tool-state.svelte.js";
 import type { Tool, ToolOptions } from "#lib/app/tools/tool.js";
 import type { PaletteLibrary } from "#lib/core/color/palette.js";
+import { CommandRegistry } from "#lib/core/editor/commands.js";
+import { registerEditorCommands } from "#lib/core/editor/editor-commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import { loadMyPaint } from "#lib/mypaint/engine.js";
 import { m } from "#lib/paraglide/messages.js";
@@ -59,6 +61,8 @@ export class EditorState {
   /** The open document, and its file. */
   readonly session: Session;
   readonly editor: Editor;
+  /** Every command, registered once: they act on the open document, whichever it is. */
+  readonly commands = new CommandRegistry<Editor>(() => this.editor);
   readonly changes: EditorChanges;
   /** The document's mode: which tools and panels are shown. */
   readonly mode: Mode;
@@ -170,10 +174,11 @@ export class EditorState {
         undoLabel: history.undoLabel,
         redoLabel: history.redoLabel,
       });
-      return availableMenus(all, (id) => this.editor.commands.has(id));
+      return availableMenus(all, (id) => this.commands.has(id));
     });
-    // Registered before the first render, which shows the commands' titles.
-    $effect.pre(() => registerAppCommands(this.editor.commands, commandHost(this)));
+    // Once everything they act on exists.
+    registerEditorCommands(this.commands);
+    registerAppCommands(this.commands, commandHost(this));
     // "● name — Didi" while there are unsaved changes, in the taskbar or the browser's tab.
     $effect(() => {
       const { name } = this.session;
@@ -234,7 +239,7 @@ export class EditorState {
 
   /** Runs a command from the interface. */
   run(id: string, params?: unknown) {
-    runCommand(this.editor, this.painter, id, params);
+    runCommand(this.commands, this.editor, this.painter, id, params);
   }
 
   /** A command's first shortcut, e.g. "Ctrl+S", if it has one. */
@@ -245,7 +250,7 @@ export class EditorState {
 
   /** Tooltip with the command's title and shortcut, e.g. "Undo (Ctrl+Z)". */
   tip(id: string): string {
-    const title = this.editor.commands.get(id)?.title ?? id;
+    const title = this.commands.get(id)?.title ?? id;
     const keys = this.shortcut(id);
     return keys ? m.editor_command_tip({ title, keys }) : title;
   }
@@ -253,7 +258,7 @@ export class EditorState {
   /** Whether a command can run now, for menus. */
   enabled(id: string, params?: unknown): boolean {
     this.changes.track();
-    return this.editor.commands.has(id) && this.editor.commands.isEnabled(id, params);
+    return this.commands.has(id) && this.commands.isEnabled(id, params);
   }
 
   /** Imports images as layers and .hex files as palettes. */
@@ -342,7 +347,7 @@ export class EditorState {
     if (!binding) {
       return;
     }
-    const { commands } = this.editor;
+    const { commands } = this;
     // Its shortcut still means nothing else here: Ctrl+S must not open the browser's dialog.
     if (!commands.has(binding.command)) {
       return e.preventDefault();

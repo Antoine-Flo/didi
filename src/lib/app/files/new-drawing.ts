@@ -23,9 +23,7 @@ export function newEditor(
     drawing.writePixels(layer.id, all, new Uint8ClampedArray(width * height * 4).fill(255));
   }
   const editor = new Editor(drawing);
-  editor.commands.execute("layer.add", {
-    props: { name: m.layer_default_numbered({ number: 1 }) },
-  });
+  editor.addLayer({ name: m.layer_default_numbered({ number: 1 }) });
   editor.history.clear();
   return editor;
 }

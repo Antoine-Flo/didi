@@ -36,7 +36,7 @@ export function importImage(editor: Editor, image: DecodedImage, name: string) {
   };
   history.begin(m.files_import_image_undo());
   try {
-    editor.commands.execute("layer.add", { props: { name } });
+    editor.addLayer({ name });
     history.push(
       writePixels(editor.activeLayer!.id, rect, image.data, m.files_import_image_undo()),
     );

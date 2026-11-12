@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { shapeFrom, shapeMask } from "#lib/core/selection/shape.js";
 import { Editor } from "#lib/core/editor/editor.js";
+import { commandsOf } from "#lib/core/testing/test-utils.js";
 
 const RED = [255, 0, 0, 255];
 const BLUE = [0, 0, 255, 255];
@@ -9,7 +10,7 @@ const BLUE = [0, 0, 255, 255];
 /** A 4 × 2 canvas, one layer: red on the left half, blue on the right. */
 function setup() {
   const editor = new Editor(new Drawing(4, 2));
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   const id = editor.activeLayer!.id;
   const data = new Uint8ClampedArray(4 * 2 * 4);
   for (let i = 0; i < 8; i++) {
@@ -33,19 +34,19 @@ function row(editor: Editor, id: string, y: number): string {
 describe("the select commands", () => {
   it("select the whole canvas", () => {
     const { editor } = setup();
-    editor.commands.execute("selection.selectAll");
+    commandsOf(editor).execute("selection.selectAll");
     expect(editor.selection.rect).toEqual({ x: 0, y: 0, width: 4, height: 2 });
   });
 
   it("invert exactly, to the pixel, and back", () => {
     const { editor } = setup();
     editor.selection.set({ rect: { x: 0, y: 0, width: 1, height: 1 }, floating: null });
-    editor.commands.execute("selection.invert");
+    commandsOf(editor).execute("selection.invert");
     const { rect, shape } = editor.selection.state;
     expect(rect).toEqual({ x: 0, y: 0, width: 4, height: 2 });
     expect([...shapeMask(rect!, shape!)]).toEqual([0, 1, 1, 1, 1, 1, 1, 1]);
 
-    editor.commands.execute("selection.invert");
+    commandsOf(editor).execute("selection.invert");
     expect(editor.selection.state).toMatchObject({ rect: { x: 0, y: 0, width: 1, height: 1 } });
     expect(editor.selection.state.shape).toBeNull();
     editor.history.undo();
@@ -54,9 +55,9 @@ describe("the select commands", () => {
 
   it("invert nothing into everything, and everything into nothing", () => {
     const { editor } = setup();
-    editor.commands.execute("selection.invert");
+    commandsOf(editor).execute("selection.invert");
     expect(editor.selection.rect).toEqual({ x: 0, y: 0, width: 4, height: 2 });
-    editor.commands.execute("selection.invert");
+    commandsOf(editor).execute("selection.invert");
     expect(editor.selection.rect).toBeNull();
   });
 });
@@ -66,12 +67,12 @@ describe("the edit commands", () => {
     const { editor, id } = setup();
     const rect = { x: 1, y: 0, width: 2, height: 1 };
     editor.selection.set({ rect, floating: null });
-    editor.commands.execute("edit.clear");
+    commandsOf(editor).execute("edit.clear");
     expect(row(editor, id, 0)).toBe("r..b");
     expect(row(editor, id, 1)).toBe("rrbb");
 
     editor.selection.set({ rect: null, floating: null });
-    editor.commands.execute("edit.clear");
+    commandsOf(editor).execute("edit.clear");
     expect(row(editor, id, 1)).toBe("....");
     editor.history.undo();
     editor.history.undo();
@@ -89,22 +90,22 @@ describe("the edit commands", () => {
       rect,
     );
     editor.selection.set({ rect, shape, floating: null });
-    editor.commands.execute("edit.clear");
+    commandsOf(editor).execute("edit.clear");
     expect(row(editor, id, 0)).toBe("..bb");
   });
 
   it("refuse to delete on a locked or alpha-locked layer", () => {
     const { editor, id } = setup();
     editor.drawing.updateLayer(id, { alphaLocked: true });
-    expect(editor.commands.isEnabled("edit.clear")).toBe(false);
+    expect(commandsOf(editor).isEnabled("edit.clear")).toBe(false);
     editor.drawing.updateLayer(id, { alphaLocked: false, locked: true });
-    expect(editor.commands.isEnabled("edit.clear")).toBe(false);
-    expect(editor.commands.isEnabled("edit.flipHorizontal")).toBe(false);
+    expect(commandsOf(editor).isEnabled("edit.clear")).toBe(false);
+    expect(commandsOf(editor).isEnabled("edit.flipHorizontal")).toBe(false);
   });
 
   it("flip the whole layer, leaving no selection, as one undo step", () => {
     const { editor, id } = setup();
-    editor.commands.execute("edit.flipHorizontal");
+    commandsOf(editor).execute("edit.flipHorizontal");
     expect(row(editor, id, 0)).toBe("bbrr");
     expect(editor.selection.rect).toBeNull();
     editor.history.undo();
@@ -114,10 +115,10 @@ describe("the edit commands", () => {
   it("flip the selected pixels in place, floating", () => {
     const { editor, id } = setup();
     editor.selection.set({ rect: { x: 1, y: 0, width: 2, height: 2 }, floating: null });
-    editor.commands.execute("edit.flipHorizontal");
+    commandsOf(editor).execute("edit.flipHorizontal");
     expect(row(editor, id, 0)).toBe("rbrb");
     expect(editor.selection.floating).not.toBeNull();
-    editor.commands.execute("edit.flipHorizontal");
+    commandsOf(editor).execute("edit.flipHorizontal");
     expect(row(editor, id, 0)).toBe("rrbb");
   });
 
@@ -138,7 +139,7 @@ describe("the edit commands", () => {
   it("copy floating content as it is shown", () => {
     const { editor } = setup();
     editor.selection.set({ rect: { x: 0, y: 0, width: 2, height: 1 }, floating: null });
-    editor.commands.execute("edit.flipHorizontal");
+    commandsOf(editor).execute("edit.flipHorizontal");
     expect([...editor.copyImage()!.pixels]).toEqual([...RED, ...RED]);
   });
 
@@ -164,7 +165,7 @@ describe("the edit commands", () => {
   it("lift only around what is drawn, and select a layer's content", () => {
     const { editor, id } = setup();
     editor.selection.set({ rect: { x: 1, y: 0, width: 3, height: 2 }, floating: null });
-    editor.commands.execute("edit.clear");
+    commandsOf(editor).execute("edit.clear");
     editor.selection.set({ rect: null, floating: null });
     expect(row(editor, id, 0)).toBe("r...");
     expect(editor.transform()).toBe(true);
@@ -180,7 +181,7 @@ describe("the edit commands", () => {
 
   it("refuse to transform nothing", () => {
     const { editor } = setup();
-    editor.commands.execute("edit.clear");
+    commandsOf(editor).execute("edit.clear");
     expect(editor.transform()).toBe(false);
     expect(editor.selectLayerContent()).toBe(false);
   });

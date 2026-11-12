@@ -4,12 +4,13 @@ import { Editor } from "#lib/core/editor/editor.js";
 import { Painter } from "#lib/app/input/painter.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import type { Modifiers } from "#lib/app/tools/tool.js";
+import { commandsOf } from "#lib/core/testing/test-utils.js";
 
 const tools = createToolRegistry();
 
 function setup(tool: string) {
   const editor = new Editor(new Drawing(32, 32));
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   editor.history.clear();
   const options = tools.defaultOptions();
   options.color = [200, 0, 0];

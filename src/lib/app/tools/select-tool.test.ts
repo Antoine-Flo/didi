@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Painter } from "#lib/app/input/painter.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { capture, expectSameState, fill } from "#lib/core/testing/test-utils.js";
+import { capture, expectSameState, fill, commandsOf } from "#lib/core/testing/test-utils.js";
 import { selectionClip } from "#lib/core/selection/selection.js";
 import { shapeMask } from "#lib/core/selection/shape.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
@@ -16,7 +16,7 @@ const EMPTY = [0, 0, 0, 0];
 
 function setup() {
   const editor = new Editor(new Drawing(64, 64));
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   editor.drawing.writePixels(editor.activeLayer!.id, SQUARE, fill(SQUARE, [255, 0, 0, 255]));
   editor.history.clear();
   const state = { tool: "select", shift: false, message: "" };
@@ -224,7 +224,7 @@ describe("rotating and skewing", () => {
   it("applies to the rectangle around it", () => {
     const { editor, drag } = marked();
     drag(22.5, 22.5, 15, 26.1);
-    editor.commands.execute("selection.apply");
+    commandsOf(editor).execute("selection.apply");
     const { rect, transform } = editor.selection.state;
     expect(transform).toBeFalsy();
     expect(rect!.width).toBeGreaterThan(10);
@@ -311,7 +311,7 @@ describe("mirroring with a content handle", () => {
     expect(pixel(15, 15)).toEqual(EMPTY);
     expect(pixel(29, 10)).toEqual(BLUE);
     expect(pixel(20, 10)).toEqual(RED);
-    editor.commands.execute("selection.apply");
+    commandsOf(editor).execute("selection.apply");
     expect(editor.selection.rect).toEqual({ x: 20, y: 10, width: 10, height: 10 });
     expect(pixel(29, 10)).toEqual(BLUE);
   });
@@ -499,7 +499,7 @@ describe("the lasso", () => {
     // In the frame, outside the shape: not taken.
     expect(pixel(28, 28)).toEqual(RED);
     expect(pixel(58, 28)).toEqual(EMPTY);
-    editor.commands.execute("selection.cancel");
+    commandsOf(editor).execute("selection.cancel");
     expectSameState(capture(editor.drawing), before);
     expect(editor.selection.state.shape).toBeTruthy();
   });
@@ -518,7 +518,7 @@ describe("the lasso", () => {
     const { editor, drag } = lassoed();
     // Half a turn around its center, from the band near the bottom right corner.
     drag(33.5, 33.5, 7.5, 7.5);
-    editor.commands.execute("selection.apply");
+    commandsOf(editor).execute("selection.apply");
     const { rect, shape } = editor.selection.state;
     expect(rect).toEqual({ x: 10, y: 10, width: 21, height: 21 });
     const mask = shapeMask(rect!, shape!);

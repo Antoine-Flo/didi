@@ -25,36 +25,30 @@ export interface HelpHost extends Notifier {
   openLink(url: string): Promise<void>;
 }
 
-/** Registers the help commands. Returns a function that unregisters them. */
-export function registerHelpCommands(
-  registry: CommandRegistry<Editor>,
-  host: HelpHost,
-): () => void {
+/** Registers the help commands. */
+export function registerHelpCommands(registry: CommandRegistry<Editor>, host: HelpHost) {
   const open = (url: string) =>
     void host
       .openLink(url)
       .catch((e) => host.notify(m.help_link_failed({ url, error: errorMessage(e) })));
-  const unregister = [
-    registry.register({
-      id: "app.documentation",
-      title: m.cmd_app_documentation(),
-      run: () => open(DOCS),
-    }),
-    registry.register({
-      id: "app.reportBug",
-      title: m.cmd_app_report_bug(),
-      run: () => open(bugReportUrl(host.version, host.system(), host.editorFacts())),
-    }),
-    registry.register({
-      id: "app.feedback",
-      title: m.cmd_app_feedback(),
-      run: () => open(feedbackUrl(host.version, host.system())),
-    }),
-    registry.register({
-      id: "app.discord",
-      title: m.cmd_app_discord(),
-      run: () => open(DISCORD),
-    }),
-  ];
-  return () => unregister.forEach((fn) => fn());
+  registry.register({
+    id: "app.documentation",
+    title: m.cmd_app_documentation(),
+    run: () => open(DOCS),
+  });
+  registry.register({
+    id: "app.reportBug",
+    title: m.cmd_app_report_bug(),
+    run: () => open(bugReportUrl(host.version, host.system(), host.editorFacts())),
+  });
+  registry.register({
+    id: "app.feedback",
+    title: m.cmd_app_feedback(),
+    run: () => open(feedbackUrl(host.version, host.system())),
+  });
+  registry.register({
+    id: "app.discord",
+    title: m.cmd_app_discord(),
+    run: () => open(DISCORD),
+  });
 }

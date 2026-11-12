@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { capture, expectSameState, fill } from "#lib/core/testing/test-utils.js";
+import { capture, expectSameState, fill, commandsOf } from "#lib/core/testing/test-utils.js";
 import { loadMyPaint, type MyPaint } from "#lib/mypaint/engine.js";
 import { Painter } from "#lib/app/input/painter.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
@@ -17,7 +17,7 @@ const tools = createToolRegistry();
 
 function setup(tool = "brush", withEngine = true, now?: () => number) {
   const editor = new Editor(new Drawing(200, 200));
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   editor.history.clear();
   const state = {
     tool,
@@ -223,7 +223,7 @@ describe("Painter", () => {
     editor.drawing.updateLayer(id, { locked: false, visible: false });
     expect(painter.begin({ x: 5, y: 5, pressure: 1 })).toBe(false);
     expect(state.message).toContain("hidden");
-    editor.commands.execute("layer.remove");
+    commandsOf(editor).execute("layer.remove");
     expect(painter.begin({ x: 5, y: 5, pressure: 1 })).toBe(false);
     expect(state.message).toContain("No layer");
     expect(painter.active).toBe(false);

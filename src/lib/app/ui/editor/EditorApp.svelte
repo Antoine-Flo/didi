@@ -118,6 +118,7 @@
     hidden={app.interfaceHidden}
     {editor}
     {changes}
+    commands={app.commands}
     color={options.color}
     secondary={options.secondary}
     recentColors={modeColors.recent(mode.id)}
@@ -282,17 +283,17 @@
     menus={app.menus}
     collapsed={layout.compact || layout.menusShort}
     disabled={dialogs.anyOpen}
-    title={(id) => editor.commands.get(id)?.title ?? id}
+    title={(id) => app.commands.get(id)?.title ?? id}
     {shortcut}
     {enabled}
-    checked={(id) => editor.commands.isChecked(id)}
+    checked={(id) => app.commands.isChecked(id)}
     {run}
   />
 {/snippet}
 
 <EditorDialogs
   {dialogs}
-  {editor}
+  commands={app.commands}
   {session}
   keymap={app.keymap}
   {prefs}

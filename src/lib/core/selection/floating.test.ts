@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { capture, expectSameState, fill } from "#lib/core/testing/test-utils.js";
+import { capture, expectSameState, fill, commandsOf } from "#lib/core/testing/test-utils.js";
 import { lift, showFloating } from "#lib/core/selection/floating.js";
 
 describe("the shape of a lasso", () => {
@@ -9,7 +9,7 @@ describe("the shape of a lasso", () => {
 
   it("lifts only its pixels", () => {
     const editor = new Editor(new Drawing(4, 4));
-    editor.commands.execute("layer.add");
+    commandsOf(editor).execute("layer.add");
     const id = editor.activeLayer!.id;
     editor.drawing.writePixels(id, rect, fill(rect, [255, 0, 0, 255]));
     const mask = new Uint8Array(16);
@@ -26,7 +26,7 @@ describe("the shape of a lasso", () => {
 describe("floating content", () => {
   function setup() {
     const editor = new Editor(new Drawing(16, 16));
-    editor.commands.execute("layer.add");
+    commandsOf(editor).execute("layer.add");
     const id = editor.activeLayer!.id;
     const rect = { x: 2, y: 2, width: 2, height: 2 };
     // Red on the left column, blue on the right.
@@ -98,7 +98,7 @@ describe("floating content", () => {
     showFloating(editor.drawing, floating, rect, moved);
     editor.selection.set({ rect: moved, floating });
 
-    editor.commands.execute("selection.cancel");
+    commandsOf(editor).execute("selection.cancel");
     expectSameState(capture(editor.drawing), before);
     expect(editor.selection.floating).toBeNull();
     expect(editor.selection.rect).toEqual(rect);
@@ -106,15 +106,15 @@ describe("floating content", () => {
     expect(pixel(8, 2)).toEqual([255, 0, 0, 255]);
     expect(editor.selection.floating).toBe(floating);
 
-    editor.commands.execute("selection.apply");
+    commandsOf(editor).execute("selection.apply");
     expect(pixel(8, 2)).toEqual([255, 0, 0, 255]);
     expect(editor.selection.floating).toBeNull();
     expect(editor.selection.rect).toEqual(moved);
-    expect(editor.commands.isEnabled("selection.apply")).toBe(false);
+    expect(commandsOf(editor).isEnabled("selection.apply")).toBe(false);
 
-    editor.commands.execute("selection.cancel");
+    commandsOf(editor).execute("selection.cancel");
     expect(editor.selection.rect).toBeNull();
-    expect(editor.commands.isEnabled("selection.cancel")).toBe(false);
-    expect(editor.commands.isEnabled("selection.deselect")).toBe(false);
+    expect(commandsOf(editor).isEnabled("selection.cancel")).toBe(false);
+    expect(commandsOf(editor).isEnabled("selection.deselect")).toBe(false);
   });
 });

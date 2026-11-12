@@ -20,71 +20,63 @@ export interface FileHost extends DialogOpener {
   readonly quit: (() => void) | null;
 }
 
-/** Registers the file and app commands. Returns a function that unregisters them. */
-export function registerFileCommands(
-  registry: CommandRegistry<Editor>,
-  host: FileHost,
-): () => void {
-  const unregister = [
-    // The start screen, to create a document or open a recent one.
-    registry.register({
-      id: "file.new",
-      title: m.cmd_file_new(),
-      run: () => host.openDialog("start"),
-    }),
-    registry.register({
-      id: "file.exportPng",
-      title: m.cmd_file_export_png(),
-      run: () => host.exportPng(),
-    }),
-    registry.register({
-      id: "file.importImage",
-      title: m.cmd_file_import_image(),
-      run: () => host.importImage(),
-    }),
-    registry.register({
-      id: "app.commandPalette",
-      title: m.cmd_app_command_palette(),
-      run: () => host.openDialog("commandPalette"),
-    }),
-    registry.register({
-      id: "app.shortcuts",
-      title: m.cmd_app_shortcuts(),
-      run: () => host.openDialog("shortcuts"),
-    }),
-    registry.register({
-      id: "app.preferences",
-      title: m.cmd_app_preferences(),
-      run: () => host.openDialog("preferences"),
-    }),
-    registry.register({
-      id: "app.about",
-      title: m.cmd_app_about(),
-      run: () => host.openDialog("about"),
-    }),
-  ];
+/** Registers the file and app commands. */
+export function registerFileCommands(registry: CommandRegistry<Editor>, host: FileHost) {
+  // The start screen, to create a document or open a recent one.
+  registry.register({
+    id: "file.new",
+    title: m.cmd_file_new(),
+    run: () => host.openDialog("start"),
+  });
+  registry.register({
+    id: "file.exportPng",
+    title: m.cmd_file_export_png(),
+    run: () => host.exportPng(),
+  });
+  registry.register({
+    id: "file.importImage",
+    title: m.cmd_file_import_image(),
+    run: () => host.importImage(),
+  });
+  registry.register({
+    id: "app.commandPalette",
+    title: m.cmd_app_command_palette(),
+    run: () => host.openDialog("commandPalette"),
+  });
+  registry.register({
+    id: "app.shortcuts",
+    title: m.cmd_app_shortcuts(),
+    run: () => host.openDialog("shortcuts"),
+  });
+  registry.register({
+    id: "app.preferences",
+    title: m.cmd_app_preferences(),
+    run: () => host.openDialog("preferences"),
+  });
+  registry.register({
+    id: "app.about",
+    title: m.cmd_app_about(),
+    run: () => host.openDialog("about"),
+  });
   if (host.canUseFiles) {
-    unregister.push(
-      registry.register<{ path?: string } | undefined>({
-        id: "file.open",
-        title: m.cmd_file_open(),
-        run: (_, params) => host.openDocument(params?.path),
-      }),
-      registry.register({
-        id: "file.save",
-        title: m.cmd_file_save(),
-        run: () => host.saveDocument(),
-      }),
-      registry.register({
-        id: "file.saveAs",
-        title: m.cmd_file_save_as(),
-        run: () => host.saveDocumentAs(),
-      }),
-    );
+    registry.register<{ path?: string } | undefined>({
+      id: "file.open",
+      title: m.cmd_file_open(),
+      run: (_, params) => host.openDocument(params?.path),
+    });
+    registry.register({
+      id: "file.save",
+      title: m.cmd_file_save(),
+      run: () => host.saveDocument(),
+    });
+    registry.register({
+      id: "file.saveAs",
+      title: m.cmd_file_save_as(),
+      run: () => host.saveDocumentAs(),
+    });
   }
   const { quit } = host;
   if (quit) {
-    unregister.push(registry.register({ id: "app.quit", title: m.cmd_app_quit(), run: quit }));
+    registry.register({ id: "app.quit", title: m.cmd_app_quit(), run: quit });
   }
-  return () => unregister.forEach((fn) => fn());
 }

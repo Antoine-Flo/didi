@@ -27,15 +27,12 @@ export interface Notifier {
 /** What all the interface's commands act on. */
 export type AppHost = ToolHost & ViewHost & ColorHost & EditHost & FileHost & HelpHost;
 
-/** Registers the interface commands. Returns a function that unregisters them. */
-export function registerAppCommands(registry: CommandRegistry<Editor>, host: AppHost): () => void {
-  const unregister = [
-    registerToolCommands(registry, host),
-    registerViewCommands(registry, host),
-    registerColorCommands(registry, host),
-    registerEditCommands(registry, host),
-    registerFileCommands(registry, host),
-    registerHelpCommands(registry, host),
-  ];
-  return () => unregister.forEach((fn) => fn());
+/** Registers the interface commands. */
+export function registerAppCommands(registry: CommandRegistry<Editor>, host: AppHost) {
+  registerToolCommands(registry, host);
+  registerViewCommands(registry, host);
+  registerColorCommands(registry, host);
+  registerEditCommands(registry, host);
+  registerFileCommands(registry, host);
+  registerHelpCommands(registry, host);
 }

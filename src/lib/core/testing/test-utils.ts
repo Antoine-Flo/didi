@@ -6,6 +6,9 @@ import type { Drawing } from "#lib/core/document/drawing.js";
 import * as edits from "#lib/core/history/edits.js";
 import type { Rect } from "#lib/core/shared/geometry.js";
 import { BLEND_MODES } from "#lib/core/document/layer.js";
+import { CommandRegistry } from "#lib/core/editor/commands.js";
+import type { Editor } from "#lib/core/editor/editor.js";
+import { registerEditorCommands } from "#lib/core/editor/editor-commands.js";
 
 /** Solid color region data. */
 export function fill(rect: Rect, rgba: [number, number, number, number]): Uint8ClampedArray {
@@ -122,3 +125,16 @@ export const randomEdit: fc.Arbitrary<(d: Drawing) => edits.Edit | null> = fc.on
       return edits.writePixels(layer.id, p, pattern(p, p.seed, p.alpha));
     }),
 );
+
+const registries = new WeakMap<Editor, CommandRegistry<Editor>>();
+
+/** The core commands acting on `editor`, the same registry at each call. */
+export function commandsOf(editor: Editor): CommandRegistry<Editor> {
+  let registry = registries.get(editor);
+  if (!registry) {
+    registry = new CommandRegistry(() => editor);
+    registerEditorCommands(registry);
+    registries.set(editor, registry);
+  }
+  return registry;
+}

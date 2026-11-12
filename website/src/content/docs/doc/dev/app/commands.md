@@ -45,7 +45,11 @@ export interface Command<Ctx, P = void> {
 - `checked` is for switches, for example "Show pixel grid".
 - The params must be JSON values. Thus, a keymap file can store them.
 
-`CommandRegistry.register` returns a function that removes the command.
+### One registry
+
+`EditorState` makes one `CommandRegistry`: `EditorState.commands`. Its constructor registers all the commands in it: the core commands and the interface commands.
+
+The registry gets a function that gives the open `Editor`. It calls this function each time that a command runs. Thus, the same registry is correct for all documents.
 
 ### Hosts
 
@@ -70,7 +74,7 @@ For symbols and digits, Shift and AltGr are part of how you type the character. 
 
 ### Running a command
 
-`runCommand(editor, painter, id, params)`:
+`runCommand(commands, editor, painter, id, params)`:
 
 1. If the pen is down, it does nothing.
 2. If the pen is up but the stroke still paints, it calls `painter.drain()`. Thus, undo applies to the last stroke.

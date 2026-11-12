@@ -7,6 +7,7 @@ import type { ViewControls } from "#lib/app/commands/view-commands.js";
 import { DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
 import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
+import { commandsOf } from "#lib/core/testing/test-utils.js";
 
 const tools = createToolRegistry();
 
@@ -62,79 +63,79 @@ function setup() {
     }),
     openLink: vi.fn(async () => {}),
   };
-  const unregister = registerAppCommands(editor.commands, host);
-  return { editor, host, view, unregister };
+  registerAppCommands(commandsOf(editor), host);
+  return { editor, host, view };
 }
 
 describe("app commands", () => {
   it("switches modes", () => {
     const { editor, host } = setup();
-    editor.commands.execute("mode.pixel");
+    commandsOf(editor).execute("mode.pixel");
     expect(host.mode).toBe("pixel");
-    editor.commands.execute("mode.painting");
+    commandsOf(editor).execute("mode.painting");
     expect(host.mode).toBe("painting");
   });
 
   it("chooses the shape of a selection with the tool of the mode", () => {
     const { editor, host } = setup();
-    editor.commands.execute("selection.lasso");
+    commandsOf(editor).execute("selection.lasso");
     expect(host.tool).toBe("smoothSelect");
     expect(host.options.tools.smoothSelect.shape).toBe("lasso");
     host.mode = "pixel";
-    editor.commands.execute("selection.rectangle");
+    commandsOf(editor).execute("selection.rectangle");
     expect(host.tool).toBe("select");
     expect(host.options.tools.select.shape).toBe("rectangle");
   });
 
   it("selects tools", () => {
     const { editor, host } = setup();
-    editor.commands.execute("tool.pixel");
+    commandsOf(editor).execute("tool.pixel");
     expect(host.tool).toBe("pixel");
-    editor.commands.execute("tool.picker");
+    commandsOf(editor).execute("tool.picker");
     expect(host.tool).toBe("picker");
   });
 
   it("resizes the current tool, and not the others", () => {
     const { editor, host } = setup();
     const { brush, eraser } = tools.defaultOptions().tools;
-    editor.commands.execute("brush.grow");
+    commandsOf(editor).execute("brush.grow");
     expect(host.options.tools.brush.size).toBeGreaterThan(brush.size as number);
     expect(host.options.tools.eraser.size).toBe(eraser.size);
     host.tool = "pixel";
-    editor.commands.execute("brush.grow");
+    commandsOf(editor).execute("brush.grow");
     expect(host.options.tools.pixel.size).toBe(2);
-    editor.commands.execute("brush.shrink");
-    editor.commands.execute("brush.shrink");
+    commandsOf(editor).execute("brush.shrink");
+    commandsOf(editor).execute("brush.shrink");
     expect(host.options.tools.pixel.size).toBe(1);
     host.tool = "picker";
-    expect(editor.commands.isEnabled("brush.grow")).toBe(false);
+    expect(commandsOf(editor).isEnabled("brush.grow")).toBe(false);
   });
 
   it("selects brushes with the tool of their set, which remembers them", () => {
     const { editor, host } = setup();
     host.tool = "pixel";
-    editor.commands.execute("brush.select", { id: "classic/charcoal" });
+    commandsOf(editor).execute("brush.select", { id: "classic/charcoal" });
     expect(host.tool).toBe("texture");
     expect(host.options.tools.texture.preset).toBe("classic/charcoal");
-    editor.commands.execute("brush.select", { id: "deevad/kneaded_eraser" });
+    commandsOf(editor).execute("brush.select", { id: "deevad/kneaded_eraser" });
     expect(host.tool).toBe("eraser");
     expect(host.options.tools.eraser.preset).toBe("deevad/kneaded_eraser");
     expect(host.options.tools.texture.preset).toBe("classic/charcoal");
     expect(host.options.tools.pencil.preset).toBe("deevad/2B_pencil");
-    expect(editor.commands.isEnabled("brush.select", { id: "nope/nope" })).toBe(false);
+    expect(commandsOf(editor).isEnabled("brush.select", { id: "nope/nope" })).toBe(false);
   });
 
   it("switches the layout for left-handed users and back", () => {
     const { editor, host } = setup();
-    editor.commands.execute("view.leftHanded");
+    commandsOf(editor).execute("view.leftHanded");
     expect(host.hand).toBe("left");
-    editor.commands.execute("view.rightHanded");
+    commandsOf(editor).execute("view.rightHanded");
     expect(host.hand).toBe("right");
   });
 
   it("shows or hides the panels", () => {
     const { editor, host } = setup();
-    editor.commands.execute("view.togglePanels");
+    commandsOf(editor).execute("view.togglePanels");
     expect(host.togglePanels).toHaveBeenCalledOnce();
   });
 
@@ -142,51 +143,51 @@ describe("app commands", () => {
     const { editor, host } = setup();
     host.options.color = [1, 2, 3];
     host.options.secondary = [4, 5, 6];
-    editor.commands.execute("color.swap");
+    commandsOf(editor).execute("color.swap");
     expect(host.options.color).toEqual([4, 5, 6]);
     expect(host.options.secondary).toEqual([1, 2, 3]);
     host.options.secondary = null;
-    editor.commands.execute("color.swap");
+    commandsOf(editor).execute("color.swap");
     expect(host.options.color).toBeNull();
     expect(host.options.secondary).toEqual([4, 5, 6]);
   });
 
   it("clears the recent colors only when there are some", () => {
     const { editor, host } = setup();
-    expect(editor.commands.isEnabled("color.clearRecent")).toBe(false);
+    expect(commandsOf(editor).isEnabled("color.clearRecent")).toBe(false);
     vi.mocked(host.recentColors).mockReturnValue([[1, 2, 3]]);
-    editor.commands.execute("color.clearRecent");
+    commandsOf(editor).execute("color.clearRecent");
     expect(host.clearRecentColors).toHaveBeenCalledOnce();
   });
 
   it("adds the current color even if already there, and uses a palette color by its place", () => {
     const { editor, host } = setup();
     const palettes = host.palettes!;
-    editor.commands.execute("palette.toggleLock");
-    editor.commands.execute("color.set", { color: "#ff8000" });
-    editor.commands.execute("palette.addColor");
-    editor.commands.execute("color.set", { color: "#0000ff" });
-    editor.commands.execute("palette.addColor");
-    expect(editor.commands.isEnabled("palette.addColor")).toBe(true);
-    editor.commands.execute("palette.addColor");
+    commandsOf(editor).execute("palette.toggleLock");
+    commandsOf(editor).execute("color.set", { color: "#ff8000" });
+    commandsOf(editor).execute("palette.addColor");
+    commandsOf(editor).execute("color.set", { color: "#0000ff" });
+    commandsOf(editor).execute("palette.addColor");
+    expect(commandsOf(editor).isEnabled("palette.addColor")).toBe(true);
+    commandsOf(editor).execute("palette.addColor");
     expect(palettes.active?.colors).toEqual([
       [255, 128, 0],
       [0, 0, 255],
       [0, 0, 255],
     ]);
-    expect(editor.commands.isEnabled("palette.pickColor", { index: 3 })).toBe(false);
+    expect(commandsOf(editor).isEnabled("palette.pickColor", { index: 3 })).toBe(false);
     // The color added is selected.
     expect(palettes.picked).toBe(2);
-    editor.commands.execute("palette.pickColor", { index: 0 });
+    commandsOf(editor).execute("palette.pickColor", { index: 0 });
     expect(palettes.picked).toBe(0);
     expect(host.options.color).toEqual([255, 128, 0]);
-    editor.commands.execute("palette.pickColor", { index: 1 });
+    commandsOf(editor).execute("palette.pickColor", { index: 1 });
     expect(host.options.color).toEqual([0, 0, 255]);
-    editor.commands.execute("palette.addColor");
+    commandsOf(editor).execute("palette.addColor");
     expect(palettes.picked).toBe(3);
     // Taken from a locked palette too, without editing it.
-    editor.commands.execute("palette.toggleLock");
-    editor.commands.execute("palette.pickColor", { index: 0 });
+    commandsOf(editor).execute("palette.toggleLock");
+    commandsOf(editor).execute("palette.pickColor", { index: 0 });
     expect(host.options.color).toEqual([255, 128, 0]);
     expect(palettes.picked).toBe(0);
   });
@@ -194,44 +195,44 @@ describe("app commands", () => {
   it("sets the color, and edits palettes", async () => {
     const { editor, host } = setup();
     const palettes = host.palettes!;
-    expect(editor.commands.isEnabled("color.set", { color: "nope" })).toBe(false);
-    editor.commands.execute("color.set", { color: "#ff8000" });
+    expect(commandsOf(editor).isEnabled("color.set", { color: "nope" })).toBe(false);
+    commandsOf(editor).execute("color.set", { color: "#ff8000" });
     expect(host.options.color).toEqual([255, 128, 0]);
     expect(palettes.locked).toBe(true);
-    expect(editor.commands.isEnabled("palette.addColor")).toBe(false);
-    expect(editor.commands.isEnabled("palette.delete")).toBe(false);
-    editor.commands.execute("palette.toggleLock");
+    expect(commandsOf(editor).isEnabled("palette.addColor")).toBe(false);
+    expect(commandsOf(editor).isEnabled("palette.delete")).toBe(false);
+    commandsOf(editor).execute("palette.toggleLock");
     expect(palettes.locked).toBe(false);
-    editor.commands.execute("palette.addColor");
+    commandsOf(editor).execute("palette.addColor");
     expect(palettes.active?.colors).toEqual([[255, 128, 0]]);
-    expect(editor.commands.isEnabled("palette.removeColor", { index: 1 })).toBe(false);
-    editor.commands.execute("palette.removeColor", { index: 0 });
+    expect(commandsOf(editor).isEnabled("palette.removeColor", { index: 1 })).toBe(false);
+    commandsOf(editor).execute("palette.removeColor", { index: 0 });
     expect(palettes.active?.colors).toEqual([]);
-    editor.commands.execute("history.undo");
+    commandsOf(editor).execute("history.undo");
     expect(palettes.active?.colors).toEqual([[255, 128, 0]]);
-    editor.commands.execute("palette.removeColor", { index: 0 });
-    editor.commands.execute("palette.new");
-    editor.commands.execute("palette.rename", { name: "Mine" });
+    commandsOf(editor).execute("palette.removeColor", { index: 0 });
+    commandsOf(editor).execute("palette.new");
+    commandsOf(editor).execute("palette.rename", { name: "Mine" });
     expect(palettes.palettes.map((p) => p.name)).toEqual(["A", "Mine"]);
-    editor.commands.execute("palette.select", { index: 0 });
+    commandsOf(editor).execute("palette.select", { index: 0 });
     // Deleting asks first.
     vi.mocked(host.confirm).mockResolvedValueOnce(false);
-    editor.commands.execute("palette.delete");
+    commandsOf(editor).execute("palette.delete");
     await vi.waitFor(() => expect(host.confirm).toHaveBeenCalledTimes(1));
     expect(palettes.palettes.map((p) => p.name)).toEqual(["A", "Mine"]);
-    editor.commands.execute("palette.delete");
+    commandsOf(editor).execute("palette.delete");
     await vi.waitFor(() => expect(palettes.palettes.map((p) => p.name)).toEqual(["Mine"]));
-    editor.commands.execute("palette.delete");
+    commandsOf(editor).execute("palette.delete");
     await vi.waitFor(() => expect(palettes.palettes).toEqual([]));
-    expect(editor.commands.isEnabled("palette.delete")).toBe(false);
-    expect(editor.commands.isEnabled("palette.addColor")).toBe(false);
+    expect(commandsOf(editor).isEnabled("palette.delete")).toBe(false);
+    expect(commandsOf(editor).isEnabled("palette.addColor")).toBe(false);
   });
 
   it("copies a palette, unlocked to be edited", () => {
     const { editor, host } = setup();
     const palettes = host.palettes!;
-    expect(editor.commands.isEnabled("palette.duplicate", { name: " " })).toBe(false);
-    editor.commands.execute("palette.duplicate", { name: " Copy " });
+    expect(commandsOf(editor).isEnabled("palette.duplicate", { name: " " })).toBe(false);
+    commandsOf(editor).execute("palette.duplicate", { name: " Copy " });
     expect(palettes.active?.name).toBe("Copy");
     expect(palettes.locked).toBe(false);
   });
@@ -239,22 +240,22 @@ describe("app commands", () => {
   it("tells which switches are on, for View → Show", () => {
     const { editor, host } = setup();
     vi.mocked(host.shown).mockImplementation((what) => what === "tileGrid");
-    expect(editor.commands.isChecked("view.tileGrid")).toBe(true);
-    expect(editor.commands.isChecked("view.pixelGrid")).toBe(false);
-    expect(editor.commands.isChecked("view.zoomIn")).toBeUndefined();
+    expect(commandsOf(editor).isChecked("view.tileGrid")).toBe(true);
+    expect(commandsOf(editor).isChecked("view.pixelGrid")).toBe(false);
+    expect(commandsOf(editor).isChecked("view.zoomIn")).toBeUndefined();
   });
 
   it("controls the view", () => {
     const { editor, view } = setup();
-    editor.commands.execute("view.zoomIn");
-    editor.commands.execute("view.actualSize");
+    commandsOf(editor).execute("view.zoomIn");
+    commandsOf(editor).execute("view.actualSize");
     expect(view.zoomStep).toHaveBeenCalledWith(1);
     expect(view.zoomTo).toHaveBeenCalledWith(1);
-    editor.commands.execute("view.fit");
-    editor.commands.execute("view.zoomOut");
-    editor.commands.execute("view.rotateLeft");
-    editor.commands.execute("view.resetRotation");
-    editor.commands.execute("view.mirror");
+    commandsOf(editor).execute("view.fit");
+    commandsOf(editor).execute("view.zoomOut");
+    commandsOf(editor).execute("view.rotateLeft");
+    commandsOf(editor).execute("view.resetRotation");
+    commandsOf(editor).execute("view.mirror");
     expect(view.fitView).toHaveBeenCalledOnce();
     expect(view.zoomStep).toHaveBeenCalledWith(-1);
     expect(view.rotateBy).toHaveBeenCalledWith(-Math.PI / 12);
@@ -276,7 +277,7 @@ describe("app commands", () => {
     };
     for (const [command, dialog] of Object.entries(dialogs)) {
       vi.mocked(host.openDialog).mockClear();
-      editor.commands.execute(command);
+      commandsOf(editor).execute(command);
       expect(host.openDialog, command).toHaveBeenCalledExactlyOnceWith(dialog);
     }
   });
@@ -285,7 +286,7 @@ describe("app commands", () => {
     const { editor, host } = setup();
     const opened = (command: string) => {
       vi.mocked(host.openLink).mockClear();
-      editor.commands.execute(command);
+      commandsOf(editor).execute(command);
       return new URL(vi.mocked(host.openLink).mock.calls[0][0]);
     };
     const bug = opened("app.reportBug");
@@ -303,15 +304,8 @@ describe("app commands", () => {
   it("tells when a link cannot open", async () => {
     const { editor, host } = setup();
     vi.mocked(host.openLink).mockRejectedValueOnce(new Error("no browser"));
-    editor.commands.execute("app.discord");
+    commandsOf(editor).execute("app.discord");
     await vi.waitFor(() => expect(host.notify).toHaveBeenCalledOnce());
-  });
-
-  it("unregisters its commands", () => {
-    const { editor, unregister } = setup();
-    unregister();
-    expect(editor.commands.has("tool.brush")).toBe(false);
-    expect(editor.commands.has("layer.add")).toBe(true);
   });
 
   it("covers every command of the default keymap and of the modes' shortcuts", () => {
@@ -321,7 +315,7 @@ describe("app commands", () => {
       ...host.modes.list().flatMap((mode) => mode.bindings),
     ];
     for (const binding of bindings) {
-      expect(editor.commands.has(binding.command), binding.command).toBe(true);
+      expect(commandsOf(editor).has(binding.command), binding.command).toBe(true);
     }
   });
 });

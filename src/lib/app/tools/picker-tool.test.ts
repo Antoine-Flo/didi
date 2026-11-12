@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RGB } from "#lib/core/color/color.js";
 import { Drawing } from "#lib/core/document/drawing.js";
 import { Editor } from "#lib/core/editor/editor.js";
-import { fill } from "#lib/core/testing/test-utils.js";
+import { fill, commandsOf } from "#lib/core/testing/test-utils.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
 import type { Picked, ToolContext } from "#lib/app/tools/tool.js";
@@ -12,9 +12,9 @@ const RECT = { x: 0, y: 0, width: 4, height: 4 };
 /** Two layers: half-transparent red below, and an active layer that is empty but for (1, 1). */
 function setup() {
   const editor = new Editor(new Drawing(4, 4));
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   editor.drawing.writePixels(editor.activeLayer!.id, RECT, fill(RECT, [128, 0, 0, 128]));
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   const dot = { x: 1, y: 1, width: 1, height: 1 };
   editor.drawing.writePixels(editor.activeLayer!.id, dot, fill(dot, [0, 0, 255, 255]));
   return editor;

@@ -26,8 +26,8 @@ export class CommandRegistry<Ctx> {
   // Params are checked by each command's own types at definition time.
   private commands = new Map<string, Command<Ctx, never>>();
 
-  /** @param context passed to every command. */
-  constructor(private readonly context: Ctx) {}
+  /** @param context gives what is passed to every command, read at each call. */
+  constructor(private readonly context: () => Ctx) {}
 
   /** Registers a command. Returns a function that unregisters it. */
   register<P>(command: Command<Ctx, P>): () => void {
@@ -59,21 +59,22 @@ export class CommandRegistry<Ctx> {
 
   isEnabled(id: string, params?: unknown): boolean {
     const command = this.require(id);
-    return command.enabled?.(this.context, params as never) ?? true;
+    return command.enabled?.(this.context(), params as never) ?? true;
   }
 
   /** Whether a switch is on; undefined for a command that is not a switch. */
   isChecked(id: string): boolean | undefined {
-    return this.require(id).checked?.(this.context);
+    return this.require(id).checked?.(this.context());
   }
 
   /** Runs a command. Returns false if it is disabled. Throws if it does not exist. */
   execute(id: string, params?: unknown): boolean {
     const command = this.require(id);
-    if (!(command.enabled?.(this.context, params as never) ?? true)) {
+    const context = this.context();
+    if (!(command.enabled?.(context, params as never) ?? true)) {
       return false;
     }
-    command.run(this.context, params as never);
+    command.run(context, params as never);
     return true;
   }
 

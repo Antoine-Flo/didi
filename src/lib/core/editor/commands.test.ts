@@ -3,7 +3,7 @@ import { CommandRegistry } from "#lib/core/editor/commands.js";
 
 function setup() {
   const ctx = { value: 0 };
-  return { ctx, registry: new CommandRegistry(ctx) };
+  return { ctx, registry: new CommandRegistry(() => ctx) };
 }
 
 describe("CommandRegistry", () => {

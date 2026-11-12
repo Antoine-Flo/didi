@@ -1,16 +1,17 @@
 <script lang="ts">
   import { Command, Dialog } from "bits-ui";
+  import type { CommandRegistry } from "#lib/core/editor/commands.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { formatChord, type KeymapIndex } from "#lib/app/commands/keymap.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
-    editor,
+    commands,
     keymap,
     run,
     open = $bindable(false),
   }: {
-    editor: Editor;
+    commands: CommandRegistry<Editor>;
     keymap: KeymapIndex;
     /** Runs a command (unless a stroke is in progress). */
     run: (command: string) => void;
@@ -22,13 +23,13 @@
     if (!open) {
       return [];
     }
-    return editor.commands
+    return commands
       .list()
       .filter((c) => !c.needsParams && c.id !== "app.commandPalette")
       .map((c) => ({
         id: c.id,
         title: c.title,
-        enabled: editor.commands.isEnabled(c.id),
+        enabled: commands.isEnabled(c.id),
         keys: keymap.chordsFor(c.id).map(formatChord).join(", "),
       }))
       .sort((a, b) => a.title.localeCompare(b.title));

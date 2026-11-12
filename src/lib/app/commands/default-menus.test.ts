@@ -4,15 +4,18 @@ import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { newEditor } from "#lib/app/files/new-drawing.js";
 import { registerAppCommands, type AppHost } from "#lib/app/commands/app-commands.js";
 import { availableMenus, defaultMenus, type MenuEntry } from "#lib/app/commands/default-menus.js";
+import { commandsOf } from "#lib/core/testing/test-utils.js";
 
-const commandsOf = (items: MenuEntry[]): string[] =>
-  items.flatMap((e) => (e === "separator" ? [] : "items" in e ? commandsOf(e.items) : [e.command]));
+const menuCommands = (items: MenuEntry[]): string[] =>
+  items.flatMap((e) =>
+    e === "separator" ? [] : "items" in e ? menuCommands(e.items) : [e.command],
+  );
 
 describe("default menus", () => {
   it("only run existing commands", () => {
     const editor = newEditor(8, 8, "transparent");
     const tools = createToolRegistry();
-    registerAppCommands(editor.commands, {
+    registerAppCommands(commandsOf(editor), {
       modes: createModeRegistry(),
       tools,
       options: tools.defaultOptions(),
@@ -25,15 +28,15 @@ describe("default menus", () => {
       undoLabel: null,
       redoLabel: null,
     });
-    for (const id of menus.flatMap((m) => commandsOf(m.items))) {
-      expect(editor.commands.has(id), id).toBe(true);
+    for (const id of menus.flatMap((m) => menuCommands(m.items))) {
+      expect(commandsOf(editor).has(id), id).toBe(true);
     }
   });
 
   it("leave out what does not exist in a browser, with its separators", () => {
     const editor = newEditor(8, 8, "transparent");
     const tools = createToolRegistry();
-    registerAppCommands(editor.commands, {
+    registerAppCommands(commandsOf(editor), {
       modes: createModeRegistry(),
       tools,
       options: tools.defaultOptions(),
@@ -41,7 +44,7 @@ describe("default menus", () => {
       quit: null,
     } as unknown as AppHost);
     const menus = defaultMenus({ recent: [], modes: [], undoLabel: null, redoLabel: null });
-    const [file] = availableMenus(menus, (id) => editor.commands.has(id));
+    const [file] = availableMenus(menus, (id) => commandsOf(editor).has(id));
     expect(file.items).toEqual([
       { command: "file.new" },
       "separator",

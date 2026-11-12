@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { documentFromEditor, readDidi, writeDidi } from "#lib/core/file/didi-file.js";
 import { newEditor } from "#lib/app/files/new-drawing.js";
 import type { UnsavedChoice } from "#lib/app/files/session.svelte.js";
+import { commandsOf } from "#lib/core/testing/test-utils.js";
 
 // Files and app data in memory, and the worker's work done directly.
 const disk = new Map<string, Uint8Array>();
@@ -69,13 +70,13 @@ function setup(choice: UnsavedChoice = "cancel") {
 }
 
 const paint = (session: InstanceType<typeof Session>) =>
-  session.editor.commands.execute("layer.add");
+  commandsOf(session.editor).execute("layer.add");
 
 /** A document with three layers, as a crash would have left it. */
 function documentWithLayers() {
   const editor = newEditor(16, 16, "transparent");
-  editor.commands.execute("layer.add");
-  editor.commands.execute("layer.add");
+  commandsOf(editor).execute("layer.add");
+  commandsOf(editor).execute("layer.add");
   return documentFromEditor(editor);
 }
 
@@ -170,7 +171,7 @@ describe("Session", () => {
     const { editor } = session;
     const { id } = editor.drawing.layers[0];
     const setVisible = (visible: boolean) =>
-      editor.commands.execute("layer.update", { id, changes: { visible } });
+      commandsOf(editor).execute("layer.update", { id, changes: { visible } });
 
     setVisible(false);
     expect(session.dirty).toBe(true);

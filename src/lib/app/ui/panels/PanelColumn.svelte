@@ -6,6 +6,7 @@
 
   import type { RGB } from "#lib/core/color/color.js";
   import type { PaletteLibrary } from "#lib/core/color/palette.js";
+  import type { CommandRegistry } from "#lib/core/editor/commands.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import type { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
@@ -23,6 +24,7 @@
     layout,
     editor,
     changes,
+    commands,
     color,
     secondary,
     recentColors,
@@ -40,6 +42,7 @@
     editor: Editor;
     /** The document, read by the panels. */
     changes: EditorChanges;
+    commands: CommandRegistry<Editor>;
     /** The current color, straight RGB. Null: none. */
     color: RGB | null;
     /** The second color, swapped with the current one. Null: none. */
@@ -181,7 +184,7 @@
   {/if}
 
   <div class="panel grow layers-panel" bind:this={layersPanel}>
-    <LayersPanel {editor} {changes} {tip} {shortcut} {run} />
+    <LayersPanel {editor} {changes} {commands} {tip} {shortcut} {run} />
   </div>
 </aside>
 

@@ -5,15 +5,16 @@
   import { Dialog } from "bits-ui";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
   import { formatChord, type KeymapIndex } from "#lib/app/commands/keymap.js";
+  import type { CommandRegistry } from "#lib/core/editor/commands.js";
   import type { Editor } from "#lib/core/editor/editor.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
-    editor,
+    commands,
     keymap,
     open = $bindable(false),
   }: {
-    editor: Editor;
+    commands: CommandRegistry<Editor>;
     keymap: KeymapIndex;
     open?: boolean;
   } = $props();
@@ -41,7 +42,7 @@
       return [];
     }
     const items = keymap.shortcuts().flatMap((s) => {
-      const command = editor.commands.get(s.command);
+      const command = commands.get(s.command);
       if (!command) {
         return [];
       }
