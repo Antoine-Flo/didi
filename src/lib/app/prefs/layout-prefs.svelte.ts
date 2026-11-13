@@ -5,15 +5,14 @@
 // whether the layout is compact, whether the panels' column is open (on a wide window; see
 // EditorApp), whether one finger draws on a touch screen (see touch-gestures.ts), the sizes of
 // resizable panels, in pixels at 100% interface size, by panel id (e.g.
-// "palette"; a panel without a size has its default one, see the Splitter widget). The
-// same in every mode: switching modes moves nothing. Except what the color panel shows
-// (selector, shades, recent colors): each mode has its own, from its defaults (see Mode).
+// "palette"; a panel without a size has its default one, see the Splitter widget), and the
+// color panel's selector.
 
 import { DataFile } from "#lib/app/shared/data-file.js";
 import type { ColumnEdge } from "#lib/app/layout/edge-columns.js";
 import {
   parseLayoutPrefs,
-  type ColorPanelPrefs,
+  type ColorSelector,
   type CompactMode,
   type FingerDrawing,
   type Hand,
@@ -23,8 +22,8 @@ import { m } from "#lib/paraglide/messages.js";
 
 const VERSION = 1;
 
-/** The preferences holding one value, as opposed to one per mode or per panel. */
-type Field = Exclude<keyof LayoutPrefsData, "colorPanels" | "sizes">;
+/** The preferences holding one value, as opposed to one per panel. */
+type Field = Exclude<keyof LayoutPrefsData, "sizes">;
 const FIELDS: readonly Field[] = [
   "hand",
   "toolsEdge",
@@ -37,6 +36,7 @@ const FIELDS: readonly Field[] = [
   "compact",
   "fingerDrawing",
   "penSeen",
+  "colorSelector",
 ];
 
 export class LayoutPrefs {
@@ -52,15 +52,13 @@ export class LayoutPrefs {
     compact: "auto",
     fingerDrawing: "auto",
     penSeen: false,
-    colorPanels: {},
+    colorSelector: "square",
     sizes: {},
   });
   /** Changed before loading: kept over the saved values. */
   private changed = {
     fields: {} as Partial<Record<Field, true>>,
     sizes: [] as string[],
-    /** Modes whose color panel changed. */
-    colorPanels: [] as string[],
   };
   private readonly file = new DataFile("layout.json", {
     content: () => ({ version: VERSION, ...this.data }),
@@ -166,14 +164,12 @@ export class LayoutPrefs {
     return mode === "on" || (mode === "auto" && !this.data.penSeen);
   }
 
-  /** What the color panel shows in a mode: the user's choices over the mode's defaults. */
-  colorPanel(mode: string, defaults: ColorPanelPrefs): ColorPanelPrefs {
-    return { ...defaults, ...this.data.colorPanels[mode] };
+  get colorSelector(): ColorSelector {
+    return this.data.colorSelector;
   }
 
-  setColorPanel(mode: string, change: Partial<ColorPanelPrefs>) {
-    this.data.colorPanels[mode] = { ...this.data.colorPanels[mode], ...change };
-    this.changedIn(this.changed.colorPanels, mode);
+  set colorSelector(selector: ColorSelector) {
+    this.setField("colorSelector", selector);
   }
 
   /** The size of a panel, or undefined for its default size. */
@@ -205,11 +201,6 @@ export class LayoutPrefs {
         for (const field of FIELDS) {
           if (saved[field] !== undefined && !this.changed.fields[field]) {
             this.take(field, saved[field]);
-          }
-        }
-        for (const [mode, panel] of Object.entries(saved.colorPanels ?? {})) {
-          if (!this.changed.colorPanels.includes(mode)) {
-            this.data.colorPanels[mode] = panel;
           }
         }
         for (const [id, size] of Object.entries(saved.sizes ?? {})) {

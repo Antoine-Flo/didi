@@ -115,7 +115,6 @@ export const ellipseTool: Tool = {
 const pixelOf = (s: Sample): Pixel => ({ x: Math.floor(s.x), y: Math.floor(s.y) });
 
 class ShapeStroke implements ToolStroke {
-  readonly busy = false;
   private readonly size: number;
   private end: Pixel;
   /** What the shape was last drawn with, to redraw only on a change. */
@@ -145,8 +144,6 @@ class ShapeStroke implements ToolStroke {
     this.preview();
     this.raster.flush();
   }
-
-  drain() {}
 
   /** The final shape, filled if asked: while dragging, only its outline is shown. */
   finish() {

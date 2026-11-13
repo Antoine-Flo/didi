@@ -1,5 +1,6 @@
 // Fingers on a touch screen, like in most drawing apps (Procreate, Krita…): two fingers move
-// and zoom the view (and turn it, where the mode allows), a two-finger tap undoes, a
+// and zoom the view (without turning it: pixels stay square to the screen), a two-finger tap
+// undoes, a
 // three-finger tap redoes. One finger draws until a pen has been seen; then it moves the view,
 // and the pen draws.
 //
@@ -9,7 +10,7 @@
 // Pure logic: the view gives finger events (in view pixels, with their time) and gets camera
 // changes, strokes and commands back, so it can be tested on its own.
 
-import { pan, rotateAt, zoomAt, type Camera, type Point } from "#lib/render/camera.js";
+import { pan, zoomAt, type Camera, type Point } from "#lib/render/camera.js";
 
 /** A finger moving less than this, in view pixels, has not moved: it may be a tap. */
 export const TAP_SLOP = 10;
@@ -17,22 +18,15 @@ export const TAP_SLOP = 10;
 export const TAP_MS = 300;
 /** A second finger this soon after a stroke started abandons the stroke: a gesture began. */
 export const GESTURE_GRACE_MS = 250;
-/**
- * Fingers must turn this much (radians, about 10°) before the view turns: zooming barely
- * turns them, and must not turn the view.
- */
-export const ROTATE_START = Math.PI / 18;
 
 export interface TouchGestureHost {
   camera(): Camera;
   setCamera(camera: Camera): void;
   /** One finger draws (no pen seen yet). */
   fingerDraws(): boolean;
-  /** Two fingers may turn the view. */
-  mayRotate(): boolean;
   /** Starts a stroke at `p`. Returns whether it started. */
-  beginStroke(p: Point, time: number): boolean;
-  moveStroke(p: Point, time: number): void;
+  beginStroke(p: Point): boolean;
+  moveStroke(p: Point): void;
   endStroke(): void;
   cancelStroke(): void;
   /** The fingers that moved the view are all up; `at` is where they last were (their middle). */
@@ -63,9 +57,7 @@ export class TouchGestures {
   private strokeFinger: number | null = null;
   private strokeStart = 0;
   /** The view and the fingers when navigation started or the fingers changed. */
-  private anchor: { camera: Camera; points: Point[]; turnedFrom: number } | null = null;
-  /** The view turns with the fingers: they turned enough, since the first went down. */
-  private rotating = false;
+  private anchor: { camera: Camera; points: Point[] } | null = null;
   /** Where the fingers moving the view last were: their middle. */
   private lastAt: Point | null = null;
 
@@ -86,7 +78,6 @@ export class TouchGestures {
       this.phase = "pending";
       this.most = 0;
       this.firstDown = time;
-      this.rotating = false;
     }
     this.fingers.set(id, { start: p, at: p });
     this.most = Math.max(this.most, this.fingers.size);
@@ -107,7 +98,7 @@ export class TouchGestures {
     if (this.phase === "navigate") {
       this.reanchor();
     } else if (this.phase === "pending" && this.fingers.size === 1 && this.host.fingerDraws()) {
-      if (this.host.beginStroke(p, time)) {
+      if (this.host.beginStroke(p)) {
         this.phase = "stroke";
         this.strokeFinger = id;
         this.strokeStart = time;
@@ -115,7 +106,7 @@ export class TouchGestures {
     }
   }
 
-  move(id: number, p: Point, time: number) {
+  move(id: number, p: Point) {
     const finger = this.fingers.get(id);
     if (!finger) {
       return;
@@ -123,7 +114,7 @@ export class TouchGestures {
     finger.at = p;
     if (this.phase === "stroke") {
       if (id === this.strokeFinger) {
-        this.host.moveStroke(p, time);
+        this.host.moveStroke(p);
       }
     } else if (this.phase === "pending") {
       if (Math.hypot(p.x - finger.start.x, p.y - finger.start.y) > TAP_SLOP) {
@@ -197,12 +188,12 @@ export class TouchGestures {
   /** Starts following the fingers from where they are now, or from where they landed. */
   private reanchor(from: "at" | "start" = "at") {
     const points = [...this.fingers.values()].slice(0, 2).map((f) => f[from]);
-    this.anchor = points.length ? { camera: this.host.camera(), points, turnedFrom: 0 } : null;
+    this.anchor = points.length ? { camera: this.host.camera(), points } : null;
   }
 
   /**
    * Moves the view so that the canvas follows the fingers: one finger moves it; two also
-   * zoom it, and turn it once they turned enough.
+   * zoom it.
    */
   private follow() {
     const anchor = this.anchor;
@@ -224,20 +215,9 @@ export class TouchGestures {
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const span0 = Math.hypot(b0.x - a0.x, b0.y - a0.y);
     const span = Math.hypot(b.x - a.x, b.y - a.y);
-    let turn = Math.atan2(b.y - a.y, b.x - a.x) - Math.atan2(b0.y - a0.y, b0.x - a0.x);
-    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-
-    if (!this.rotating && this.host.mayRotate() && Math.abs(turn) > ROTATE_START) {
-      // From now on the view turns with the fingers, from this angle: no jump.
-      this.rotating = true;
-      anchor.turnedFrom = turn;
-    }
     let camera = anchor.camera;
     if (span0 > 0 && span > 0) {
       camera = zoomAt(camera, mid0, span / span0);
-    }
-    if (this.rotating) {
-      camera = rotateAt(camera, mid0, turn - anchor.turnedFrom);
     }
     this.host.setCamera(pan(camera, mid.x - mid0.x, mid.y - mid0.y));
   }

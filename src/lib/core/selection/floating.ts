@@ -40,17 +40,10 @@ export function lift(
 
 /**
  * Shows floating content in `to`, in place of where it was shown (`from`), stretched to fit and
- * laid over what its layer has there. By default its pixels stay exact, each taken whole from
- * the original under it. `smooth` mixes the four originals around it instead, for what must not
- * look jagged: moved by whole pixels, the content still doesn't change at all.
+ * laid over what its layer has there. Its pixels stay exact, each taken whole from the original
+ * under it.
  */
-export function showFloating(
-  drawing: Drawing,
-  floating: Floating,
-  from: Placement,
-  to: Placement,
-  smooth = false,
-) {
+export function showFloating(drawing: Drawing, floating: Floating, from: Placement, to: Placement) {
   const { layerId, base } = floating;
   const { tiles } = drawing.getLayer(layerId);
   const shown: TileSnapshot = new Map();
@@ -65,7 +58,7 @@ export function showFloating(
     return;
   }
   const data = tiles.readRegion(area);
-  layOver(data, area, floating, to, smooth);
+  layOver(data, area, floating, to);
   drawing.writePixels(layerId, area, data);
 }
 
@@ -79,24 +72,17 @@ export function floatingImage(
 ): { rect: Rect; pixels: Uint8ClampedArray } {
   const rect = boundsOf(to);
   const pixels = new Uint8ClampedArray(rect.width * rect.height * 4);
-  layOver(pixels, rect, floating, to, false);
+  layOver(pixels, rect, floating, to);
   return { rect, pixels };
 }
 
 /** Lays floating content shown at `to` over `data`, the pixels of `area`. */
-function layOver(
-  data: Uint8ClampedArray,
-  area: Rect,
-  floating: Floating,
-  to: Placement,
-  smooth: boolean,
-) {
+function layOver(data: Uint8ClampedArray, area: Rect, floating: Floating, to: Placement) {
   const { pixels, width, height } = floating;
   if (!to.transform && to.width === width && to.height === height) {
     layOverMoved(data, area, floating, to);
     return;
   }
-  const sample = smooth ? sampleSmooth : sampleExact;
   // From the box to the canvas is affine: a step on the canvas is the same step everywhere.
   const start = toBox(to, area.x + 0.5, area.y + 0.5);
   const right = toBox(to, area.x + 1.5, area.y + 0.5);
@@ -108,7 +94,7 @@ function layOver(
       const qy = start.y + x * (right.y - start.y) + y * (down.y - start.y);
       const sx = ((qx - to.x) * width) / to.width;
       const sy = ((qy - to.y) * height) / to.height;
-      if (!sample(pixels, width, height, sx, sy, color)) {
+      if (!sampleExact(pixels, width, height, sx, sy, color)) {
         continue;
       }
       const d = (y * area.width + x) * 4;
@@ -120,7 +106,7 @@ function layOver(
   }
 }
 
-/** Content only moved, by whole pixels: every pixel stays exact, whatever the sampling. */
+/** Content only moved, by whole pixels: every pixel is copied as it is. */
 function layOverMoved(data: Uint8ClampedArray, area: Rect, floating: Floating, to: Rect) {
   const { pixels, width } = floating;
   for (let y = 0; y < area.height; y++) {
@@ -139,17 +125,15 @@ function layOverMoved(data: Uint8ClampedArray, area: Rect, floating: Floating, t
   }
 }
 
-type Sampler = (
+/** The original pixel at a point of the content, into `color`. False: nothing there. */
+function sampleExact(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
   x: number,
   y: number,
   color: Float64Array,
-) => boolean;
-
-/** The original pixel at a point of the content. False: nothing there. */
-const sampleExact: Sampler = (pixels, width, height, x, y, color) => {
+): boolean {
   const sx = Math.floor(x);
   const sy = Math.floor(y);
   if (sx < 0 || sy < 0 || sx >= width || sy >= height) {
@@ -163,39 +147,4 @@ const sampleExact: Sampler = (pixels, width, height, x, y, color) => {
     color[c] = pixels[s + c];
   }
   return true;
-};
-
-/** The four original pixels around a point of the content, mixed. Beyond them: transparent. */
-const sampleSmooth: Sampler = (pixels, width, height, x, y, color) => {
-  const u = x - 0.5;
-  const v = y - 0.5;
-  const left = Math.floor(u);
-  const top = Math.floor(v);
-  if (left < -1 || top < -1 || left >= width || top >= height) {
-    return false;
-  }
-  const fx = u - left;
-  const fy = v - top;
-  color.fill(0);
-  for (let j = 0; j < 2; j++) {
-    const row = top + j;
-    if (row < 0 || row >= height) {
-      continue;
-    }
-    for (let i = 0; i < 2; i++) {
-      const col = left + i;
-      if (col < 0 || col >= width) {
-        continue;
-      }
-      const weight = (i ? fx : 1 - fx) * (j ? fy : 1 - fy);
-      if (weight === 0) {
-        continue;
-      }
-      const s = (row * width + col) * 4;
-      for (let c = 0; c < 4; c++) {
-        color[c] += pixels[s + c] * weight;
-      }
-    }
-  }
-  return color[3] > 0;
-};
+}

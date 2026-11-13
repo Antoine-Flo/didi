@@ -123,7 +123,6 @@ A `TileSnapshot` is a map from a tile key to a tile, or to `undefined` for an em
 - **Shared tiles**: snapshots and undo steps share tile arrays.
 - **Number keys**: faster map access than string keys.
 - **Row copies**: `copyRows` copies full rows, not single pixels.
-- **`putUnchecked`**: `put` must read all the alpha bytes of a tile to find if it is empty. A brush stroke shows its tiles in each frame, and this test costs too much time. Thus, the stroke uses `putUnchecked`, which stores the tiles without the test. At the end of the stroke, it removes its empty tiles itself (see [Brush engine](/doc/dev/painting/brush-engine/)).
 
 ## Alpha lock
 

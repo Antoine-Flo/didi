@@ -38,7 +38,6 @@ const samePoint = (a: Point | null | undefined, b: Point | null | undefined) =>
 
 /** A gesture of the pen, from what the selection was when it went down. */
 export abstract class Gesture implements ToolStroke {
-  readonly busy = false;
   protected readonly editor: Editor;
   private readonly before: SelectionState;
   protected readonly grab: Sample;
@@ -71,8 +70,6 @@ export abstract class Gesture implements ToolStroke {
   flush() {
     this.update(this.pen);
   }
-
-  drain() {}
 
   finish(): Edit | null {
     this.update(this.pen);
@@ -174,8 +171,6 @@ export class TransformContent extends Gesture {
     label: string,
     private readonly layerId: string,
     private readonly place: Place,
-    /** Mixes original pixels, rather than keeping them exact (see showFloating). */
-    private readonly smooth: boolean,
     /** The center of rotation follows the content. */
     private readonly carriesPivot = false,
   ) {
@@ -196,7 +191,7 @@ export class TransformContent extends Gesture {
     const floating =
       selection.floating ??
       lift(drawing, this.layerId, shownAt, shape ? shapeMask(shownAt, shape) : null);
-    showFloating(drawing, floating, shownAt, next, this.smooth);
+    showFloating(drawing, floating, shownAt, next);
     const { transform, x, y, width, height } = next;
     let pivot = this.startPivot;
     if (pivot && this.carriesPivot) {

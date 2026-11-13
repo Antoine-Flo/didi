@@ -1,13 +1,12 @@
 <script lang="ts">
   // Changes the size of the document. The canvas: a new size, and where the pixels stay (the
   // anchor, a 3 × 3 grid: the middle by default). The image: a new size, its proportions kept
-  // unless unlinked, and how pixels are scaled (whole for pixel art, mixed for painting).
+  // unless unlinked; its pixels stay whole.
 
   import { Dialog } from "bits-ui";
   import { Link, Unlink } from "@lucide/svelte";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
   import type { SizeKind } from "#lib/app/state/dialogs.svelte.js";
-  import Segmented from "#lib/app/ui/widgets/Segmented.svelte";
   import { MAX_CANVAS_SIZE } from "#lib/core/editor/image-edits.js";
   import { m } from "#lib/paraglide/messages.js";
 
@@ -15,7 +14,6 @@
     kind = $bindable(),
     width: currentWidth,
     height: currentHeight,
-    smoothByDefault,
     side,
     run,
     onpreview,
@@ -25,8 +23,6 @@
     /** The canvas size now. */
     width: number;
     height: number;
-    /** Scaling mixes pixels unless asked otherwise: painting, not pixel art. */
-    smoothByDefault: boolean;
     /** Where it opens: the canvas's side, away from the panels. */
     side: "left" | "right";
     run: (command: string, params?: unknown) => void;
@@ -48,7 +44,6 @@
   let linked = $state(true);
   /** 0 to 8, row by row: which side or corner the pixels keep. */
   let anchor = $state(4);
-  let method = $state("smooth");
 
   // Every opening starts from the document as it is.
   let wasOpen = false;
@@ -66,7 +61,6 @@
     height = currentHeight;
     linked = true;
     anchor = 4;
-    method = smoothByDefault ? "smooth" : "pixels";
   });
 
   const valid = (v: number) => Number.isInteger(v) && v >= 1 && v <= MAX_CANVAS_SIZE;
@@ -119,7 +113,7 @@
     if (kind === "canvas") {
       run("image.resizeCanvas", { width, height, ...offset });
     } else {
-      run("image.scale", { width, height, smooth: method === "smooth" });
+      run("image.scale", { width, height });
     }
     kind = null;
   }
@@ -194,27 +188,6 @@
                 ></button>
               {/each}
             </div>
-          </div>
-        {:else}
-          <div class="row">
-            <span class="label">{m.image_size_pixels()}</span>
-            <Segmented
-              label={m.image_size_scaling()}
-              value={method}
-              choices={[
-                {
-                  value: "pixels",
-                  label: m.image_size_whole(),
-                  title: m.image_size_whole_title(),
-                },
-                {
-                  value: "smooth",
-                  label: m.image_size_smooth(),
-                  title: m.image_size_smooth_title(),
-                },
-              ]}
-              onselect={(v) => (method = v)}
-            />
           </div>
         {/if}
 

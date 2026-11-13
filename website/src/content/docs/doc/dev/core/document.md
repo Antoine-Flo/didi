@@ -97,10 +97,6 @@ There are two steps because an undo step must keep the same layer object. When y
 
 `restorePixels` puts tiles back from a snapshot. It works also on a locked layer, because undo must always work.
 
-### Show a stroke in progress
-
-`showStrokeTiles` is a fast path for the brush engine. It stores the working tiles of the stroke without the test for empty tiles, and sends only the changed areas. See [Brush engine](/doc/dev/painting/brush-engine/).
-
 ### Change the canvas size
 
 `resizeCanvas(content)` replaces the size and the tiles of all the layers at the same time. Crop, scale and rotate use it. It sends `canvas-resized`, because all the pixels can change.

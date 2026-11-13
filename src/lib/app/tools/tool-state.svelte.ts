@@ -1,8 +1,7 @@
 // The tools as the user has them: the active one, every tool's settings and the current color,
-// and which tools the mode shows. Each mode remembers its last tool: switching back finds it
-// again.
+// and which tools the tool column shows.
 
-import type { Mode } from "#lib/app/modes/mode.js";
+import { ERASER_TOOL, TOOL_BAR } from "#lib/app/tools/builtin.js";
 import { applyPicked, pickerTool } from "#lib/app/tools/picker-tool.js";
 import type {
   BrushCursor,
@@ -18,24 +17,18 @@ export class ToolState {
   readonly options: ToolOptions;
   /** The tool used now. */
   readonly active: Tool;
-  /** The mode's tools, and the active one if it comes from elsewhere (e.g. Ctrl+K). */
+  /** The tool column's tools, and the active one if it comes from elsewhere (e.g. Ctrl+K). */
   readonly inBar: Tool[];
 
   private activeId = $state("");
   private drawingId = $state("");
-  private mode: Mode;
-  private readonly lastTool: Record<string, string> = {};
 
-  constructor(
-    readonly registry: ToolRegistry,
-    mode: Mode,
-  ) {
+  constructor(readonly registry: ToolRegistry) {
     this.options = $state(registry.defaultOptions());
-    this.mode = $state.raw(mode);
-    this.id = mode.tools[0];
+    this.id = TOOL_BAR[0];
     this.active = $derived(this.registry.get(this.activeId));
     this.inBar = $derived(
-      [...this.mode.tools, ...(this.mode.tools.includes(this.activeId) ? [] : [this.activeId])]
+      [...TOOL_BAR, ...(TOOL_BAR.includes(this.activeId) ? [] : [this.activeId])]
         .filter((id) => this.registry.has(id))
         .map((id) => this.registry.get(id)),
     );
@@ -58,19 +51,9 @@ export class ToolState {
     return this.drawingId;
   }
 
-  /** Shows another mode's tools, back on the last tool used in it. */
-  setMode(mode: Mode) {
-    if (mode.id === this.mode.id) {
-      return;
-    }
-    this.lastTool[this.mode.id] = this.activeId;
-    this.mode = mode;
-    this.id = this.lastTool[mode.id] ?? mode.tools[0];
-  }
-
-  /** The tool the pen uses: its eraser end uses the mode's eraser. */
+  /** The tool the pen uses: its eraser end uses the pixel eraser. */
   forPen(eraser: boolean): Tool {
-    return eraser ? this.registry.get(this.mode.eraserTool) : this.active;
+    return eraser ? this.registry.get(ERASER_TOOL) : this.active;
   }
 
   /** A tool's settings now. */

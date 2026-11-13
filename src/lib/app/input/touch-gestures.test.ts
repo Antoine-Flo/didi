@@ -2,13 +2,12 @@ import { describe, expect, it } from "vitest";
 import { toCanvas, toScreen, type Camera } from "#lib/render/camera.js";
 import {
   GESTURE_GRACE_MS,
-  ROTATE_START,
   TAP_MS,
   TAP_SLOP,
   TouchGestures,
 } from "#lib/app/input/touch-gestures.js";
 
-function setup(options: { fingerDraws?: boolean; mayRotate?: boolean; refuse?: boolean } = {}) {
+function setup(options: { fingerDraws?: boolean; refuse?: boolean } = {}) {
   const calls: string[] = [];
   const navigated: string[] = [];
   let camera: Camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
@@ -16,7 +15,6 @@ function setup(options: { fingerDraws?: boolean; mayRotate?: boolean; refuse?: b
     camera: () => camera,
     setCamera: (c) => (camera = c),
     fingerDraws: () => options.fingerDraws ?? false,
-    mayRotate: () => options.mayRotate ?? true,
     beginStroke: () => {
       calls.push("begin");
       return !options.refuse;
@@ -41,7 +39,7 @@ describe("TouchGestures", () => {
     gestures.down(1, { x: 0, y: 0 }, 1000);
     gestures.down(2, { x: 50, y: 0 }, 1010);
     gestures.down(3, { x: 100, y: 0 }, 1020);
-    gestures.move(3, { x: 103, y: 2 }, 1050);
+    gestures.move(3, { x: 103, y: 2 });
     for (const id of [1, 2, 3]) {
       gestures.up(id, 1100);
     }
@@ -56,22 +54,22 @@ describe("TouchGestures", () => {
     gestures.up(2, TAP_MS + 1);
     gestures.down(1, { x: 0, y: 0 }, 1000);
     gestures.down(2, { x: 50, y: 0 }, 1000);
-    gestures.move(2, { x: 50 + TAP_SLOP + 1, y: 0 }, 1010);
+    gestures.move(2, { x: 50 + TAP_SLOP + 1, y: 0 });
     gestures.up(1, 1050);
     gestures.up(2, 1050);
     expect(calls).toEqual([]);
   });
 
   it("keeps the canvas under two fingers that move apart", () => {
-    const { gestures, camera } = setup({ mayRotate: false });
+    const { gestures, camera } = setup();
     const a = { x: 100, y: 100 };
     const b = { x: 200, y: 100 };
     const underA = toCanvas(camera(), a);
     const underB = toCanvas(camera(), b);
     gestures.down(1, a, 0);
     gestures.down(2, b, 0);
-    gestures.move(1, { x: 40, y: 120 }, 10);
-    gestures.move(2, { x: 240, y: 120 }, 10);
+    gestures.move(1, { x: 40, y: 120 });
+    gestures.move(2, { x: 240, y: 120 });
     expect(camera().zoom).toBeCloseTo(2);
     const nowA = toScreen(camera(), underA);
     const nowB = toScreen(camera(), underB);
@@ -82,39 +80,32 @@ describe("TouchGestures", () => {
   });
 
   it("tells where the fingers were when the view stops moving", () => {
-    const { gestures, navigated } = setup({ mayRotate: false });
+    const { gestures, navigated } = setup();
     gestures.down(1, { x: 100, y: 100 }, 0);
     gestures.down(2, { x: 200, y: 100 }, 0);
-    gestures.move(2, { x: 300, y: 100 }, 10);
+    gestures.move(2, { x: 300, y: 100 });
     gestures.up(2, 20);
     expect(navigated).toEqual([]);
-    gestures.move(1, { x: 110, y: 100 }, 30);
+    gestures.move(1, { x: 110, y: 100 });
     gestures.up(1, 40);
     expect(navigated).toEqual(["110,100"]);
   });
 
-  it("turns the view only past a threshold, and only where allowed", () => {
-    const turned = (mayRotate: boolean, angle: number) => {
-      const { gestures, camera } = setup({ mayRotate });
-      gestures.down(1, { x: 0, y: 0 }, 0);
-      gestures.down(2, { x: 100, y: 0 }, 0);
-      // Turn in small steps, around the first finger.
-      for (let i = 1; i <= 10; i++) {
-        const t = (angle * i) / 10;
-        gestures.move(2, { x: 100 * Math.cos(t), y: 100 * Math.sin(t) }, i);
-      }
-      return camera().rotation;
-    };
-    expect(turned(true, ROTATE_START / 2)).toBe(0);
-    expect(turned(false, Math.PI / 2)).toBe(0);
-    // It turns from where the threshold was passed.
-    expect(turned(true, Math.PI / 2)).toBeGreaterThan(Math.PI / 2 - 2 * ROTATE_START);
+  it("never turns the view", () => {
+    const { gestures, camera } = setup();
+    gestures.down(1, { x: 0, y: 0 }, 0);
+    gestures.down(2, { x: 100, y: 0 }, 0);
+    for (let i = 1; i <= 10; i++) {
+      const t = (Math.PI / 2) * (i / 10);
+      gestures.move(2, { x: 100 * Math.cos(t), y: 100 * Math.sin(t) });
+    }
+    expect(camera().rotation).toBe(0);
   });
 
   it("moves the view with one finger once a pen was seen", () => {
     const { gestures, calls, camera } = setup({ fingerDraws: false });
     gestures.down(1, { x: 0, y: 0 }, 0);
-    gestures.move(1, { x: 30, y: 40 }, 10);
+    gestures.move(1, { x: 30, y: 40 });
     gestures.up(1, 20);
     expect(camera()).toMatchObject({ x: 30, y: 40 });
     expect(calls).toEqual([]);
@@ -123,7 +114,7 @@ describe("TouchGestures", () => {
   it("draws with one finger, and abandons the stroke when a gesture starts", () => {
     const { gestures, calls } = setup({ fingerDraws: true });
     gestures.down(1, { x: 0, y: 0 }, 0);
-    gestures.move(1, { x: 5, y: 0 }, 10);
+    gestures.move(1, { x: 5, y: 0 });
     gestures.down(2, { x: 50, y: 0 }, GESTURE_GRACE_MS - 1);
     gestures.up(1, 260);
     gestures.up(2, 270);
@@ -131,11 +122,11 @@ describe("TouchGestures", () => {
   });
 
   it("keeps a long stroke when a second finger lands, then navigates", () => {
-    const { gestures, calls, camera } = setup({ fingerDraws: true, mayRotate: false });
+    const { gestures, calls, camera } = setup({ fingerDraws: true });
     gestures.down(1, { x: 0, y: 0 }, 0);
     gestures.down(2, { x: 50, y: 0 }, GESTURE_GRACE_MS + 1);
-    gestures.move(1, { x: 0, y: 20 }, 400);
-    gestures.move(2, { x: 50, y: 20 }, 400);
+    gestures.move(1, { x: 0, y: 20 });
+    gestures.move(2, { x: 50, y: 20 });
     expect(calls).toEqual(["begin", "end"]);
     expect(camera().y).toBeCloseTo(20);
   });
@@ -143,7 +134,7 @@ describe("TouchGestures", () => {
   it("navigates with a finger that may not draw", () => {
     const { gestures, calls, camera } = setup({ fingerDraws: true, refuse: true });
     gestures.down(1, { x: 0, y: 0 }, 0);
-    gestures.move(1, { x: 0, y: 30 }, 10);
+    gestures.move(1, { x: 0, y: 30 });
     expect(calls).toEqual(["begin"]);
     expect(camera().y).toBe(30);
   });
@@ -162,7 +153,7 @@ describe("TouchGestures", () => {
     gestures.down(1, { x: 0, y: 0 }, 0);
     gestures.abandon();
     gestures.down(2, { x: 50, y: 0 }, 10);
-    gestures.move(1, { x: 0, y: 50 }, 20);
+    gestures.move(1, { x: 0, y: 50 });
     gestures.up(1, 30);
     gestures.up(2, 40);
     expect(calls).toEqual(["begin", "end"]);

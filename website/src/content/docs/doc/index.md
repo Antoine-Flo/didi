@@ -3,13 +3,18 @@ title: Getting started
 description: Draw your first picture with Didi.
 ---
 
-Welcome to the Didi documentation! Didi is a drawing app for pixel art and painting. It runs in your browser, and you can try it [right here](/app). It will support all platforms in the future.
+Welcome to the Didi documentation! Didi is a pixel art editor. It runs in your browser, and you can try it [right here](/app). It will support all platforms in the future.
 
 ## Your first drawing
 
-1. On the start screen, choose a mode: **Pixel art** or **Painting**. Don't worry, you can change it later.
-2. Pick a canvas size, and choose whether you want a background or not.
-3. Click **New document**, or click outside the start screen to close it.
+1. On the start screen, pick a canvas size, and choose whether you want a background or not.
+2. Click **New document**, or click outside the start screen to close it.
+
+## Made for pixel art
+
+- The brush and the eraser are pixel-perfect: with a 1 px brush, they remove the L-shaped corners of your lines.
+- When you zoom out, the zoom snaps to whole values, depending on the size of your pixels, to avoid weird distortions.
+- The position of the pixel under the cursor is always shown.
 
 ## Finding a command
 

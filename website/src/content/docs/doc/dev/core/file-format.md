@@ -26,12 +26,12 @@ A zip file is a container. It holds several named files. Each file can be compre
 
 ### Contents of a .didi file
 
-| Entry           | Contents                                                | Compression |
-| --------------- | ------------------------------------------------------- | ----------- |
-| `mimetype`      | The text `application/x-didi`.                          | none        |
-| `document.json` | Size, mode, grid, active layer, layer list, extensions. | level 6     |
-| `layers/1.png`… | One PNG for each layer, from bottom to top.             | none        |
-| `thumbnail.png` | A small preview, a maximum of 256 pixels.               | none        |
+| Entry           | Contents                                          | Compression |
+| --------------- | ------------------------------------------------- | ----------- |
+| `mimetype`      | The text `application/x-didi`.                    | none        |
+| `document.json` | Size, grid, active layer, layer list, extensions. | level 6     |
+| `layers/1.png`… | One PNG for each layer, from bottom to top.       | none        |
+| `thumbnail.png` | A small preview, a maximum of 256 pixels.         | none        |
 
 `mimetype` is the first entry and it is not compressed. Thus, a program can identify the file from its first bytes. OpenDocument and EPUB files use the same method.
 
@@ -43,9 +43,8 @@ The PNG entries are already compressed. A second compression would take time and
 {
   "format": "didi",
   "version": 1,
-  "width": 2048,
-  "height": 2048,
-  "mode": "pixel",
+  "width": 64,
+  "height": 64,
   "grid": { "width": 16, "height": 16, "shown": false },
   "activeLayer": 1,
   "layers": [
@@ -97,7 +96,7 @@ In memory, the layers use **premultiplied** alpha: each color channel is already
 3. Migrates the document to the current version (see below).
 4. Makes sure that the size is a valid canvas size.
 5. For each layer: reads its settings, decodes its PNG, makes sure that the PNG has the size of the document, and puts the pixels into tiles.
-6. Reads the active layer, the mode, the grid and the extensions. A missing or incorrect value gets its default value.
+6. Reads the active layer, the grid and the extensions. A missing or incorrect value gets its default value.
 
 Each error is a `DidiFileError` with a message for the user, for example "the layer file is missing".
 

@@ -2,19 +2,18 @@
 
 [![CI](https://github.com/Antoine-Flo/didi/actions/workflows/ci.yml/badge.svg)](https://github.com/Antoine-Flo/didi/actions/workflows/ci.yml)
 
-A drawing app for pixel art and painting, with lessons built in (coming soon).
+A modern pixel art editor: free, and everywhere.
 
 **[Try it in your browser](https://didipaint.com/app)** · [Website](https://didipaint.com) · [Documentation](https://didipaint.com/doc/)
 
 ## Features
 
-- **Painting**: 196 MyPaint brushes, with pen pressure and tilt.
-- **Pixel art**: pixel-perfect lines, pixel and tile grids.
+- **Pixel art**: pixel-perfect lines, shapes, fill, pixel and tile grids.
 - **Editing**: layers, selections, transforms, palettes.
 - **Any device**: pen, mouse or touch, from phone to desktop.
 - **Open files**: a `.didi` file is a plain zip, with one PNG per layer.
 
-Coming next: animation, then drawing lessons for both painting and pixel art.
+Coming next: animation.
 
 ## Platforms
 
@@ -25,7 +24,7 @@ Coming next: animation, then drawing lessons for both painting and pixel art.
 | Windows  | Planned.                                                     |
 | macOS    | Planned.                                                     |
 
-The web version is free. Ready-made downloads will be sold, and you can always build Didi from source.
+Didi is free everywhere: in the browser, as a download and in the stores. You can also build it from source.
 
 ## Building from source
 
@@ -68,8 +67,6 @@ To build a standalone executable: `npm run tauri build -- --no-bundle`.
 
 To check formatting before each commit: `git config core.hooksPath .githooks`.
 
-The compiled libmypaint (`src/lib/mypaint/wasm/libmypaint.mjs`) is committed, so you don't need Emscripten unless you change it. To rebuild it, with [Emscripten](https://emscripten.org) set up: `native/mypaint/build.sh`.
-
 ### Website and docs
 
 The pages are Markdown files in `website/src/content/docs/`:
@@ -85,14 +82,12 @@ Before sending a pull request, please make sure `npm run lint`, `npm run check` 
 
 Please sign off your commits (`git commit -s`). This adds a `Signed-off-by` line, which says that you wrote the change, or have the right to send it, under the project's license (the [Developer Certificate of Origin](https://developercertificate.org)).
 
-AI-assisted code is fine, as long as you understand and stand behind what you send. Art is different: please don't contribute AI-generated images, brushes or lesson content.
+AI-assisted code is fine, as long as you understand and stand behind what you send. Art is different: please don't contribute AI-generated images or palettes.
 
 ## Acknowledgements
 
 Thanks to these amazing projects that make Didi possible:
 
-- [libmypaint](https://github.com/mypaint/libmypaint) (ISC license), the brush engine. Notice: `native/mypaint/LICENSE-libmypaint`.
-- [MyPaint brushes](https://github.com/mypaint/mypaint-brushes) (CC0). Notice: `src/lib/mypaint/brushes/LICENSE-mypaint-brushes`.
 - [Tauri](https://tauri.app), [Svelte](https://svelte.dev), [PixiJS](https://pixijs.com), [Bits UI](https://bits-ui.com) and [fflate](https://github.com/101arrowz/fflate).
 
 ## License
@@ -103,4 +98,4 @@ In short, you can use, study, share and change Didi, and even sell it, as long a
 
 The name "Didi" and its logo are not covered by the license. If you publish a modified version, please give it another name, so that nobody mixes them up.
 
-Third-party code and brushes keep their own licenses: see [Acknowledgements](#acknowledgements).
+Third-party code keeps its own license: see [Acknowledgements](#acknowledgements).

@@ -2,7 +2,7 @@
 //
 // A tool is a definition: its title and icon, its settings (with the controls shown in the
 // tool bar), the outline under the cursor, and what happens when the pen goes down. The
-// painter (see $lib/app/canvas/painter) runs whichever tool is active, without knowing it.
+// painter (see $lib/app/input/painter) runs whichever tool is active, without knowing it.
 // Built-in tools are registered like any other (see `builtin.ts`).
 
 import type { Component } from "svelte";
@@ -10,29 +10,17 @@ import type { RGB } from "#lib/core/color/color.js";
 import type { ReadonlyLayer } from "#lib/core/document/layer.js";
 import type { Editor } from "#lib/core/editor/editor.js";
 import type { Edit } from "#lib/core/history/edits.js";
-import type { Brush } from "#lib/mypaint/brush.js";
-import type { MyPaint } from "#lib/mypaint/engine.js";
 import { Registry } from "#lib/app/shared/registry.js";
 
 export interface Sample {
   x: number;
   y: number;
-  /** 0 to 1. Mice report 1. */
-  pressure: number;
-  /** Degrees, -90 to 90. */
-  tiltX?: number;
-  tiltY?: number;
-  /** Milliseconds, any origin, increasing. */
-  time?: number;
-  /** View zoom and rotation (degrees) when the sample was taken. */
+  /** View zoom when the sample was taken. */
   viewZoom?: number;
-  viewRotation?: number;
 }
 
 /** Brush outline under the cursor, in canvas pixels. */
 export type BrushCursor =
-  /** Soft brushes. */
-  | { kind: "circle"; size: number }
   /**
    * The exact pixels of a pixel-art tip. With `opacity`, they show filled with the current
    * color, as they would be drawn; without, outlined (erasers).
@@ -112,12 +100,6 @@ export interface ToolContext {
   readonly layer: ReadonlyLayer | null;
   /** Straight RGB, 0-255. Black for tools that need no color. */
   readonly color: RGB;
-  /** The brush engine, once loaded. */
-  readonly engine: MyPaint | null;
-  /** The libmypaint brush for a bundled preset, created on first use. Needs the engine. */
-  brush(preset: string): Brush;
-  /** Clock for the frame budget, in milliseconds. */
-  now(): number;
   /** The keys held now: they may change during the stroke (see ToolStroke.flush). */
   modifiers(): Modifiers;
   /** Applies what was taken from the canvas. */
@@ -128,14 +110,10 @@ export interface ToolContext {
 
 /** A stroke in progress, from pen down to its undo step. */
 export interface ToolStroke {
-  /** Samples are waiting to be painted (see `flush`). */
-  readonly busy: boolean;
   move(sample: Sample): void;
-  /** Paints waiting samples for about `budgetMs`, then shows the latest changes. */
-  flush(budgetMs: number): void;
-  /** Paints every waiting sample now. */
-  drain(): void;
-  /** Ends the stroke, once nothing is waiting. Returns its undo step, if it changed anything. */
+  /** Shows the latest changes. Called once per frame. */
+  flush(): void;
+  /** Ends the stroke. Returns its undo step, if it changed anything. */
   finish(): Edit | null;
   /** Abandons the stroke, leaving the layer as it was. */
   cancel(): void;
@@ -169,12 +147,7 @@ export interface Tool<S extends ToolSettings = ToolSettings> {
    * column does not fit in the window's height.
    */
   readonly group?: { readonly group: ToolGroup; readonly whenShort?: boolean };
-  /**
-   * Id of the brush set it offers (see $lib/mypaint/brush-sets), in a popup next to its
-   * button. Its settings then have a `preset`: the brush in use.
-   */
-  readonly brushSet?: string;
-  /** Choices in a popup under its button, like the brushes of a brush set. */
+  /** Choices in a popup under its button, e.g. the tip of the pixel brush. */
   readonly menu?: ToolMenu;
   /** False for tools that work without an editable layer (e.g. the picker). */
   readonly needsLayer?: boolean;

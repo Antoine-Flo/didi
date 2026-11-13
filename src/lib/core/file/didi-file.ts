@@ -6,17 +6,16 @@
 //   thumbnail.png      a small preview, for file lists
 //
 // document.json:
-//   { "format": "didi", "version": 1, "width": 2048, "height": 2048, "mode": "pixel",
+//   { "format": "didi", "version": 1, "width": 64, "height": 64,
 //     "grid": { "width": 16, "height": 16, "shown": false }, "activeLayer": 1,
 //     "layers": [{ "name": "Background", "file": "layers/1.png", "visible": true,
 //                  "locked": false, "alphaLocked": false, "opacity": 1,
 //                  "blendMode": "normal" }, …],
 //     "extensions": {} }
 //
-// `mode` is the editor mode the document is drawn in (e.g. "pixel"), chosen by the app;
-// it may be missing (files from before modes). `grid` is the tiles' grid over the drawing:
-// its size, and whether it is shown (when missing: 16 × 16, hidden). `extensions` holds data of other modules (e.g. the Godot link): kept as is, even when
-// not understood. Older versions are migrated when read; newer ones are refused.
+// `grid` is the tiles' grid over the drawing: its size, and whether it is shown (when
+// missing: 16 × 16, hidden). `extensions` holds data of other modules (e.g. the Godot link):
+// kept as is, even when not understood. Older versions are migrated when read; newer ones are refused.
 
 import { m } from "#lib/paraglide/messages.js";
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
@@ -40,8 +39,6 @@ export interface DocumentData {
   layers: { props: LayerProps; tiles: TileSnapshot }[];
   /** Index of the active layer, -1 if there is none. */
   active: number;
-  /** The editor mode, e.g. "pixel". Null if the file has none. */
-  mode: string | null;
   /** The tiles' grid over the drawing. */
   grid: TileGrid;
   /** Data of other modules, kept as is. */
@@ -84,7 +81,6 @@ interface DocumentJson {
   version: number;
   width: number;
   height: number;
-  mode?: string;
   grid: TileGrid;
   activeLayer: number;
   layers: LayerEntry[];
@@ -98,7 +94,6 @@ const MIGRATIONS: Record<number, (doc: Record<string, unknown>) => Record<string
 export function documentFromEditor(
   editor: Editor,
   extensions: Record<string, unknown> = {},
-  mode: string | null = null,
   grid: TileGrid = DEFAULT_TILE_GRID,
 ): DocumentData {
   const { drawing } = editor;
@@ -118,7 +113,6 @@ export function documentFromEditor(
       tiles: l.tiles.snapshot(l.tiles.keys()),
     })),
     active: active ? drawing.indexOf(active.id) : -1,
-    mode,
     grid,
     extensions,
   };
@@ -228,7 +222,6 @@ export function writeDidi(
     version: DIDI_VERSION,
     width: data.width,
     height: data.height,
-    ...(data.mode !== null && { mode: data.mode }),
     grid: { width: data.grid.width, height: data.grid.height, shown: data.grid.shown },
     activeLayer: data.active,
     layers,
@@ -322,7 +315,6 @@ export function readDidi(bytes: Uint8Array): DocumentData {
     typeof doc.extensions === "object" && doc.extensions !== null && !Array.isArray(doc.extensions)
       ? (doc.extensions as Record<string, unknown>)
       : {};
-  const mode = typeof doc.mode === "string" && doc.mode !== "" ? doc.mode : null;
   // Missing (older files) or not understood: the default.
   const grid: TileGrid = isTileGridSize(doc.grid)
     ? {
@@ -331,7 +323,7 @@ export function readDidi(bytes: Uint8Array): DocumentData {
         shown: (doc.grid as { shown?: unknown }).shown === true,
       }
     : DEFAULT_TILE_GRID;
-  return { width, height, layers, active, mode, grid, extensions };
+  return { width, height, layers, active, grid, extensions };
 }
 
 function migrate(raw: Record<string, unknown>): Record<string, unknown> {

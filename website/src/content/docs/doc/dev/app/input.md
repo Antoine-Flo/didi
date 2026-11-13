@@ -15,8 +15,7 @@ The input code reads the events of the mouse, the pen and the fingers on the can
 | ------------------------------------------ | ---------------------------------------------------------------------------- |
 | `src/lib/app/input/canvas-input.svelte.ts` | Receives all the events of the canvas and sends them to the correct part.    |
 | `src/lib/app/input/pen-input.svelte.ts`    | Decides when a stroke starts and ends, from DOM events or native pen events. |
-| `src/lib/app/input/touch-gestures.ts`      | Fingers: draw, move, zoom, turn, undo, redo.                                 |
-| `src/lib/app/input/pointer-lead.ts`        | Draws the pointer a little ahead of the pen, to hide the latency.            |
+| `src/lib/app/input/touch-gestures.ts`      | Fingers: draw, move, zoom, undo, redo.                                       |
 | `src/lib/app/input/modifiers.svelte.ts`    | The keys held now: Shift, Ctrl, Alt.                                         |
 | `src/lib/app/input/last-pointer.ts`        | The type of the last pointer (pen, touch, mouse), for bug reports.           |
 | `src/lib/app/shared/dismissal.ts`          | Ignores the click that closes a menu above the canvas.                       |
@@ -31,10 +30,8 @@ The browser sends _pointer events_ for the mouse, the pen and the fingers: `poin
 - `pointerType`: `"mouse"`, `"pen"` or `"touch"`.
 - `pointerId`: one id for each finger or device.
 - `clientX`, `clientY`: the position in the window.
-- `pressure`: 0 to 1. A mouse gives 0.5 while a button is down.
-- `tiltX`, `tiltY`: the tilt of the pen, in degrees.
 - `button`, `buttons`: which button changed, and which buttons are down. Button 5 (bit 32 in `buttons`) is the eraser end of the pen.
-- `timeStamp`: the time of the event, in milliseconds.
+- `timeStamp`: the time of the event, in milliseconds. The touch gestures use it.
 
 ### Coalesced events
 
@@ -58,20 +55,16 @@ A `Sample` (`src/lib/app/tools/tool.ts`) is one point of a stroke, in canvas pix
 export interface Sample {
   x: number;
   y: number;
-  pressure: number; // 0 to 1. Mice report 1.
-  tiltX?: number;
-  tiltY?: number;
-  time?: number; // milliseconds
+  /** View zoom when the sample was taken. */
   viewZoom?: number;
-  viewRotation?: number;
 }
 ```
 
-`CanvasInput.sample` changes a position in the view into canvas pixels with `toCanvas(camera, p)`. It also adds the zoom and the rotation of the view: some brushes change with the speed on the screen. A mouse always gives a pressure of 1 (`domPressure`).
+`CanvasInput.sample` changes a position in the view into canvas pixels with `toCanvas(camera, p)`. It also adds the zoom of the view (`viewZoom`).
 
 ### Native pen events
 
-On Linux, the webview does not give the pressure of all tablets. The desktop app reads the tablet directly (`src-tauri/src/tablet.rs`) and sends _native pen events_ to the page. When these events are available, they draw, and the DOM pen events only move the view. Fingers always come as DOM events.
+On Linux, the webview does not give the events of all tablets correctly. The desktop app reads the tablet directly (`src-tauri/src/tablet.rs`) and sends _native pen events_ to the page. When these events are available, they draw, and the DOM pen events only move the view. Fingers always come as DOM events.
 
 ## How it works
 
@@ -80,7 +73,7 @@ On Linux, the webview does not give the pressure of all tablets. The desktop app
 `CanvasInput` receives the events of the canvas element:
 
 - **Middle button, or Space + left button**: pan. It keeps the last position and moves the camera by the difference.
-- **Left button or eraser button**: it calls `PenInput.domDown`. The eraser end uses the eraser tool of the mode.
+- **Left button or eraser button**: it calls `PenInput.domDown`. The eraser end uses `ERASER_TOOL` (`"pixelEraser"`, in `src/lib/app/tools/builtin.ts`).
 - **Touch**: it sends the finger to `TouchGestures`.
 - **Esc**: it cancels the stroke in progress.
 
@@ -140,32 +133,26 @@ The rules:
 With two fingers, `follow()` calculates the new camera from the position of the fingers at the start (`anchor`) and now:
 
 - **Zoom**: the distance between the fingers now, divided by the distance at the start.
-- **Rotation**: the angle of the line between the fingers now, minus the angle at the start.
 - **Pan**: the middle point of the fingers now, minus the middle point at the start.
 
 ```ts
-camera = zoomAt(camera, mid0, span / span0);
-if (this.rotating) {
-  camera = rotateAt(camera, mid0, turn - anchor.turnedFrom);
+if (span0 > 0 && span > 0) {
+  camera = zoomAt(camera, mid0, span / span0);
 }
 this.host.setCamera(pan(camera, mid.x - mid0.x, mid.y - mid0.y));
 ```
 
 It always starts from the camera at the start of the gesture, not from the last camera. Thus, small errors do not add up, and the canvas stays under the fingers.
 
-When you zoom, the fingers turn a little. Thus, the view turns only after the fingers turn more than `ROTATE_START` (about 10°). Then it subtracts this angle (`turnedFrom`), so the view does not jump.
+The fingers never turn the view. Thus, the pixels stay square to the screen.
+
+When the fingers stop moving the view, `endNavigation` calls `ViewNavigation.settleZoom`. It moves the zoom to the nearest pixel zoom level (see [View navigation](/doc/dev/app/view-navigation/)).
 
 When a finger goes down or up during the gesture, `reanchor()` starts again from the current camera and positions.
 
-### The pointer ahead of the pen
+### The last pointer move
 
-The screen shows a frame some milliseconds after the pen gets to a position. Thus, a pointer drawn at the pen position is behind the pen. `PointerLead` draws it a little ahead:
-
-1. It calculates the speed of the pen, in pixels for each millisecond.
-2. It smooths the speed with an _exponential moving average_. Each new speed changes the average by a factor `k = 1 - exp(-dt / 25 ms)`. Thus, old speeds count less and less.
-3. It draws the pointer at `position + speed × 30 ms`, with a maximum of 60 pixels.
-
-It does not do this for a mouse (its movements are not regular, and the pointer would shake), when the pen stops for 40 ms, or for pixel-art tips (their pixels must be exactly under the pen).
+A pen sends hundreds of moves each second. The pointer on the screen needs only one position for each frame. Thus, `CanvasInput.pointerMove` keeps only the last move (`lastMove`). Once in each frame, `CanvasView` calls `takeMove()`. It gets the last move and clears it, so the same move is not shown two times. When the pointer leaves the view, `CanvasView` calls `forgetMove()`.
 
 ### Modifier keys
 
@@ -181,4 +168,3 @@ When a menu is open above the canvas, the click that closes it must not draw. Me
 
 - Native pen events exist only in the Linux desktop app. In other builds, the DOM pointer events draw.
 - `TouchGestures` uses only the first two fingers for the view.
-- `PointerLead` predicts in a straight line. On a sharp turn, the pointer goes a little too far for some frames.

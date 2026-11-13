@@ -11,7 +11,6 @@ const web = { source: "web", browser: "firefox", os: "linux" };
 const desktop = { source: "windows", browser: "", os: "windows" };
 const facts: EditorFacts = {
   input: "pen",
-  mode: "pixel",
   tool: "brush",
   doc: "64x64, 3 layers",
   screen: "1280x800@2",
@@ -41,7 +40,6 @@ describe("feedback links", () => {
       browser: "firefox",
       os: "linux",
       input: "pen",
-      mode: "pixel",
       tool: "brush",
       doc: "64x64, 3 layers",
       screen: "1280x800@2",

@@ -6,7 +6,6 @@ import { consumeDismissal } from "#lib/app/shared/dismissal.js";
 import { isTyping } from "#lib/app/commands/keyboard.js";
 import type { Painter } from "#lib/app/input/painter.js";
 import { PenInput } from "#lib/app/input/pen-input.svelte.js";
-import { PointerLead } from "#lib/app/input/pointer-lead.js";
 import { TouchGestures } from "#lib/app/input/touch-gestures.js";
 import type { ViewNavigation } from "#lib/app/input/view-navigation.js";
 import type { Sample } from "#lib/app/tools/tool.js";
@@ -20,8 +19,6 @@ export interface CanvasInputHost {
   navigation: ViewNavigation;
   /** One finger draws; else it moves the view (see touch-gestures.ts). */
   fingerDraws(): boolean;
-  /** Two fingers may turn the view. */
-  mayRotate(): boolean;
   /** A pen was used: see LayoutPrefs.penSeen. */
   penUsed(): void;
   /** A gesture asks for a command: a two-finger tap undoes, a three-finger tap redoes. */
@@ -36,10 +33,11 @@ export class CanvasInput {
   /** Fingers move the view: the brush's pointer is hidden meanwhile. */
   touchNavigating = $state(false);
   readonly pen: PenInput | null;
-  readonly lead = new PointerLead();
   private readonly touch: TouchGestures;
   /** A finger is drawing (not the pen). */
   private touchStroke = false;
+  /** The last pointer move, in the window, not shown yet (see `takeMove`). */
+  private lastMove: { clientX: number; clientY: number } | null = null;
 
   constructor(private readonly host: CanvasInputHost) {
     const { painter, navigation } = host;
@@ -59,12 +57,11 @@ export class CanvasInput {
       camera: () => navigation.camera,
       setCamera: (camera) => navigation.set(camera),
       fingerDraws: () => host.fingerDraws(),
-      mayRotate: () => host.mayRotate(),
-      beginStroke: (p, time) => {
-        this.touchStroke = !!this.pen?.domDown(this.sample(p, 1, { time }), false, true);
+      beginStroke: (p) => {
+        this.touchStroke = !!this.pen?.domDown(this.sample(p), false, true);
         return this.touchStroke;
       },
-      moveStroke: (p, time) => this.pen?.domMove([this.sample(p, 1, { time })]),
+      moveStroke: (p) => this.pen?.domMove([this.sample(p)]),
       endStroke: () => {
         this.touchStroke = false;
         this.pen?.domUp();
@@ -96,36 +93,32 @@ export class CanvasInput {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
+  /** The last pointer move not shown yet, once: null if the pointer has not moved since. */
+  takeMove(): { clientX: number; clientY: number } | null {
+    const move = this.lastMove;
+    this.lastMove = null;
+    return move;
+  }
+
+  /** The pointer left the view: a move not shown yet is dropped. */
+  forgetMove() {
+    this.lastMove = null;
+  }
+
   /** A drawing sample from a point in view coordinates. */
-  private sample(
-    p: Point,
-    pressure: number,
-    extra: { tiltX?: number; tiltY?: number; time?: number } = {},
-  ): Sample {
+  private sample(p: Point): Sample {
     const camera = this.host.navigation.camera;
-    return {
-      ...toCanvas(camera, p),
-      pressure,
-      viewZoom: camera.zoom,
-      viewRotation: (camera.rotation * 180) / Math.PI,
-      ...extra,
-    };
+    return { ...toCanvas(camera, p), viewZoom: camera.zoom };
   }
 
   private domSample(e: PointerEvent): Sample {
-    return this.sample(this.local(e), domPressure(e), {
-      tiltX: e.tiltX,
-      tiltY: e.tiltY,
-      time: e.timeStamp,
-    });
+    return this.sample(this.local(e));
   }
 
   /** A drawing sample from a native pen event (Linux): positions are relative to the webview. */
   private nativeSample(e: PenEvent): Sample {
     const rect = this.host.element().getBoundingClientRect();
-    const p = { x: e.x - rect.left, y: e.y - rect.top };
-    const pressure = e.source === "pen" || e.source === "eraser" ? e.pressure : 1;
-    return this.sample(p, pressure, { tiltX: e.tiltX, tiltY: e.tiltY, time: e.time });
+    return this.sample({ x: e.x - rect.left, y: e.y - rect.top });
   }
 
   // DOM pointer events: panning everywhere, drawing when there is no native input.
@@ -165,7 +158,7 @@ export class CanvasInput {
     if (e.pointerType === "touch") {
       const events = this.touch.stroking ? (e.getCoalescedEvents?.() ?? []) : [];
       for (const c of events.length ? events : [e]) {
-        this.touch.move(e.pointerId, this.local(c), c.timeStamp);
+        this.touch.move(e.pointerId, this.local(c));
       }
       this.touchNavigating = this.touch.navigating;
       if (this.touchNavigating) {
@@ -185,12 +178,7 @@ export class CanvasInput {
     }
     // A pen sends hundreds of moves a second: the pointer follows the last one, once per frame
     // (see showPointer in CanvasView), so they do not pile up behind it.
-    this.lead.move({
-      clientX: e.clientX,
-      clientY: e.clientY,
-      time: e.timeStamp,
-      pen: e.pointerType === "pen",
-    });
+    this.lastMove = { clientX: e.clientX, clientY: e.clientY };
   }
 
   pointerUp(e: PointerEvent) {
@@ -221,7 +209,6 @@ export class CanvasInput {
       this.spaceDown = true;
       e.preventDefault();
     }
-    // Also while the queue of a lifted stroke is still being painted.
     // Esc was for the stroke, not for the shortcut (see EditorApp).
     if (e.key === "Escape" && this.pen?.cancel()) {
       e.preventDefault();
@@ -260,9 +247,4 @@ export class CanvasInput {
       });
     });
   }
-}
-
-/** Mice report 0.5 while pressed: they draw at full pressure. */
-function domPressure(e: PointerEvent): number {
-  return e.pointerType === "pen" || e.pointerType === "touch" ? e.pressure : 1;
 }

@@ -82,23 +82,13 @@ describe(".didi files", () => {
     expect(back.history.steps).toBe(0);
   });
 
-  it("saves the mode, and reads files without one", () => {
-    const editor = sample();
-    expect(readDidi(writeDidi(documentFromEditor(editor, {}, "pixel"))).mode).toBe("pixel");
-    expect(reload(editor).mode).toBeNull();
-    const json = JSON.parse(
-      strFromU8(unzipSync(writeDidi(documentFromEditor(editor)))["document.json"]),
-    );
-    expect(json).not.toHaveProperty("mode");
-  });
-
   it("saves the tiles' grid, and gives older files the default one", () => {
     const editor = sample();
     for (const grid of [
       { width: 32, height: 8, shown: true },
       { width: 4, height: 4, shown: false },
     ]) {
-      expect(readDidi(writeDidi(documentFromEditor(editor, {}, null, grid))).grid).toEqual(grid);
+      expect(readDidi(writeDidi(documentFromEditor(editor, {}, grid))).grid).toEqual(grid);
     }
     // A file from before grids, or with a grid not understood.
     const files = unzipSync(writeDidi(documentFromEditor(editor)));

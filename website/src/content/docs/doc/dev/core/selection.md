@@ -54,7 +54,7 @@ The mask keeps the size at which the user made it. When the rectangle changes si
 
 ### The clip
 
-The tools use `selectionClip(state)`. It gives the rectangle (`clip`) and the mask (`clipMask`). The brush engine copies a pixel to the layer only if it is in `clip` and its mask value is 1.
+The tools use `selectionClip(state)`. It gives the rectangle (`clip`) and the mask (`clipMask`). A tool writes a pixel to the layer only if it is in `clip` and its mask value is 1.
 
 ### Floating content
 
@@ -148,11 +148,10 @@ The view draws these runs. `selectionOutline` keeps the result in a `WeakMap`, k
 3. Lays the content over it (`layOver`). This is a "source-over" blend of premultiplied pixels: `result = source + backdrop × (1 − source alpha)`.
 4. Writes the result into the layer.
 
-`layOver` has three paths:
+`layOver` has two paths:
 
 - **Move by whole pixels** (`layOverMoved`): no scale and no transform. Each pixel is copied as it is. The content stays exact.
-- **Exact sampling** (`sampleExact`): for each pixel of the new area, the code finds the point of the content under its center and takes that original pixel. This is right for pixel art: there are no new colors.
-- **Smooth sampling** (`sampleSmooth`): the code mixes the four original pixels around the point, with weights (bilinear interpolation). This is right for painting: the edges do not look jagged.
+- **Exact sampling** (`sampleExact`): for each pixel of the new area, the code finds the point of the content under its center and takes that original pixel. There are no new colors.
 
 Optimization: the transform from the canvas to the box is affine. Thus, one step to the right on the canvas is always the same step in the box. The code calculates the start point and the two steps one time. Then, for each pixel, it adds the steps. It does not call `toBox` for each pixel.
 

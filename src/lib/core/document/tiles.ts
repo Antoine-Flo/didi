@@ -185,18 +185,6 @@ export class TileStore {
     return [...snapshot.keys()];
   }
 
-  /**
-   * Stores tiles as they are, without checking for fully transparent ones (which costs a
-   * scan of each tile). For a stroke in progress, which drops its empty tiles when it ends.
-   * Returns the keys.
-   */
-  putUnchecked(tiles: Map<number, TileData>): number[] {
-    for (const [key, tile] of tiles) {
-      this.tiles.set(key, tile);
-    }
-    return [...tiles.keys()];
-  }
-
   private put(key: number, tile: TileData | undefined) {
     if (!tile || isTransparent(tile)) {
       this.tiles.delete(key);

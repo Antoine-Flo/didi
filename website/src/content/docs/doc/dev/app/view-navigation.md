@@ -34,7 +34,7 @@ Panels can cover the sides of the view. `Insets` is the space that the panels ta
 
 ### Pixel zoom
 
-In pixel art, all canvas pixels must have the same size on the screen. At a zoom of 1.5, one pixel shows as one screen pixel and the next one as two. Thus, when the mode has `pixelZoom`, the zoom snaps to levels where each canvas pixel is a whole number of screen pixels. `devicePixelRatio` is part of the calculation: on a high-density screen, one CSS pixel is two or more screen pixels.
+In pixel art, all canvas pixels must have the same size on the screen. At a zoom of 1.5, one pixel shows as one screen pixel and the next one as two. Thus, the zoom snaps to levels where each canvas pixel is a whole number of screen pixels. `devicePixelRatio` is part of the calculation: on a high-density screen, one CSS pixel is two or more screen pixels.
 
 When the zoom is high, the difference is too small to see. There, the zoom is free (`isFreeZoom`).
 
@@ -51,10 +51,19 @@ Each camera change goes to `navigation.set(camera)`. This updates `cameraNow` (a
 `wheel(at, e)`:
 
 - With Shift, the wheel turns the view by 15°.
-- Without the pixel zoom, the zoom factor is `exp(-delta × 0.0015)`. This is a smooth zoom.
-- With the pixel zoom, outside the free zone, one zoom level for each 100 pixels of wheel movement. A mouse wheel gives about 100 for each notch. A touchpad gives many small movements: `wheelRest` adds them until they get to 100.
+- In the free zone, the zoom factor is `exp(-delta × 0.0015)`. This is a smooth zoom.
+- When the wheel zooms out of the free zone, the zoom stops first at the edge of the free zone.
+- Outside the free zone, one zoom level for each 100 pixels of wheel movement. A mouse wheel gives about 100 for each notch. A touchpad gives many small movements: `wheelRest` adds them until they get to 100.
 
 `deltaMode` can be "lines". Then the code multiplies the movement by 40 to get pixels.
+
+### Fit
+
+`fit` shows all the canvas in the visible area, with no rotation. It uses `snapZoomDown`: the zoom is the level at or below the zoom that fits. Thus, the canvas is never larger than the area. A mirrored view stays mirrored.
+
+### Rotation
+
+The keys (`view.rotateLeft`, `view.rotateRight`, `view.resetRotation`) and Shift + wheel turn the view. The fingers never turn it.
 
 ### Fingers
 

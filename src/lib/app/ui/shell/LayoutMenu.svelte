@@ -1,38 +1,29 @@
 <script lang="ts">
   // The layout menu, at the end of the view's column (see NavColumn): options
   // on one line each, a label on the left and its controls on the right. Using one leaves
-  // the menu open, to see the result and try another: the document's mode, the preview
-  // window and full screen. What is set once (side of the panels, compact layout, interface
+  // the menu open, to see the result and try another: the preview window and full screen. What is set once (side of the panels, compact layout, interface
   // size, finger drawing) is in the preferences.
 
   import { PanelsTopLeft } from "@lucide/svelte";
   import { DropdownMenu } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
-  import type { Mode } from "#lib/app/modes/mode.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
-    modes,
-    mode,
     side,
     disabled = false,
     tip,
-    run,
     preview,
     onPreview,
     fullScreen,
     onFullScreen,
   }: {
-    modes: Mode[];
-    /** Id of the document's mode. */
-    mode: string;
     /** Where it opens: towards the canvas. */
     side: "left" | "right";
     /** Does not open, e.g. while a dialog is open. */
     disabled?: boolean;
     tip: (command: string) => string;
-    run: (command: string) => void;
     /** The preview window is open. */
     preview: boolean;
     onPreview: (open: boolean) => void;
@@ -78,24 +69,6 @@
       sideOffset={8}
       collisionPadding={8}
     >
-      <DropdownMenu.Group class="layout-option">
-        <DropdownMenu.GroupHeading class="layout-option-label"
-          >{m.start_mode()}</DropdownMenu.GroupHeading
-        >
-        <div class="controls side">
-          {#each modes as m (m.id)}
-            <DropdownMenu.Item
-              class="menu-item layout-text-item"
-              data-active={m.id === mode ? "" : undefined}
-              title={tip(`mode.${m.id}`)}
-              closeOnSelect={false}
-              onSelect={() => run(`mode.${m.id}`)}
-            >
-              {m.title}
-            </DropdownMenu.Item>
-          {/each}
-        </div>
-      </DropdownMenu.Group>
       <DropdownMenu.Group class="layout-option">
         <DropdownMenu.GroupHeading class="layout-option-label"
           >{m.preview_title()}</DropdownMenu.GroupHeading

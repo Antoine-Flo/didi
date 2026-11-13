@@ -13,13 +13,12 @@ This documentation tells how Didi works inside: the architecture, the main algor
 
 ## The sections
 
-| Section   | Code                                  | Contents                                                                    |
-| --------- | ------------------------------------- | --------------------------------------------------------------------------- |
-| Core      | `src/lib/core/`                       | The document, the tiles, the history, the selection, the colors, the files. |
-| Rendering | `src/lib/render/`                     | The canvas view on the GPU.                                                 |
-| Painting  | `src/lib/mypaint/`, `native/mypaint/` | The brush engine.                                                           |
-| Platform  | `src/lib/platform/`, `src-tauri/`     | The access to the system, in Tauri or in a browser.                         |
-| App       | `src/lib/app/`                        | The tools, the input, the state of the editor, the interface.               |
+| Section   | Code                              | Contents                                                                    |
+| --------- | --------------------------------- | --------------------------------------------------------------------------- |
+| Core      | `src/lib/core/`                   | The document, the tiles, the history, the selection, the colors, the files. |
+| Rendering | `src/lib/render/`                 | The canvas view on the GPU.                                                 |
+| Platform  | `src/lib/platform/`, `src-tauri/` | The access to the system, in Tauri or in a browser.                         |
+| App       | `src/lib/app/`                    | The tools, the input, the state of the editor, the interface.               |
 
 ## The parts of a page
 

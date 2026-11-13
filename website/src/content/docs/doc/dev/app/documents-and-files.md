@@ -19,21 +19,21 @@ It does not read or write the bytes of the `.didi` format. The core does that (`
 
 ## Files
 
-| File                                              | Purpose                                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------------------- |
-| `src/lib/app/files/session.svelte.ts`             | `Session`: the open document, its file, its mode, and all file actions. |
-| `src/lib/app/files/files.ts`                      | Calls the file worker. Reads and writes files.                          |
-| `src/lib/app/files/file-worker.ts`                | The worker: encodes and decodes `.didi` and PNG files.                  |
-| `src/lib/app/files/document-files.ts`             | Asks the user for a file to open, to save, or to export to.             |
-| `src/lib/app/files/saved-state.ts`                | What the document was at the last save, to find unsaved changes.        |
-| `src/lib/app/files/recovery-copy.svelte.ts`       | The recovery copy.                                                      |
-| `src/lib/app/files/recent.ts`                     | The recent files (`recent.json`).                                       |
-| `src/lib/app/files/new-drawing.ts`                | Makes a new empty `Editor`.                                             |
-| `src/lib/app/files/new-document-choice.svelte.ts` | The mode, size and background chosen in the start screen.               |
-| `src/lib/app/files/import-image.ts`               | Adds an image file as a layer, or a `.hex` file as a palette.           |
-| `src/lib/app/files/palette-storage.ts`            | Loads and saves the user's palettes (`palettes.json`).                  |
-| `src/lib/app/files/release-notes.ts`              | Reads the notes of the versions after the running one.                  |
-| `src/lib/app/shared/data-file.ts`                 | `DataFile`: a JSON file of the app, saved after a short delay.          |
+| File                                              | Purpose                                                              |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| `src/lib/app/files/session.svelte.ts`             | `Session`: the open document, its file, and all file actions.        |
+| `src/lib/app/files/files.ts`                      | Calls the file worker. Reads and writes files.                       |
+| `src/lib/app/files/file-worker.ts`                | The worker: encodes and decodes `.didi` and PNG files.               |
+| `src/lib/app/files/document-files.ts`             | Asks the user for a file to open, to save, or to export to.          |
+| `src/lib/app/files/saved-state.ts`                | What the document was at the last save, to find unsaved changes.     |
+| `src/lib/app/files/recovery-copy.svelte.ts`       | The recovery copy.                                                   |
+| `src/lib/app/files/recent.ts`                     | The recent files (`recent.json`).                                    |
+| `src/lib/app/files/new-drawing.ts`                | Makes a new empty `Editor`.                                          |
+| `src/lib/app/files/new-document-choice.svelte.ts` | The size and background chosen in the start screen, and the presets. |
+| `src/lib/app/files/import-image.ts`               | Adds an image file as a layer, or a `.hex` file as a palette.        |
+| `src/lib/app/files/palette-storage.ts`            | Loads and saves the user's palettes (`palettes.json`).               |
+| `src/lib/app/files/release-notes.ts`              | Reads the notes of the versions after the running one.               |
+| `src/lib/app/shared/data-file.ts`                 | `DataFile`: a JSON file of the app, saved after a short delay.       |
 
 ## Concepts
 
@@ -81,7 +81,7 @@ A message copies its data by default. A document of many layers can have hundred
 
 - `editor`: the document and its history.
 - `path`, `name`: the file of the document, `null` before the first save.
-- `mode`, `grid`: also saved in the file.
+- `grid`: the tile grid, also saved in the file.
 - `busy`: the label of a file action in progress, for example "Saving…".
 - `recent`, `recovery`: for the start screen.
 
@@ -89,7 +89,7 @@ All file actions go through `Session.run(label, failure, action)`. It sets `busy
 
 ### Unsaved changes
 
-The history has a `marker`: the last edit of the drawing in the undo list (`History.marker` in `core/history/history.ts`). At each save, the session keeps a `SavedState`: the marker, the mode, the grid and the hidden layers.
+The history has a `marker`: the last edit of the drawing in the undo list (`History.marker` in `core/history/history.ts`). At each save, the session keeps a `SavedState`: the marker, the grid and the hidden layers.
 
 ```ts
 // src/lib/app/files/session.svelte.ts
@@ -97,7 +97,6 @@ get dirty(): boolean {
   void this.revision;
   return (
     this.editor.history.marker !== saved.marker ||
-    this.mode !== saved.mode ||
     !sameGrid(this.grid, saved.grid) ||
     this.editor.drawing.layers.some((l) => l.visible === saved.hidden.has(l.id))
   );
@@ -124,7 +123,7 @@ The visibility of a layer is not an undo step, but the file saves it. Thus, `Sav
 
 1. `confirmDiscard()` asks the user what to do with unsaved changes: save, discard or cancel.
 2. The platform reads the bytes. The worker decodes them into a `DocumentData`.
-3. `editorFromDocument` makes a new `Editor`. `replace` puts it in the session with its mode, grid and extensions.
+3. `editorFromDocument` makes a new `Editor`. `replace` puts it in the session with its grid and extensions.
 
 ### The recovery copy
 
@@ -158,6 +157,12 @@ Call `flush()` before the app closes, to save the changes that wait for the dela
 `recent.json` keeps a maximum of 8 files. `withRecent` puts the new file first and removes the same path lower in the list. Each entry has a small PNG preview as a data URL, so the start screen shows it without access to the file.
 
 `parseRecent` removes entries that are not valid. An app data file can be old or damaged: it must not stop the app.
+
+### New document
+
+`NewDocumentChoice` keeps the size and the background that the user chooses in the start screen. At start, they are `NEW_DOCUMENT`: 64 × 64 pixels, transparent. `SIZE_PRESETS` gives the sizes that the user can select in one click, in groups: sprites and tiles (16 to 256 pixels, square), and screen sizes (160 × 144 to 640 × 360). A side is valid from 1 to `MAX_SIZE` (8192) pixels.
+
+Each valid change calls a listener. While the open document has no changes and no file, the editor replaces it with a new empty document of this size and background (`previewNew`). Thus, the canvas behind the start screen shows the choice.
 
 ### Import
 

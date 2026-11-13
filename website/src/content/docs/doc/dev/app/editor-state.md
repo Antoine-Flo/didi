@@ -7,21 +7,20 @@ sidebar:
 
 ## Purpose
 
-`EditorState` holds all that the editor interface shows and changes: the open document, its mode, the tools, the colors, the painter, the shortcuts, the menus, the layout, the dialogs and the messages. The Svelte components read this object and call its methods. They do not keep their own copy of the data.
+`EditorState` holds all that the editor interface shows and changes: the open document, the tools, the colors, the painter, the shortcuts, the menus, the layout, the dialogs and the messages. The Svelte components read this object and call its methods. They do not keep their own copy of the data.
 
 ## Files
 
-| File                                           | Purpose                                                                    |
-| ---------------------------------------------- | -------------------------------------------------------------------------- |
-| `src/lib/app/state/editor-state.svelte.ts`     | The `EditorState` class. It makes and connects all the other parts.        |
-| `src/lib/app/state/editor-changes.svelte.ts`   | Makes the changes of the document visible to Svelte.                       |
-| `src/lib/app/state/command-host.ts`            | Gives the app commands access to the state (see [Commands](../commands/)). |
-| `src/lib/app/state/dialogs.svelte.ts`          | Which dialog is open, and the questions that wait for an answer.           |
-| `src/lib/app/state/messages.svelte.ts`         | The messages at the bottom of the editor.                                  |
-| `src/lib/app/state/mode-colors-sync.svelte.ts` | Keeps one set of colors for each mode.                                     |
-| `src/lib/app/state/app-update.svelte.ts`       | Finds, downloads and installs a newer version of the app.                  |
-| `src/lib/app/tools/tool-state.svelte.ts`       | The active tool, the settings of each tool, the current color.             |
-| `src/lib/app/shared/watched.svelte.ts`         | Makes one core object visible to Svelte.                                   |
+| File                                         | Purpose                                                                    |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| `src/lib/app/state/editor-state.svelte.ts`   | The `EditorState` class. It makes and connects all the other parts.        |
+| `src/lib/app/state/editor-changes.svelte.ts` | Makes the changes of the document visible to Svelte.                       |
+| `src/lib/app/state/command-host.ts`          | Gives the app commands access to the state (see [Commands](../commands/)). |
+| `src/lib/app/state/dialogs.svelte.ts`        | Which dialog is open, and the questions that wait for an answer.           |
+| `src/lib/app/state/messages.svelte.ts`       | The messages at the bottom of the editor.                                  |
+| `src/lib/app/state/app-update.svelte.ts`     | Finds, downloads and installs a newer version of the app.                  |
+| `src/lib/app/tools/tool-state.svelte.ts`     | The active tool, the settings of each tool, the current color.             |
+| `src/lib/app/shared/watched.svelte.ts`       | Makes one core object visible to Svelte.                                   |
 
 ## Concepts
 
@@ -46,7 +45,7 @@ In a class, a field can be a rune:
 // src/lib/app/state/editor-state.svelte.ts
 fullScreen = $state(false);
 ...
-this.mode = $derived(this.modes.resolve(this.session.mode));
+this.editor = $derived(this.session.editor);
 ```
 
 `EditorState` is made inside a component (`EditorApp`) while it initializes. Thus, its `$effect` calls belong to that component, and Svelte stops them when the component goes away.
@@ -84,22 +83,22 @@ The constructor makes the parts in an order where each part has what it needs:
 
 1. `EditorDialogs`: the start screen opens if no document comes back.
 2. `Session`: the open document and its file.
-3. `editor` and `mode`: derived from the session. When you open a new document, they change.
-4. `ToolState`: the tools of the mode. An `$effect.pre` calls `tools.setMode` when the mode changes.
+3. `editor`: derived from the session. When you open a new document, it changes.
+4. `ToolState`: the tools and their settings.
 5. `shownTool`: the picker while Alt is held, else the active tool.
-6. `Painter`: one painter for the full session. It keeps the brushes that it loaded.
-7. `keymap`: derived from the common shortcuts and the shortcuts of the mode.
-8. `layout`, `preview`, `view`.
-9. `menus`: derived. They show the name of the step to undo, for example "Undo Brush".
-10. An effect registers the app commands. Other effects set the window title.
+6. `SavedColors`: keeps the current and second colors from one session to the next.
+7. `Painter`: one painter for the full session. An `$effect.pre` gives it the new editor when the document changes.
+8. `keymap`: derived from the common shortcuts and, in a browser, the browser bindings.
+9. `layout`, `preview`, `view`.
+10. `menus`: derived. They show the name of the step to undo, for example "Undo Add layer".
+11. The editor commands and the app commands are registered. Effects set the window title.
 
 ### Mount
 
 `mount()` loads what the editor needs. It runs when the component is in the page. It:
 
 - starts to follow Shift, Ctrl, Alt and the last pointer type,
-- loads the brush engine (WebAssembly), then gives it to the painter,
-- loads the preferences, the colors of each mode, the theme and the palettes,
+- loads the preferences, the saved colors, the theme and the palettes,
 - restores the last document (`session.start`),
 - looks for an update,
 - in the desktop app, asks to save the changes when the user closes the window.
@@ -114,7 +113,7 @@ It returns a function that stops all of this.
 - a dialog is open,
 - Esc is for the stroke in progress.
 
-If the command exists but is disabled, it does not call `preventDefault`. Thus, Enter can still push a button that has the focus. If the shortcut has no command here (for example Ctrl+S in a mode without files), it calls `preventDefault`. Thus, the browser does not open its own dialog.
+If the command exists but is disabled, it does not call `preventDefault`. Thus, Enter can still push a button that has the focus. If the shortcut has no command here (for example Ctrl+O in a browser), it calls `preventDefault`. Thus, the browser does not open its own dialog.
 
 ### Tool state
 
@@ -122,13 +121,13 @@ If the command exists but is disabled, it does not call `preventDefault`. Thus, 
 
 - `options`: the current color, the second color, and the settings of each tool (`$state`).
 - `active`: the active tool (`$derived` from its id).
-- `inBar`: the tools of the mode, plus the active tool if it comes from another mode.
+- `inBar`: the tools of the tool column (`TOOL_BAR` in `tools/builtin.ts`), plus the active tool if it is not in this list (for example, a tool from the command palette).
 
-Each mode remembers its last tool. When you go back to a mode, you get that tool again. `drawingTool` is the last tool that is not the picker. The picker gives the opacity that it takes to this tool.
+At start, the active tool is the first tool of `TOOL_BAR`. `forPen(eraser)` gives the tool for the pen: the eraser end of the pen uses `ERASER_TOOL` (the pixel eraser). `drawingTool` is the last tool that is not the picker. The picker gives the opacity that it takes to this tool.
 
-### Colors of each mode
+### Saved colors
 
-`ModeColorsSync` keeps the colors (current, second, recent) for each mode. When the mode changes, it saves the colors of the old mode and loads the colors of the new mode. An `$effect` reads `options.color` and `options.secondary`. Thus, it saves them each time they change.
+`SavedColors` keeps the current color and the second color from one session to the next (see [Preferences](../preferences/)). An `$effect` reads `options.color` and `options.secondary`. Thus, it saves them each time they change.
 
 `$state.snapshot` makes a plain copy of a reactive object. Use it before you save or send a reactive value: the stored copy must not change later.
 

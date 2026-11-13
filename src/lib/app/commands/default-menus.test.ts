@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { newEditor } from "#lib/app/files/new-drawing.js";
 import { registerAppCommands, type AppHost } from "#lib/app/commands/app-commands.js";
@@ -16,7 +15,6 @@ describe("default menus", () => {
     const editor = newEditor(8, 8, "transparent");
     const tools = createToolRegistry();
     registerAppCommands(commandsOf(editor), {
-      modes: createModeRegistry(),
       tools,
       options: tools.defaultOptions(),
       canUseFiles: true,
@@ -24,7 +22,6 @@ describe("default menus", () => {
     } as unknown as AppHost);
     const menus = defaultMenus({
       recent: [{ path: "/a.didi", name: "a" }],
-      modes: createModeRegistry().list(),
       undoLabel: null,
       redoLabel: null,
     });
@@ -37,13 +34,12 @@ describe("default menus", () => {
     const editor = newEditor(8, 8, "transparent");
     const tools = createToolRegistry();
     registerAppCommands(commandsOf(editor), {
-      modes: createModeRegistry(),
       tools,
       options: tools.defaultOptions(),
       canUseFiles: false,
       quit: null,
     } as unknown as AppHost);
-    const menus = defaultMenus({ recent: [], modes: [], undoLabel: null, redoLabel: null });
+    const menus = defaultMenus({ recent: [], undoLabel: null, redoLabel: null });
     const [file] = availableMenus(menus, (id) => commandsOf(editor).has(id));
     expect(file.items).toEqual([
       { command: "file.new" },
@@ -53,15 +49,12 @@ describe("default menus", () => {
     ]);
   });
 
-  it("name the undo and redo steps, and list recent files with their mode's icon", () => {
-    const modes = createModeRegistry().list();
-    const pixel = modes.find((mode) => mode.id === "pixel")!;
+  it("name the undo and redo steps, and list recent files", () => {
     const [file, edit] = defaultMenus({
       recent: [
-        { path: "/a.didi", name: "a", mode: "pixel" },
+        { path: "/a.didi", name: "a" },
         { path: "/b.didi", name: "b" },
       ],
-      modes,
       undoLabel: "Brush",
       redoLabel: null,
     });
@@ -70,8 +63,8 @@ describe("default menus", () => {
     const recent = file.items.find((e) => e !== "separator" && "items" in e);
     expect(recent).toMatchObject({
       items: [
-        { command: "file.open", params: { path: "/a.didi" }, label: "a", icon: pixel.icon },
-        { command: "file.open", params: { path: "/b.didi" }, label: "b", icon: undefined },
+        { command: "file.open", params: { path: "/a.didi" }, label: "a" },
+        { command: "file.open", params: { path: "/b.didi" }, label: "b" },
       ],
     });
   });

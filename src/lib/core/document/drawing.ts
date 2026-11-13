@@ -15,11 +15,9 @@ import {
   type ReadonlyLayer,
 } from "#lib/core/document/layer.js";
 import {
-  TILE_SIZE,
   TileStore,
   assertCanvasSize,
   tileKey,
-  type TileData,
   type TileSnapshot,
 } from "#lib/core/document/tiles.js";
 
@@ -210,23 +208,6 @@ export class Drawing {
       this.changes.emit({ type: "pixels-changed", id, tiles: keys });
     }
     return before;
-  }
-
-  /**
-   * Shows a stroke in progress, every frame: stores its working tiles as they are (even
-   * fully transparent ones, and on a locked layer) and notifies only `areas` (changed part
-   * of each tile, in tile pixels) as changed. When the stroke ends, it must remove its
-   * transparent tiles with `restorePixels`.
-   */
-  showStrokeTiles(id: string, tiles: Map<number, TileData>, areas: Map<number, Rect>) {
-    const keys = this.stack[this.indexOf(id)].tiles.putUnchecked(tiles);
-    if (keys.length === 0) {
-      return;
-    }
-    const changed = keys.map(
-      (key) => areas.get(key) ?? { x: 0, y: 0, width: TILE_SIZE, height: TILE_SIZE },
-    );
-    this.changes.emit({ type: "pixels-changed", id, tiles: keys, areas: changed });
   }
 }
 

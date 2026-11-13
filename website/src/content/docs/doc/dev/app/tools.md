@@ -14,7 +14,7 @@ A tool is a definition: a title, an icon, settings, the controls of the tool bar
 | File                                     | Purpose                                                                  |
 | ---------------------------------------- | ------------------------------------------------------------------------ |
 | `src/lib/app/tools/tool.ts`              | The `Tool` interface, `ToolRegistry`, the size slider.                   |
-| `src/lib/app/tools/builtin.ts`           | The list of built-in tools.                                              |
+| `src/lib/app/tools/builtin.ts`           | The built-in tools, the tool column, the tool of the eraser end.         |
 | `src/lib/app/tools/tool-state.svelte.ts` | The active tool and the settings (see [Editor state](../editor-state/)). |
 | `src/lib/app/tools/tool-groups.ts`       | Tools that share one button of the tool column.                          |
 | `src/lib/app/tools/brush-cursor.ts`      | Changes the outline of a tool into what the view draws.                  |
@@ -43,16 +43,16 @@ export interface Tool<S extends ToolSettings = ToolSettings> {
 
 - `defaults` are the settings of the tool. They are plain values (numbers, booleans, strings). Thus, the app can save them as JSON.
 - `fields` tell the tool bar which controls to show: `size`, `integer`, `percent`, `toggle`, `choice`. The tool bar makes the controls from this list. A tool does not have its own Svelte component.
-- `cursor` gives the outline under the pointer: a circle, the exact pixels of a pixel tip, a picker, or nothing.
+- `cursor` gives the outline under the pointer: the exact pixels of a pixel tip (`square` or `pixel-round`), a picker, or nothing.
 - `begin` starts a stroke (see [Painter](../painter/)).
 
-Optional parts: `preview` (the color swatch in the tool bar), `hover` (the CSS pointer, for example over a selection handle), `resize` (the `[` and `]` keys), `menu` (choices under the button, for example the tip shape), `brushSet`, `group`, `section`.
+Optional parts: `preview` (the color swatch in the tool bar), `hover` (the CSS pointer, for example over a selection handle), `resize` (the `[` and `]` keys), `menu` (choices under the button, for example the tip shape), `group`, `section`.
 
 `defineTool<S>(tool)` checks the types of the settings when you define the tool. Then it stores the tool without the type of its settings. Thus, the registry can hold tools with different settings.
 
 ### Registry
 
-`Registry<T>` (`shared/registry.ts`) is a `Map` by id that keeps the order of registration. `register` returns a function that removes the item. If two items have the same id, it throws an error. The tools and the modes use it.
+`Registry<T>` (`shared/registry.ts`) is a `Map` by id that keeps the order of registration. `register` returns a function that removes the item. If two items have the same id, it throws an error. `ToolRegistry` extends it.
 
 ## How it works
 
@@ -60,13 +60,18 @@ Optional parts: `preview` (the color swatch in the tool bar), `hover` (the CSS p
 
 `createToolRegistry()` registers all the tools of `BUILTIN_TOOLS`. Each tool then gets a command `tool.<id>` (see [Commands](../commands/)).
 
+`builtin.ts` also gives:
+
+- `TOOL_BAR`: the ids of the tools in the tool column, in order. The first tool is active at start.
+- `ERASER_TOOL`: the tool of the eraser end of the pen (`"pixelEraser"`).
+
 ### Settings
 
 `ToolRegistry.defaultOptions()` makes the default `ToolOptions`: dark gray and white as the colors, and a copy of `defaults` for each tool. The painter gives `options.tools[tool.id]` to `begin`.
 
 ### Size slider
 
-The size of a painting tool goes from 0.5 to 1000 pixels. On a linear slider, all small sizes are in a very small part of the slider. Thus, the slider is _logarithmic_: the position (0 to 1) gives `MIN_SIZE × (MAX_SIZE / MIN_SIZE) ^ position`. Each step of the slider multiplies the size by the same factor.
+The size of a tool goes from 0.5 to 1000 pixels. On a linear slider, all small sizes are in a very small part of the slider. Thus, the slider is _logarithmic_: the position (0 to 1) gives `MIN_SIZE × (MAX_SIZE / MIN_SIZE) ^ position`. Each step of the slider multiplies the size by the same factor.
 
 ```ts
 export function sizeFromSlider(position: number): number {
@@ -79,7 +84,7 @@ export function sizeFromSlider(position: number): number {
 
 ### Tool groups
 
-Some tools share one button: the rectangle and the ellipse always, the painting brushes and the line only when the tool column is too tall for the window (`whenShort`). `toolEntries(tools, short)` makes the list of buttons. The button of a group shows the active tool, else the last used, else the first.
+Some tools share one button: the rectangle and the ellipse always, the line only when the tool column is too tall for the window (`whenShort`). `toolEntries(tools, short)` makes the list of buttons. The button of a group shows the active tool, else the last used, else the first.
 
 ### Picker
 

@@ -36,8 +36,8 @@ function setup(tool: string) {
     return n;
   };
   const drag = (from: [number, number], ...to: [number, number][]) => {
-    painter.begin({ x: from[0] + 0.5, y: from[1] + 0.5, pressure: 1 });
-    painter.move(to.map(([x, y]) => ({ x: x + 0.5, y: y + 0.5, pressure: 1 })));
+    painter.begin({ x: from[0] + 0.5, y: from[1] + 0.5 });
+    painter.move(to.map(([x, y]) => ({ x: x + 0.5, y: y + 0.5 })));
   };
   return { editor, painter, options, keys, alpha, painted, drag };
 }
@@ -112,7 +112,7 @@ describe("paint bucket", () => {
     painter.end();
     const outline = painted();
     const bucket = setupOn(editor, "fill");
-    bucket.begin({ x: 4.5, y: 4.5, pressure: 1 });
+    bucket.begin({ x: 4.5, y: 4.5 });
     bucket.end();
     expect(painted()).toBe(outline + 8 * 8);
     expect(editor.history.undoLabel).toBe("Paint bucket");

@@ -1,7 +1,7 @@
 // Zoom levels for pixel art. Zoomed out, a canvas pixel at a zoom like 150 % takes 1 device
 // pixel, the next one 2: the drawing looks uneven. So below FREE_FROM device pixels per canvas
 // pixel, the zoom keeps to whole levels (1, 2, 3… device pixels, or 1/2, 1/3… below 1). Above,
-// one device pixel more or less no longer shows: the zoom is free, as in painting.
+// one device pixel more or less no longer shows: the zoom is free.
 //
 // Counted in device pixels, not CSS pixels: on a dense screen (a phone at 3×) the free zone
 // starts lower, where the eye no longer sees a device pixel.

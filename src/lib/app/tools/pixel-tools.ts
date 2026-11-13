@@ -83,8 +83,6 @@ export const pixelBrushTool = pixelTool("pixel", m.tool_pixel_brush(), Pencil, "
 export const pixelEraserTool = pixelTool("pixelEraser", m.tool_pixel_eraser(), Eraser, "erase");
 
 class PixelStroke implements ToolStroke {
-  readonly busy = false;
-
   constructor(
     private readonly raster: StrokeRaster,
     private readonly path: PixelPathBuilder,
@@ -102,8 +100,6 @@ class PixelStroke implements ToolStroke {
   flush() {
     this.raster.flush();
   }
-
-  drain() {}
 
   finish() {
     return this.raster.finish(this.label);

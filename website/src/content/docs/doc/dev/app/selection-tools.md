@@ -1,26 +1,26 @@
 ---
-title: Selection tools
-description: How the selection tools make, move and transform a selection, and how each gesture becomes one undo step.
+title: Selection tool
+description: How the selection tool makes, moves and transforms a selection, and how each gesture becomes one undo step.
 sidebar:
   order: 8
 ---
 
 ## Purpose
 
-The selection tools make a selection (rectangle or lasso), and then move, scale, rotate or skew it. What the pen does depends on where it goes down. There are two tools: one keeps the pixels exact (pixel art), the other one smooths the transformed pixels (painting).
+The selection tool `select` makes a selection (rectangle or lasso), and then moves, scales, rotates or skews it. What the pen does depends on where it goes down. The transformed content always keeps its pixels exact.
 
-The data of the selection is in `src/lib/core/selection`. This page tells how the tools use it.
+The data of the selection is in `src/lib/core/selection`. This page tells how the tool uses it.
 
 ## Files
 
-| File                                   | Purpose                                                           |
-| -------------------------------------- | ----------------------------------------------------------------- |
-| `src/lib/app/tools/select-tool.ts`     | The two tools. They choose a gesture from the zone under the pen. |
-| `src/lib/app/tools/select-gesture.ts`  | `Gesture`, and the gestures on an existing selection.             |
-| `src/lib/app/tools/select-new-area.ts` | The gestures that make a new selection.                           |
-| `src/lib/core/selection/handles.ts`    | The zones of a selection (`zoneAt`) and their pointers.           |
-| `src/lib/core/selection/floating.ts`   | Floating content: `lift`, `showFloating`.                         |
-| `src/lib/core/selection/placement.ts`  | Where the content is: position, size, transform.                  |
+| File                                   | Purpose                                                     |
+| -------------------------------------- | ----------------------------------------------------------- |
+| `src/lib/app/tools/select-tool.ts`     | The tool. It chooses a gesture from the zone under the pen. |
+| `src/lib/app/tools/select-gesture.ts`  | `Gesture`, and the gestures on an existing selection.       |
+| `src/lib/app/tools/select-new-area.ts` | The gestures that make a new selection.                     |
+| `src/lib/core/selection/handles.ts`    | The zones of a selection (`zoneAt`) and their pointers.     |
+| `src/lib/core/selection/floating.ts`   | Floating content: `lift`, `showFloating`.                   |
+| `src/lib/core/selection/placement.ts`  | Where the content is: position, size, transform.            |
 
 ## Concepts
 
@@ -46,7 +46,7 @@ When you move or transform the content for the first time, the tool _lifts_ it o
 
 The content stays floating until it is applied (Enter, another tool that changes the layer, or a layer command).
 
-`showFloating` takes each pixel from the original pixel under it (exact). With `smooth`, it mixes the four original pixels around it (bilinear). The smooth tool uses this.
+`showFloating` takes each pixel whole from the original pixel under it. Thus, the pixels stay exact.
 
 ### Draft
 

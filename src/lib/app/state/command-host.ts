@@ -11,15 +11,8 @@ import { systemInfo } from "#lib/platform/system.js";
 import { appWindow, toggleFullScreen } from "#lib/platform/window.js";
 
 export function commandHost(state: EditorState): AppHost {
-  const { session, prefs, layout, preview, dialogs, tools, modeColors } = state;
+  const { session, prefs, layout, preview, dialogs, tools } = state;
   return {
-    get mode() {
-      return session.mode;
-    },
-    set mode(id) {
-      session.setMode(id);
-    },
-    modes: state.modes,
     get tool() {
       return tools.id;
     },
@@ -59,8 +52,6 @@ export function commandHost(state: EditorState): AppHost {
     get palettes() {
       return state.palettes.current;
     },
-    recentColors: () => modeColors.recent(state.mode.id),
-    clearRecentColors: () => modeColors.clearRecent(state.mode.id),
     importPalette: () => state.pickPalette(),
     confirm: (question) => dialogs.confirm(question),
 
@@ -78,7 +69,6 @@ export function commandHost(state: EditorState): AppHost {
       const { width, height, layers } = state.editor.drawing;
       return {
         input: lastPointer(),
-        mode: session.mode,
         tool: tools.id,
         doc: `${width}x${height}, ${layers.length} layers`,
         screen: `${innerWidth}x${innerHeight}@${devicePixelRatio}`,

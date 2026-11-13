@@ -21,7 +21,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Didi",
-      description: "Drawing app for painting and pixel art.",
+      description: "A modern pixel art editor, free and everywhere.",
       // The app's favicon, served by the app at the site's root.
       favicon: "/favicon.png",
       // The site's 404 would also answer for the app's URLs.
@@ -36,7 +36,7 @@ export default defineConfig({
             icon: "open-book",
             items: [
               { label: "Getting started", items: ["doc", "doc/tablet", "doc/web-and-desktop"] },
-              { label: "Drawing", items: ["doc/modes", "doc/shortcuts"] },
+              { label: "Drawing", items: ["doc/shortcuts"] },
               { label: "Files", items: ["doc/files"] },
             ],
           },
@@ -56,7 +56,6 @@ export default defineConfig({
               // The pages set their order with `sidebar.order`.
               { label: "Core", items: [{ autogenerate: { directory: "doc/dev/core" } }] },
               { label: "Rendering", items: [{ autogenerate: { directory: "doc/dev/render" } }] },
-              { label: "Painting", items: [{ autogenerate: { directory: "doc/dev/painting" } }] },
               { label: "Platform", items: [{ autogenerate: { directory: "doc/dev/platform" } }] },
               { label: "App", items: [{ autogenerate: { directory: "doc/dev/app" } }] },
             ],

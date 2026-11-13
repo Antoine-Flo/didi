@@ -10,38 +10,9 @@ const COMPACT_MODES: readonly CompactMode[] = ["auto", "on", "off"];
 /** One finger draws: until a pen is used ("auto"), always, or never (it moves the view). */
 export type FingerDrawing = "auto" | "on" | "off";
 const FINGER_DRAWINGS: readonly FingerDrawing[] = ["auto", "on", "off"];
-/**
- * The color panel's selector: a square with a hue bar, or a hue ring around a square
- * ("wheel") or around a triangle.
- */
-export type ColorSelector = "square" | "wheel" | "triangle";
-export const COLOR_SELECTORS: readonly ColorSelector[] = ["square", "wheel", "triangle"];
-/** What the color panel shows. */
-export interface ColorPanelPrefs {
-  selector: ColorSelector;
-  /** The shade bars, below the selector. */
-  shades: boolean;
-  /** The recent colors, at the bottom. */
-  recent: boolean;
-}
-
-/** A saved color panel's preferences, keeping only what is valid. */
-function parseColorPanel(data: unknown): Partial<ColorPanelPrefs> {
-  const prefs: Partial<ColorPanelPrefs> = {};
-  if (typeof data !== "object" || data === null) {
-    return prefs;
-  }
-  if ("selector" in data && COLOR_SELECTORS.includes(data.selector as ColorSelector)) {
-    prefs.selector = data.selector as ColorSelector;
-  }
-  if ("shades" in data && typeof data.shades === "boolean") {
-    prefs.shades = data.shades;
-  }
-  if ("recent" in data && typeof data.recent === "boolean") {
-    prefs.recent = data.recent;
-  }
-  return prefs;
-}
+/** The color panel's selector: a square with a hue bar, or a hue ring around a square. */
+export type ColorSelector = "square" | "wheel";
+export const COLOR_SELECTORS: readonly ColorSelector[] = ["square", "wheel"];
 
 /** The interface size, in percent. Barely below 100: the interface is already compact. */
 export const UI_SCALE_MIN = 90;
@@ -66,8 +37,7 @@ export interface LayoutPrefsData {
   fingerDrawing: FingerDrawing;
   /** A pen was used on this device: with "auto", one finger then moves the view. */
   penSeen: boolean;
-  /** What the color panel shows, by mode id: only what the user changed. */
-  colorPanels: Record<string, Partial<ColorPanelPrefs>>;
+  colorSelector: ColorSelector;
   sizes: Record<string, number>;
 }
 
@@ -127,12 +97,8 @@ export function parseLayoutPrefs(text: string): Partial<LayoutPrefsData> {
   if ("penSeen" in data && typeof data.penSeen === "boolean") {
     prefs.penSeen = data.penSeen;
   }
-  if ("colorPanels" in data && typeof data.colorPanels === "object" && data.colorPanels !== null) {
-    const panels: Record<string, Partial<ColorPanelPrefs>> = {};
-    for (const [mode, panel] of Object.entries(data.colorPanels)) {
-      panels[mode] = parseColorPanel(panel);
-    }
-    prefs.colorPanels = panels;
+  if ("colorSelector" in data && COLOR_SELECTORS.includes(data.colorSelector as ColorSelector)) {
+    prefs.colorSelector = data.colorSelector as ColorSelector;
   }
   if ("sizes" in data && typeof data.sizes === "object" && data.sizes !== null) {
     const sizes: Record<string, number> = {};

@@ -57,10 +57,8 @@ export const fillTool = defineTool<FillSettings>({
 /** A stroke already painted when the pen goes down: its moves change nothing. */
 function paintedStroke(raster: StrokeRaster, label: string): ToolStroke {
   return {
-    busy: false,
     move() {},
     flush: () => raster.flush(),
-    drain() {},
     finish: () => raster.finish(label),
     cancel: () => raster.cancel(),
   };

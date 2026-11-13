@@ -1,7 +1,7 @@
 {
   "name": "didi",
   "version": "0.1.0",
-  "description": "A drawing app for pixel art and painting, with lessons built in.",
+  "description": "A modern pixel art editor, free and everywhere.",
   "type": "module",
   "scripts": {
     "setup": "npm install && npm --prefix website install",
@@ -17,8 +17,6 @@
     "test:watch": "vitest",
     "lint": "prettier --check . && eslint . && cargo fmt --check --manifest-path src-tauri/Cargo.toml",
     "format": "prettier --write . && cargo fmt --manifest-path src-tauri/Cargo.toml",
-    "compare:brushes": "DIDI_COMPARE=1 vitest run src/lib/mypaint/reference.test.ts",
-    "measure:brushes": "DIDI_MEASURE=1 vitest run src/lib/mypaint/brush-sizes.test.ts",
     "messages": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
     "build:site": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'build', { recursive: true })\"",
     "deploy": "npm run build && npm run build:site && wrangler deploy",

@@ -12,9 +12,6 @@ export function brushCursorState(
   p: Point,
   brushColor: RGB | null,
 ): BrushCursorState | null {
-  if (c.kind === "circle") {
-    return { ...c, x: p.x, y: p.y };
-  }
   if (c.kind === "square" || c.kind === "pixel-round") {
     const fill =
       c.opacity !== undefined && brushColor

@@ -1,31 +1,18 @@
 <script lang="ts">
-  // The start screen's choice of a new document: the mode first (two large cards), then the
-  // sizes it offers, a custom size, and the background. See NewDocumentChoice.
+  // The start screen's choice of a new document: the sizes offered, a custom size, and the
+  // background. See NewDocumentChoice.
 
-  import { MAX_SIZE, type NewDocumentChoice } from "#lib/app/files/new-document-choice.svelte.js";
-  import type { Mode } from "#lib/app/modes/mode.js";
+  import {
+    MAX_SIZE,
+    SIZE_PRESETS,
+    type NewDocumentChoice,
+  } from "#lib/app/files/new-document-choice.svelte.js";
   import { m } from "#lib/paraglide/messages.js";
 
-  let { choice, modes }: { choice: NewDocumentChoice; modes: readonly Mode[] } = $props();
+  let { choice }: { choice: NewDocumentChoice } = $props();
 </script>
 
-<div class="modes" role="radiogroup" aria-label={m.start_mode()}>
-  {#each modes as mode (mode.id)}
-    {@const Icon = mode.icon}
-    <button
-      class="mode"
-      class:active={mode.id === choice.mode.id}
-      role="radio"
-      aria-checked={mode.id === choice.mode.id}
-      onclick={() => choice.choose(mode)}
-    >
-      <span class="mode-title"><Icon class="icon-large" /> {mode.title}</span>
-      <span class="mode-description">{mode.description}</span>
-    </button>
-  {/each}
-</div>
-
-{#each choice.mode.newDocument.presets as { group, sizes } (group)}
+{#each SIZE_PRESETS as { group, sizes } (group)}
   <div class="group">
     <span class="label">{group}</span>
     <div class="sizes">
@@ -92,48 +79,6 @@
     color: var(--text-muted);
   }
 
-  /* The mode comes first and must be obvious: two large cards. */
-  .modes {
-    display: grid;
-    grid-auto-columns: 1fr;
-    grid-auto-flow: column;
-    gap: var(--space);
-  }
-
-  .mode {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: calc(var(--space) / 2);
-    height: auto;
-    padding: var(--space);
-    text-align: left;
-    white-space: normal;
-    background: var(--field);
-    border: 1px solid var(--field-border);
-    border-radius: var(--radius);
-  }
-
-  .mode:hover {
-    background: var(--hover);
-  }
-
-  /* The chosen mode: the same highlighted border as the chosen size. */
-  .mode.active {
-    border-color: var(--text-faint);
-  }
-
-  .mode-title {
-    display: flex;
-    align-items: center;
-    gap: calc(var(--space) / 2);
-    font-weight: 600;
-  }
-
-  .mode-description {
-    color: var(--text-muted);
-  }
-
   .sizes {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(calc(88px * var(--ui-scale)), 1fr));
@@ -151,7 +96,7 @@
     border-color: var(--text-faint);
   }
 
-  /* The size that will be created: the same highlighted border as the chosen mode. */
+  /* The size that will be created: a highlighted border. */
   .size.active {
     border-color: var(--text-faint);
   }

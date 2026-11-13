@@ -59,12 +59,7 @@ export class DrawingView {
       this.selection.selection,
       this.brushCursor.cursor,
     );
-    this.root.addChild(
-      this.canvasRoot,
-      this.brushCursor.pointerRing,
-      this.brushCursor.pointerCross,
-      this.brushCursor.pointerPicker,
-    );
+    this.root.addChild(this.canvasRoot, this.brushCursor.pointerPicker);
     for (const layer of drawing.layers) {
       this.addView(layer.id);
     }

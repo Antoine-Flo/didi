@@ -76,15 +76,16 @@ For symbols and digits, Shift and AltGr are part of how you type the character. 
 
 `runCommand(commands, editor, painter, id, params)`:
 
-1. If the pen is down, it does nothing.
-2. If the pen is up but the stroke still paints, it calls `painter.drain()`. Thus, undo applies to the last stroke.
-3. If the command is disabled, it does nothing.
-4. If the id starts with `layer.`, it applies the floating selection first. Floating content belongs to a layer.
-5. It runs the command.
+1. If the pen is down, it does nothing. Thus, a command does not change the document in the middle of a stroke.
+2. If the command is disabled, it does nothing.
+3. If the id starts with `layer.`, it applies the floating selection first. Floating content belongs to a layer.
+4. It runs the command.
+
+It returns `true` if the command ran.
 
 ### Shortcuts
 
-`KeymapIndex` puts all bindings in a `Map` from chord to binding. A later binding for the same chord wins. `EditorState` makes the keymap from `DEFAULT_KEYMAP`, the browser bindings (in a browser, Ctrl+S exports a PNG), and the bindings of the mode, in this order. Thus, the mode can replace a common shortcut.
+`KeymapIndex` puts all bindings in a `Map` from chord to binding. A later binding for the same chord wins. `EditorState` makes the keymap from `DEFAULT_KEYMAP`, then the browser bindings. Thus, in a browser, Ctrl+S exports a PNG.
 
 `isTyping(e)` is true when the key goes to a text field. Sliders, checkboxes and other inputs where you do not type text are not text fields: shortcuts still work after you use them.
 
@@ -94,9 +95,9 @@ For symbols and digits, Shift and AltGr are part of how you type the character. 
 
 The menus are data, like the keymap. Each item is a command id (with optional params and label), a submenu, or a separator. `availableMenus` removes the items whose command does not exist here (for example "Save" in a browser), and the separators that are then at an end or next to each other.
 
-### Commands for tools and modes
+### Commands for tools
 
-`registerToolCommands` makes one command for each mode (`mode.<id>`) and each tool (`tool.<id>`) in the registries. A new tool thus gets its command automatically.
+`registerToolCommands` makes one command for each tool (`tool.<id>`) in the tool registry. A new tool thus gets its command automatically. It also makes `selection.rectangle` and `selection.lasso`: they choose the `select` tool and set its shape. `brush.grow` and `brush.shrink` change the size of the active tool, if the tool has `resize`.
 
 ### Clipboard
 

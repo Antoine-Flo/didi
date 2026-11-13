@@ -124,7 +124,7 @@ At a zoom of 150 %, one canvas pixel covers 1.5 device pixels. The GPU cannot sh
 
 `pixel-zoom.ts` keeps the zoom on **levels** when the canvas pixels are small on the screen. A level is a whole number of device pixels for each canvas pixel (1, 2, 3…), or the inverse of a whole number (1/2, 1/3…) when you zoom out.
 
-From 8 device pixels for each canvas pixel (`FREE_FROM`), a difference of one device pixel is not visible. Above this value, the zoom is free, as in painting.
+From 8 device pixels for each canvas pixel (`FREE_FROM`), a difference of one device pixel is not visible. Above this value, the zoom is free. The view navigation (`src/lib/app/input/view-navigation.ts`) uses these functions for each change of the zoom.
 
 The functions calculate in device pixels (`zoom × dpr`), not in CSS pixels. On a dense screen, the free zone starts at a lower zoom.
 

@@ -265,11 +265,11 @@ export function registerEditorCommands(registry: CommandRegistry<Editor>) {
     needsParams: true,
     run: (editor, { width, height, dx, dy }) => resizeCanvas(editor, width, height, dx, dy),
   });
-  registry.register<{ width: number; height: number; smooth: boolean }>({
+  registry.register<{ width: number; height: number }>({
     id: "image.scale",
     title: m.cmd_image_scale(),
     needsParams: true,
-    run: (editor, { width, height, smooth }) => scaleImage(editor, width, height, smooth),
+    run: (editor, { width, height }) => scaleImage(editor, width, height),
   });
   registry.register({
     id: "image.cropToSelection",

@@ -1,6 +1,6 @@
 <script lang="ts">
-  // A button of the tool column. For a tool with a brush set or a menu (e.g. the tip of a
-  // pixel brush), a click also opens them in a popup beside it, towards the canvas (Bits
+  // A button of the tool column. For a tool with a menu (e.g. the tip of the pixel brush), a
+  // click also opens it in a popup beside it, towards the canvas (Bits
   // UI); choosing one closes it. The button of a group (see tool-groups.ts) shows one of its
   // tools; its popup lists the group's tools instead, or their choices (a filled rectangle).
   // When compact, the popup also holds the tool's options other than its sliders (e.g.
@@ -10,11 +10,9 @@
   import { Popover } from "bits-ui";
   import { onDestroy } from "svelte";
   import { popupPadding } from "#lib/app/shared/popup-padding.js";
-  import BrushBrowser from "#lib/app/ui/panels/BrushBrowser.svelte";
   import { popupClosed, popupOpened } from "#lib/app/shared/dismissal.js";
   import ToolField from "#lib/app/ui/panels/ToolField.svelte";
   import { isSliderField, type Tool, type ToolSettings } from "#lib/app/tools/tool.js";
-  import { brushSet } from "#lib/mypaint/brush-sets.js";
   import { m } from "#lib/paraglide/messages.js";
 
   /** A group's button: its title, its tools and their settings (changed by its choices). */
@@ -55,7 +53,7 @@
   const fields = $derived(
     compact ? (tool.fields ?? []).filter((field) => !isSliderField(field)) : [],
   );
-  const settingsOnly = $derived(fields.length > 0 && !tool.brushSet && !tool.menu && !group);
+  const settingsOnly = $derived(fields.length > 0 && !tool.menu && !group);
   // When compact, the first touch only takes the tool: the popup opens on the next one.
   let wasActive = false;
   const noteActive = () => (wasActive = active);
@@ -93,21 +91,10 @@
   });
 </script>
 
-{#snippet brushes(set: string)}
-  <BrushBrowser
-    set={brushSet(set)}
-    selected={String(settings.preset)}
-    onselect={(id) => {
-      run("brush.select", { id });
-      open = false;
-    }}
-  />
-{/snippet}
-
 <!-- One line per tool of the group, or per choice of its menu (e.g. a filled rectangle). -->
 {#snippet groupList(group: ToolGroupButton)}
   {#each group.tools as t (t.id)}
-    {#if t.menu && !t.brushSet}
+    {#if t.menu}
       {@const menu = t.menu}
       {#each menu.items as item (item.value)}
         <button
@@ -129,10 +116,7 @@
         class:active={t.id === tool.id}
         onclick={() => {
           run(`tool.${t.id}`);
-          // A brush stays open: its brushes are beside.
-          if (!t.brushSet) {
-            open = false;
-          }
+          open = false;
         }}
       >
         <t.icon />
@@ -142,7 +126,7 @@
   {/each}
 {/snippet}
 
-{#if tool.brushSet || tool.menu || group || fields.length}
+{#if tool.menu || group || fields.length}
   <Popover.Root bind:open={() => open, setOpen}>
     <Popover.Trigger
       class={["icon", active && "active", "has-popup"]}
@@ -157,31 +141,14 @@
     </Popover.Trigger>
     <Popover.Portal>
       <Popover.Content
-        class={[
-          "tool-popup",
-          tool.brushSet && "brushes",
-          group && tool.brushSet && "two-panes",
-          settingsOnly && "settings-only",
-        ]}
+        class={["tool-popup", settingsOnly && "settings-only"]}
         {side}
         align="start"
         sideOffset={8}
         collisionPadding={popupPadding()}
       >
-        {#if group && tool.brushSet}
-          <!-- Two panes: the group's brushes like tabs, and the current one's brushes. -->
-          <div class="panes">
-            <div class="tabs" role="group" aria-label={group.title}>
-              {@render groupList(group)}
-            </div>
-            <div class="pane">
-              {@render brushes(tool.brushSet)}
-            </div>
-          </div>
-        {:else if group}
+        {#if group}
           {@render groupList(group)}
-        {:else if tool.brushSet}
-          {@render brushes(tool.brushSet)}
         {:else if tool.menu}
           {@const menu = tool.menu}
           {#each menu.items as item (item.value)}
@@ -235,7 +202,7 @@
     box-shadow: var(--shadow);
   }
 
-  /* A small corner: the button opens a popup (more tools, brushes or choices). */
+  /* A small corner: the button opens a popup (more tools or choices). */
   :global(.icon.has-popup) {
     position: relative;
   }
@@ -250,42 +217,7 @@
     border-bottom-color: var(--text-faint);
   }
 
-  :global(.tool-popup.brushes) {
-    width: calc(220px * var(--ui-scale));
-  }
-
-  /* Taller, each pane scrolling on its own: comfortable with a finger. As wide as its
-     names, within the room beside the button. */
-  :global(.tool-popup.two-panes) {
-    width: max-content;
-    max-width: min(420px * var(--ui-scale), var(--bits-floating-available-width));
-    padding-right: var(--space);
-    height: min(480px * var(--ui-scale), var(--bits-floating-available-height));
-    overflow: hidden;
-  }
-
-  .panes {
-    display: grid;
-    flex: 1;
-    /* The brushes' names shorten (…) rather than overflow, when room is short. */
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: calc(var(--space) / 2);
-    min-height: 0;
-  }
-
-  .tabs,
-  .pane {
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  /* As wide as the brushes' popup of a single tool, less if the room is short. */
-  .pane {
-    width: calc(220px * var(--ui-scale));
-    max-width: 100%;
-  }
-
-  /* The tool's options, one per line, below its brushes or choices. */
+  /* The tool's options, one per line, below its choices. */
   .settings {
     display: flex;
     flex: none;
@@ -310,12 +242,5 @@
     margin-top: calc(var(--space) / 2);
     border-top: 1px solid var(--border);
     padding-top: var(--space);
-  }
-
-  .tabs {
-    display: flex;
-    flex-direction: column;
-    padding-right: calc(var(--space) / 2);
-    border-right: 1px solid var(--border);
   }
 </style>

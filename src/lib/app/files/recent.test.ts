@@ -19,14 +19,6 @@ describe("recent files", () => {
   it("reads saved lists, and ignores invalid ones", () => {
     const valid = JSON.stringify({ version: 1, files: [file("/a"), { path: 3 }, file("/b")] });
     expect(parseRecent(valid).map((f) => f.path)).toEqual(["/a", "/b"]);
-    const modes = JSON.stringify({
-      version: 1,
-      files: [{ ...file("/p"), mode: "pixel" }, file("/old"), { ...file("/bad"), mode: 3 }],
-    });
-    expect(parseRecent(modes).map((f) => [f.path, f.mode])).toEqual([
-      ["/p", "pixel"],
-      ["/old", undefined],
-    ]);
     for (const text of ["", "{", "null", '{"version": 2, "files": []}', '{"version": 1}']) {
       expect(parseRecent(text)).toEqual([]);
     }

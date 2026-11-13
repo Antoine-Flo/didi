@@ -1,4 +1,4 @@
-// Interface commands: modes, tools, brushes, colors, palettes, view, files, help. Most take no
+// Interface commands: tools, brushes, colors, palettes, view, files, help. Most take no
 // params, so they can be bound to shortcuts, listed in the command palette and later put in
 // the quick wheel; those that need params are marked `needsParams`. Each domain gets only what it
 // acts on (ToolHost, ViewHost…); the editor provides them all (see state/command-host.ts).

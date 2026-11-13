@@ -102,11 +102,11 @@ With fake timers, the test moves the time forward. It does not wait 300 ms for a
 The code in `src/lib/` has layers. The arrows show which layer can import which:
 
 ```
-core  ←  render, mypaint, platform  ←  app
+core  ←  render, platform  ←  app
 ```
 
 - `core` imports no other layer, no Svelte, no PixiJS, no Tauri.
-- `render`, `mypaint` and `platform` import only `core` and themselves.
+- `render` and `platform` import only `core` and themselves.
 - `app` imports all of them.
 - Only `platform` can import `@tauri-apps/*`. The lab pages are the exception.
 
@@ -116,7 +116,6 @@ All the layers can import `#lib/paraglide/messages.js`, for the texts.
 
 ```js
 layer("render", ["core", "render"]),
-layer("mypaint", ["core", "mypaint"]),
 layer("platform", ["core", "platform"], { tauri: true }),
 ```
 
@@ -138,7 +137,7 @@ Other rules:
 3. **A maximum of 400 lines in each source file.** Tests are not included.
 4. **Imports through `#lib`, never by a relative path** (`./` or `../`).
 
-The generated folder `lib/paraglide` and the brush files `lib/mypaint/brushes` are not checked. The compiled libmypaint file is not counted for the line limit.
+The generated folder `lib/paraglide` is not checked.
 
 ## Limits
 

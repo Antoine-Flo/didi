@@ -10,8 +10,6 @@ export interface RecentFile {
   thumbnail: string;
   /** When it was last opened or saved, in ms since 1970. */
   time: number;
-  /** The document's mode, e.g. "pixel" (missing in lists from before modes). */
-  mode?: string;
 }
 
 interface RecentJson {
@@ -40,8 +38,7 @@ export function parseRecent(text: string): RecentFile[] {
           typeof f?.path === "string" &&
           typeof f.name === "string" &&
           typeof f.thumbnail === "string" &&
-          typeof f.time === "number" &&
-          (f.mode === undefined || typeof f.mode === "string"),
+          typeof f.time === "number",
       )
       .slice(0, MAX_RECENT);
   } catch {

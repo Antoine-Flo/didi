@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Painter } from "#lib/app/input/painter.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { Drawing } from "#lib/core/document/drawing.js";
@@ -21,8 +21,8 @@ function floatingContent() {
     onMessage: () => {},
   });
   const drag = (x0: number, y0: number, x1: number, y1: number) => {
-    painter.begin({ x: x0, y: y0, pressure: 1, viewZoom: 8 });
-    painter.move([{ x: x1, y: y1, pressure: 1, viewZoom: 8 }]);
+    painter.begin({ x: x0, y: y0, viewZoom: 8 });
+    painter.move([{ x: x1, y: y1, viewZoom: 8 }]);
     painter.end();
   };
   drag(10.5, 10.5, 19.5, 19.5);
@@ -35,20 +35,9 @@ describe("runCommand", () => {
   it("does nothing while the pen is down", () => {
     const { editor } = floatingContent();
     const layers = editor.drawing.layers.length;
-    const pen = { active: true, finishing: false, drain: vi.fn() };
-    expect(runCommand(commandsOf(editor), editor, pen, "layer.add")).toBe(false);
+    expect(runCommand(commandsOf(editor), editor, { active: true }, "layer.add")).toBe(false);
     expect(editor.drawing.layers).toHaveLength(layers);
     expect(editor.selection.floating).not.toBeNull();
-    expect(pen.drain).not.toHaveBeenCalled();
-  });
-
-  it("finishes a stroke still being painted, before the command", () => {
-    const { editor } = floatingContent();
-    const layers = editor.drawing.layers.length;
-    const pen = { active: true, finishing: true, drain: vi.fn() };
-    expect(runCommand(commandsOf(editor), editor, pen, "layer.add")).toBe(true);
-    expect(pen.drain).toHaveBeenCalledOnce();
-    expect(editor.drawing.layers).toHaveLength(layers + 1);
   });
 
   it("lays floating content down before a layer is deleted, so that the tool still works", () => {

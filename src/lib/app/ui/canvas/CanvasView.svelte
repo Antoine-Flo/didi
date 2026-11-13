@@ -38,7 +38,6 @@
     selectionHandles = false,
     pixelGrid = false,
     tileGrid = null,
-    touchRotation = false,
     fingerDraws = true,
     onpen,
     oncursor,
@@ -65,8 +64,6 @@
     pixelGrid?: boolean;
     /** The tiles' grid, shown with the pixels' grid. Null: none. */
     tileGrid?: { width: number; height: number } | null;
-    /** Two fingers may turn the view. */
-    touchRotation?: boolean;
     /** One finger draws; else it moves the view (see touch-gestures.ts). */
     fingerDraws?: boolean;
     /** A pen was used: see LayoutPrefs.penSeen. */
@@ -106,7 +103,6 @@
     painter,
     navigation,
     fingerDraws: () => fingerDraws,
-    mayRotate: () => touchRotation,
     penUsed: () => onpen?.(),
     command: (id) => oncommand?.(id),
     hideCursor: () => updateCursor(null),
@@ -114,30 +110,22 @@
   const pen = input.pen;
   const stroking = $derived(input.stroking);
 
-  /**
-   * Moves the pointer, the shown position and the tool's hover to the last move.
-   * The pointer drawn shows on screen a few frames after the pen got there: it is drawn a
-   * little ahead, where the pen is heading, to stay under it. Not when the pen has stopped, nor
-   * for a mouse (its moves are too irregular: it would shake), nor for pixel-art tips (their
-   * pixels are where the pen really is, under the system pointer).
-   */
-  function showPointer(now: number) {
-    const frame = input.lead.frame(now, cursorShape.kind === "circle");
-    if (!frame) {
+  /** Moves the pointer, the shown position and the tool's hover to the last move. */
+  function showPointer() {
+    const move = input.takeMove();
+    if (!move) {
       return;
     }
-    const camera = navigation.camera;
-    const p = toCanvas(camera, input.local(frame.at));
+    const p = toCanvas(navigation.camera, input.local(move));
     reportCursor(p);
     if (!stroking) {
       hoverPoint = p;
     }
-    const ahead = toCanvas(camera, input.local(frame.ahead));
-    updateCursor(input.panning || input.touchNavigating ? null : ahead);
+    updateCursor(input.panning || input.touchNavigating ? null : p);
   }
 
   function onPointerLeave() {
-    input.lead.leave();
+    input.forgetMove();
     reportCursor(null);
     hoverPoint = null;
     updateCursor(null);
@@ -160,8 +148,8 @@
     untrack(() => updateCursor(lastCursor));
   });
 
-  /** The view draws the pointer itself (see DrawingView): the system's is hidden. */
-  const ownPointer = $derived(cursorShape.kind === "circle" || cursorShape.kind === "picker");
+  /** The view draws the pipette itself (see DrawingView): the system's pointer is hidden. */
+  const ownPointer = $derived(cursorShape.kind === "picker");
 
   /** Moves the outline to `p` (canvas pixels), or hides it. */
   function updateCursor(p: Point | null) {
@@ -240,7 +228,7 @@
         syncSelection();
         let elapsed = 0;
         pixi.ticker.add((ticker) => {
-          showPointer(performance.now());
+          showPointer();
           painter?.flush();
           view?.flush();
           elapsed += ticker.deltaMS;

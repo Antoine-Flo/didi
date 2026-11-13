@@ -1,5 +1,4 @@
-// Paints a pixel-art stroke into the tiles of a layer, on the CPU (brushes use libmypaint,
-// see $lib/mypaint).
+// Paints a pixel-art stroke into the tiles of a layer, on the CPU.
 //
 // During a stroke, covered pixels are recorded in a coverage mask. Each touched pixel is
 // recomputed from its value before the stroke and its coverage, so the stroke opacity is a

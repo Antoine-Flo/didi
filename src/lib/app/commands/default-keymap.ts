@@ -23,9 +23,17 @@ export const DEFAULT_KEYMAP: Keymap = {
     { keys: "ctrl+q", command: "app.quit" },
     { keys: "ctrl+,", command: "app.preferences" },
 
-    { keys: "b", command: "tool.brush" },
-    { keys: "e", command: "tool.eraser" },
+    // Like Aseprite: B is the pencil, E the eraser, G the paint bucket, L the line, U the
+    // rectangle, Shift+U the ellipse, M the rectangle selection and Q the lasso.
+    { keys: "b", command: "tool.pixel" },
     { keys: "p", command: "tool.pixel" },
+    { keys: "e", command: "tool.pixelEraser" },
+    { keys: "g", command: "tool.fill" },
+    { keys: "l", command: "tool.line" },
+    { keys: "u", command: "tool.rectangle" },
+    { keys: "shift+u", command: "tool.ellipse" },
+    { keys: "m", command: "selection.rectangle" },
+    { keys: "q", command: "selection.lasso" },
     { keys: "i", command: "tool.picker" },
     { keys: "x", command: "color.swap" },
     { keys: "]", command: "brush.grow" },

@@ -1,6 +1,6 @@
 <script lang="ts">
   // Shown at start (like Blender's splash screen) and by "New document": create a document
-  // (choose a mode, a size and a background, then "New document"), or open a recent one.
+  // (choose a size and a background, then "New document"), or open a recent one.
   // Clicking outside keeps the current document. A newer version of the app shows at the top,
   // and the way to the Discord at the bottom.
   // The choice of the new document: see NewDocumentForm.
@@ -12,7 +12,6 @@
     NewDocumentChoice,
     type ChoiceListener,
   } from "#lib/app/files/new-document-choice.svelte.js";
-  import type { Mode } from "#lib/app/modes/mode.js";
   import type { RecentFile } from "#lib/app/files/recent.js";
   import type { RecoveryInfo } from "#lib/app/files/session.svelte.js";
   import type { AppUpdate } from "#lib/app/state/app-update.svelte.js";
@@ -24,8 +23,6 @@
 
   let {
     open = $bindable(false),
-    modes,
-    mode,
     recent,
     recovery,
     oncreate,
@@ -38,13 +35,10 @@
     ondiscord,
   }: {
     open?: boolean;
-    modes: readonly Mode[];
-    /** The mode chosen at first: the current document's. */
-    mode: string;
     recent: readonly RecentFile[];
     recovery: RecoveryInfo | null;
     oncreate: ChoiceListener;
-    /** The mode, the size or the background was changed by the user (a valid size only). */
+    /** The size or the background was changed by the user (a valid size only). */
     onchange?: ChoiceListener;
     /** Opens a recent file, or asks for one without a path. */
     onopen: (path?: string) => void;
@@ -59,12 +53,11 @@
   } = $props();
 
   // The last choice is kept while the app runs.
-  // svelte-ignore state_referenced_locally
-  const choice = new NewDocumentChoice(modes, mode, (...args) => onchange?.(...args));
+  const choice = new NewDocumentChoice((...args) => onchange?.(...args));
 
   function create() {
     open = false;
-    oncreate(choice.width, choice.height, choice.background, choice.mode.id);
+    oncreate(choice.width, choice.height, choice.background);
   }
 
   let content = $state<HTMLElement | null>(null);
@@ -83,9 +76,9 @@
   <Dialog.Portal>
     <!-- Closes on click (after the release), not on press: see CommandPalette. -->
     <Dialog.Overlay class="dialog-overlay" onclick={() => (open = false)} />
-    <!-- The dialog itself takes the focus, not its first card: the card would show a focus
-         ring as if it were the chosen mode. The focus trap then brings the focus back to the
-         dialog, not to the card, when the window takes it at start. -->
+    <!-- The dialog itself takes the focus, not its first button: the button would show a
+         focus ring as if it were the chosen size. The focus trap then brings the focus back to
+         the dialog, not to the button, when the window takes it at start. -->
     <Dialog.Content
       bind:ref={content}
       class={["start-screen panel", !capabilities.userFiles && "no-files"]}
@@ -102,7 +95,7 @@
 
       <section class="new">
         <span class="section-title">{m.start_new_document()}</span>
-        <NewDocumentForm {choice} {modes} />
+        <NewDocumentForm {choice} />
       </section>
 
       {#if capabilities.userFiles}
@@ -110,7 +103,6 @@
           <span class="section-title">{m.start_recent()}</span>
 
           <RecentFiles
-            {modes}
             {recent}
             {recovery}
             onopen={(path) => {

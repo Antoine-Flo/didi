@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { decodePng, encodePng } from "#lib/core/file/png.js";
@@ -43,11 +42,6 @@ describe("png", () => {
       expect([decoded.width, decoded.height], name).toEqual([w, h]);
       expect([...decoded.data], name).toEqual(rgba);
     }
-  });
-
-  it("reads the bundled brush previews (palette PNGs)", () => {
-    const decoded = decodePng(readFileSync("static/brushes/deevad/2B_pencil.png"));
-    expect([decoded.width, decoded.height]).toEqual([128, 128]);
   });
 
   it("rejects invalid, truncated and corrupted files", () => {

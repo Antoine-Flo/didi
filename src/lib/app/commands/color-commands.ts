@@ -1,6 +1,6 @@
-// The color commands (the current colors, the recent ones) and the palette commands.
+// The color commands (the current colors) and the palette commands.
 
-import { fromHex, type RGB } from "#lib/core/color/color.js";
+import { fromHex } from "#lib/core/color/color.js";
 import { addPaletteColor, removePaletteColor } from "#lib/core/color/palette-edits.js";
 import type { CommandRegistry } from "#lib/core/editor/commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
@@ -12,10 +12,6 @@ import { m } from "#lib/paraglide/messages.js";
 export interface ColorHost extends Pick<ToolHost, "options"> {
   /** The user's palettes, once loaded. */
   readonly palettes: PaletteLibrary | null;
-  /** The colors drawn with lately, in the document's mode, the latest first. */
-  recentColors(): readonly RGB[];
-  /** Empties the recent colors of the document's mode. */
-  clearRecentColors(): void;
   /** Asks for a .hex file and adds it as a new palette. */
   importPalette(): void;
   /** Asks the user to confirm an action that cannot be undone. Resolves to their answer. */
@@ -42,12 +38,6 @@ export function registerColorCommands(registry: CommandRegistry<Editor>, host: C
       host.options.color = secondary;
       host.options.secondary = color;
     },
-  });
-  registry.register({
-    id: "color.clearRecent",
-    title: m.cmd_color_clear_recent(),
-    enabled: () => host.recentColors().length > 0,
-    run: () => host.clearRecentColors(),
   });
 
   registry.register({

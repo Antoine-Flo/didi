@@ -5,7 +5,6 @@ import { PaletteLibrary } from "#lib/core/color/palette.js";
 import { registerAppCommands, type AppHost } from "#lib/app/commands/app-commands.js";
 import type { ViewControls } from "#lib/app/commands/view-commands.js";
 import { DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
-import { createModeRegistry } from "#lib/app/modes/builtin.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { commandsOf } from "#lib/core/testing/test-utils.js";
 
@@ -22,9 +21,7 @@ function setup() {
     mirrorView: vi.fn(),
   };
   const host: AppHost = {
-    mode: "painting",
-    modes: createModeRegistry(),
-    tool: "brush",
+    tool: "pixel",
     tools,
     options: tools.defaultOptions(),
     view,
@@ -37,8 +34,6 @@ function setup() {
     toggleInterface: vi.fn(),
     toggleFullScreen: vi.fn(),
     palettes: new PaletteLibrary([{ name: "A", colors: [] }], null, []),
-    recentColors: vi.fn(() => []),
-    clearRecentColors: vi.fn(),
     notify: vi.fn(),
     importImage: vi.fn(),
     openDocument: vi.fn(),
@@ -54,8 +49,7 @@ function setup() {
     system: () => ({ source: "linux", browser: "", os: "linux" }),
     editorFacts: () => ({
       input: "pen",
-      mode: "painting",
-      tool: "brush",
+      tool: "pixel",
       doc: "100x100, 1 layers",
       screen: "800x600@1",
       layout: "normal",
@@ -68,20 +62,11 @@ function setup() {
 }
 
 describe("app commands", () => {
-  it("switches modes", () => {
-    const { editor, host } = setup();
-    commandsOf(editor).execute("mode.pixel");
-    expect(host.mode).toBe("pixel");
-    commandsOf(editor).execute("mode.painting");
-    expect(host.mode).toBe("painting");
-  });
-
-  it("chooses the shape of a selection with the tool of the mode", () => {
+  it("chooses the shape of a selection with the selection tool", () => {
     const { editor, host } = setup();
     commandsOf(editor).execute("selection.lasso");
-    expect(host.tool).toBe("smoothSelect");
-    expect(host.options.tools.smoothSelect.shape).toBe("lasso");
-    host.mode = "pixel";
+    expect(host.tool).toBe("select");
+    expect(host.options.tools.select.shape).toBe("lasso");
     commandsOf(editor).execute("selection.rectangle");
     expect(host.tool).toBe("select");
     expect(host.options.tools.select.shape).toBe("rectangle");
@@ -97,32 +82,15 @@ describe("app commands", () => {
 
   it("resizes the current tool, and not the others", () => {
     const { editor, host } = setup();
-    const { brush, eraser } = tools.defaultOptions().tools;
-    commandsOf(editor).execute("brush.grow");
-    expect(host.options.tools.brush.size).toBeGreaterThan(brush.size as number);
-    expect(host.options.tools.eraser.size).toBe(eraser.size);
-    host.tool = "pixel";
+    const { pixelEraser } = tools.defaultOptions().tools;
     commandsOf(editor).execute("brush.grow");
     expect(host.options.tools.pixel.size).toBe(2);
+    expect(host.options.tools.pixelEraser.size).toBe(pixelEraser.size);
     commandsOf(editor).execute("brush.shrink");
     commandsOf(editor).execute("brush.shrink");
     expect(host.options.tools.pixel.size).toBe(1);
     host.tool = "picker";
     expect(commandsOf(editor).isEnabled("brush.grow")).toBe(false);
-  });
-
-  it("selects brushes with the tool of their set, which remembers them", () => {
-    const { editor, host } = setup();
-    host.tool = "pixel";
-    commandsOf(editor).execute("brush.select", { id: "classic/charcoal" });
-    expect(host.tool).toBe("texture");
-    expect(host.options.tools.texture.preset).toBe("classic/charcoal");
-    commandsOf(editor).execute("brush.select", { id: "deevad/kneaded_eraser" });
-    expect(host.tool).toBe("eraser");
-    expect(host.options.tools.eraser.preset).toBe("deevad/kneaded_eraser");
-    expect(host.options.tools.texture.preset).toBe("classic/charcoal");
-    expect(host.options.tools.pencil.preset).toBe("deevad/2B_pencil");
-    expect(commandsOf(editor).isEnabled("brush.select", { id: "nope/nope" })).toBe(false);
   });
 
   it("switches the layout for left-handed users and back", () => {
@@ -150,14 +118,6 @@ describe("app commands", () => {
     commandsOf(editor).execute("color.swap");
     expect(host.options.color).toBeNull();
     expect(host.options.secondary).toEqual([4, 5, 6]);
-  });
-
-  it("clears the recent colors only when there are some", () => {
-    const { editor, host } = setup();
-    expect(commandsOf(editor).isEnabled("color.clearRecent")).toBe(false);
-    vi.mocked(host.recentColors).mockReturnValue([[1, 2, 3]]);
-    commandsOf(editor).execute("color.clearRecent");
-    expect(host.clearRecentColors).toHaveBeenCalledOnce();
   });
 
   it("adds the current color even if already there, and uses a palette color by its place", () => {
@@ -291,7 +251,7 @@ describe("app commands", () => {
     };
     const bug = opened("app.reportBug");
     expect(bug.href).toContain("tally.so/r/rDa0PX");
-    expect(bug.searchParams.get("tool")).toBe("brush");
+    expect(bug.searchParams.get("tool")).toBe("pixel");
     expect(bug.searchParams.get("source")).toBe("linux");
     const feedback = opened("app.feedback");
     expect(feedback.href).toContain("tally.so/r/dba2rq");
@@ -308,13 +268,9 @@ describe("app commands", () => {
     await vi.waitFor(() => expect(host.notify).toHaveBeenCalledOnce());
   });
 
-  it("covers every command of the default keymap and of the modes' shortcuts", () => {
-    const { editor, host } = setup();
-    const bindings = [
-      ...DEFAULT_KEYMAP.bindings,
-      ...host.modes.list().flatMap((mode) => mode.bindings),
-    ];
-    for (const binding of bindings) {
+  it("covers every command of the default keymap", () => {
+    const { editor } = setup();
+    for (const binding of DEFAULT_KEYMAP.bindings) {
       expect(commandsOf(editor).has(binding.command), binding.command).toBe(true);
     }
   });

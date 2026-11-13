@@ -11,7 +11,6 @@
   import type { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
   import type { PanelTab } from "#lib/app/layout/editor-layout.svelte.js";
-  import type { Mode } from "#lib/app/modes/mode.js";
   import Segmented from "#lib/app/ui/widgets/Segmented.svelte";
   import Splitter from "#lib/app/ui/widgets/Splitter.svelte";
   import ColorPanel from "#lib/app/ui/panels/ColorPanel.svelte";
@@ -27,8 +26,6 @@
     commands,
     color,
     secondary,
-    recentColors,
-    mode,
     oncolor,
     palettes,
     tip,
@@ -47,10 +44,6 @@
     color: RGB | null;
     /** The second color, swapped with the current one. Null: none. */
     secondary: RGB | null;
-    /** The colors drawn with lately in the document's mode, the latest first. */
-    recentColors: readonly RGB[];
-    /** The document's mode: the color panel shows what was chosen for it. */
-    mode: Mode;
     oncolor: (color: RGB) => void;
     /** The user's palettes, once loaded: read in a derived value, it follows their changes. */
     palettes: PaletteLibrary | null;
@@ -128,13 +121,10 @@
 
   <div class="panel color-panel" style:height={scaledSize(colorHeight)} bind:this={colorPanel}>
     <ColorPanel
-      prefs={layout.colorPanel(mode.id, mode.colorPanel)}
-      onprefs={(change) => layout.setColorPanel(mode.id, change)}
+      selector={layout.colorSelector}
+      onselector={(selector) => (layout.colorSelector = selector)}
       {color}
       {secondary}
-      recent={recentColors}
-      {uiScale}
-      hand={layout.hand}
       fill={colorHeight !== undefined}
       onchange={(c) => {
         sync.change(color, c);

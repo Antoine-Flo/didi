@@ -8,20 +8,20 @@ import { errorMessage } from "#lib/app/shared/error-message.js";
 import type { DialogOpener, Notifier } from "#lib/app/commands/app-commands.js";
 import { copy, toPaste } from "#lib/app/commands/clipboard.js";
 import type { ToolHost } from "#lib/app/commands/tool-commands.js";
+import { selectTool } from "#lib/app/tools/select-tool.js";
 import { m } from "#lib/paraglide/messages.js";
 
 /** What the edit commands act on: pasting or transforming picks the selection's tool. */
-export interface EditHost
-  extends Pick<ToolHost, "mode" | "modes" | "tool">, DialogOpener, Notifier {}
+export interface EditHost extends Pick<ToolHost, "tool">, DialogOpener, Notifier {}
 
 /** Registers the edit and image commands. */
 export function registerEditCommands(registry: CommandRegistry<Editor>, host: EditHost) {
   /** Tells the user a clipboard operation failed. */
   const failed = (what: (params: { error: string }) => string) => (e: unknown) =>
     host.notify(what({ error: errorMessage(e) }));
-  /** The mode's selection tool, whose handles move and scale floating content. */
+  /** The selection tool, whose handles move and scale floating content. */
   const selectionTool = () => {
-    host.tool = host.modes.get(host.mode).selectTool;
+    host.tool = selectTool.id;
   };
 
   // Edit: the clipboard, and transforming the selected pixels (with the selection's tool).

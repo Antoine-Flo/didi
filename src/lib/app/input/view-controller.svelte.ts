@@ -14,8 +14,6 @@ export interface ViewControllerHost {
   canvas(): { width: number; height: number };
   /** Panels over the view: fitting and zooming use the area between them. */
   insets(): Insets | undefined;
-  /** Zoomed out, the zoom keeps to levels where every pixel is the same size (pixel art). */
-  pixelZoom(): boolean;
 }
 
 /** The canvas shown, attached to the controller. */
@@ -39,7 +37,6 @@ export class ViewController implements ViewControls {
     this.navigation = new ViewNavigation({
       size: () => this.target?.size() ?? { width: 0, height: 0 },
       insets: () => host.insets(),
-      pixelZoom: () => host.pixelZoom(),
       changed: (camera) => {
         this.cameraNow = camera;
         this.target?.show(camera);

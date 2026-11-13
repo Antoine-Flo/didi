@@ -1,56 +1,44 @@
-// What the start screen will create: a mode (pixel art, painting…), chosen first, then a size
-// and a background, which the mode preselects. The choice is kept while the app runs, and
-// each change is told (to preview the new document), as long as the size is valid.
+// What the start screen will create: a size and a background. The choice is kept while the app
+// runs, and each change is told (to preview the new document), as long as the size is valid.
 
 import type { Background } from "#lib/app/files/new-drawing.js";
-import type { Mode } from "#lib/app/modes/mode.js";
+import { m } from "#lib/paraglide/messages.js";
 
 /** The largest side of a new document, in pixels. */
 export const MAX_SIZE = 8192;
 
+/** Sizes in one click, by group. */
+export const SIZE_PRESETS: { group: string; sizes: [width: number, height: number][] }[] = [
+  { group: m.start_sizes_sprites_tiles(), sizes: [16, 32, 64, 128, 256].map((s) => [s, s]) },
+  {
+    group: m.start_sizes_screen(),
+    sizes: [
+      [160, 144],
+      [320, 180],
+      [480, 270],
+      [640, 360],
+    ],
+  },
+];
+
+/** A new document's size and background, until the user changes them. */
+export const NEW_DOCUMENT = { width: 64, height: 64, background: "transparent" as Background };
+
 export const validSize = (side: number) => Number.isInteger(side) && side >= 1 && side <= MAX_SIZE;
 
-export type ChoiceListener = (
-  width: number,
-  height: number,
-  background: Background,
-  mode: string,
-) => void;
+export type ChoiceListener = (width: number, height: number, background: Background) => void;
 
 export class NewDocumentChoice {
-  // An id, not the mode itself: $state would wrap the mode in a proxy, and comparing it with
-  // the modes would then always fail.
-  private modeId = $state("");
   /** Bound to the custom size fields: call `edited` after a change there. */
-  width = $state(0);
-  height = $state(0);
-  background = $state<Background>("white");
+  width = $state(NEW_DOCUMENT.width);
+  height = $state(NEW_DOCUMENT.height);
+  background = $state<Background>(NEW_DOCUMENT.background);
 
-  /** Starts on `initial`'s defaults (the first mode if it isn't one of `modes`). */
-  constructor(
-    private readonly modes: readonly Mode[],
-    initial: string,
-    private readonly onchange?: ChoiceListener,
-  ) {
-    this.reset(this.find(initial));
-  }
-
-  get mode(): Mode {
-    return this.find(this.modeId);
-  }
+  constructor(private readonly onchange?: ChoiceListener) {}
 
   /** The size can be created. */
   get valid(): boolean {
     return validSize(this.width) && validSize(this.height);
-  }
-
-  /** Another mode: its own size and background. */
-  choose(mode: Mode) {
-    if (mode.id === this.modeId) {
-      return;
-    }
-    this.reset(mode);
-    this.edited();
   }
 
   setSize(width: number, height: number) {
@@ -73,17 +61,7 @@ export class NewDocumentChoice {
   /** Tells the change, if the size is valid. */
   edited() {
     if (this.valid) {
-      this.onchange?.(this.width, this.height, this.background, this.modeId);
+      this.onchange?.(this.width, this.height, this.background);
     }
-  }
-
-  private find(id: string): Mode {
-    return this.modes.find((mode) => mode.id === id) ?? this.modes[0];
-  }
-
-  private reset(mode: Mode) {
-    this.modeId = mode.id;
-    ({ width: this.width, height: this.height } = mode.newDocument.size);
-    this.background = mode.newDocument.background;
   }
 }

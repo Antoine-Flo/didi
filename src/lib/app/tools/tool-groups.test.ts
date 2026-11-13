@@ -9,9 +9,8 @@ const ids = (entries: ToolEntry[]) =>
 
 describe("tool groups", () => {
   const pixel = ["pixel", "pixelEraser", "fill", "line", "rectangle", "ellipse", "select"];
-  const painting = ["pencil", "ink", "brush", "eraser", "picker"];
 
-  it("always groups the shapes, the line and brushes only when short", () => {
+  it("always groups the shapes, the line only when short", () => {
     expect(ids(toolEntries(tools(pixel), false))).toEqual([
       "pixel",
       "pixelEraser",
@@ -26,12 +25,6 @@ describe("tool groups", () => {
       "fill",
       ["line", "rectangle", "ellipse"],
       "select",
-    ]);
-    expect(ids(toolEntries(tools(painting), false))).toEqual(painting);
-    expect(ids(toolEntries(tools(painting), true))).toEqual([
-      ["pencil", "ink", "brush"],
-      "eraser",
-      "picker",
     ]);
   });
 

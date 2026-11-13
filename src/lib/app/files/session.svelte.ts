@@ -1,4 +1,4 @@
-// The open document: its editor, mode, file and unsaved changes, and the file actions (new,
+// The open document: its editor, file and unsaved changes, and the file actions (new,
 // open, save, save as, export), recent files and crash recovery (see recovery-copy).
 
 import type { MessageLevel } from "#lib/app/state/messages.svelte.js";
@@ -21,7 +21,6 @@ import {
 import { documentName, fileName, openDocument, saveDocument } from "#lib/app/files/files.js";
 import { newEditor, type Background } from "#lib/app/files/new-drawing.js";
 import { sameGrid, savedStateOf, type SavedState } from "#lib/app/files/saved-state.js";
-import { DEFAULT_MODE } from "#lib/app/modes/mode.js";
 import { loadRecent, saveRecent, withRecent, type RecentFile } from "#lib/app/files/recent.js";
 import {
   discardSetAsideCopy,
@@ -49,7 +48,6 @@ interface Replacement {
   /** Its file, null if it has none. */
   path: string | null;
   name: string;
-  mode: string;
   grid?: TileGrid;
   extensions?: Record<string, unknown>;
   /** Its changes are in no file (e.g. a recovered copy): replacing it would lose them. */
@@ -63,8 +61,6 @@ export class Session {
   /** The document's file, null until it is saved. */
   path = $state<string | null>(null);
   name = $state<string>(m.files_untitled());
-  /** Id of the document's mode (see $lib/app/modes), saved with it. */
-  mode = $state(DEFAULT_MODE);
   /** The tiles' grid over the drawing, saved with it. */
   grid = $state.raw<TileGrid>(DEFAULT_TILE_GRID);
   /** A file action in progress ("Saving…"), shown to the user. */
@@ -73,9 +69,7 @@ export class Session {
   /** A copy left by a session that did not close normally. */
   recovery = $state.raw<RecoveryInfo | null>(null);
 
-  private saved = $state.raw<SavedState>(
-    savedStateOf(this.editor, DEFAULT_MODE, DEFAULT_TILE_GRID),
-  );
+  private saved = $state.raw<SavedState>(savedStateOf(this.editor, DEFAULT_TILE_GRID));
   /** Bumped on every history or visibility change, to recompute `dirty`. */
   private revision = $state(0);
   private extensions: Record<string, unknown> = {};
@@ -83,21 +77,19 @@ export class Session {
   private readonly copy = new RecoveryCopy({
     needsCopy: () => this.dirty,
     snapshot: () => ({
-      doc: documentFromEditor(this.editor, this.extensions, this.mode, this.grid),
+      doc: documentFromEditor(this.editor, this.extensions, this.grid),
       info: { name: this.name, path: this.path, time: Date.now() },
     }),
     onError: (e) => this.host.notify(m.files_recovery_write_failed({ error: errorMessage(e) })),
   });
 
-  /** `editor`: the document to start with, a new one by default, in `mode`. */
+  /** `editor`: the document to start with, a new one by default. */
   constructor(
     private readonly host: SessionHost,
     editor: Editor = newEditor(),
-    mode: string = DEFAULT_MODE,
   ) {
     this.setEditor(editor);
-    this.mode = mode;
-    this.saved = savedStateOf(editor, mode, this.grid);
+    this.saved = savedStateOf(editor, this.grid);
   }
 
   /**
@@ -115,7 +107,6 @@ export class Session {
     const { saved } = this;
     return (
       this.editor.history.marker !== saved.marker ||
-      this.mode !== saved.mode ||
       !sameGrid(this.grid, saved.grid) ||
       this.editor.drawing.layers.some((l) => l.visible === saved.hidden.has(l.id))
     );
@@ -170,29 +161,14 @@ export class Session {
     return choice === "discard";
   }
 
-  async newDocument(
-    width: number,
-    height: number,
-    background: Background,
-    mode: string = DEFAULT_MODE,
-  ) {
+  async newDocument(width: number, height: number, background: Background) {
     if (!(await this.confirmDiscard())) {
       return;
     }
     this.replace(newEditor(width, height, background), {
       path: null,
       name: m.files_untitled(),
-      mode,
     });
-  }
-
-  /** Changes the document's mode: an unsaved change, but not an undo step. */
-  setMode(id: string) {
-    if (id === this.mode) {
-      return;
-    }
-    this.mode = id;
-    this.copy.schedule();
   }
 
   /** Changes the tiles' grid (or shows it): an unsaved change, but not an undo step. */
@@ -291,8 +267,8 @@ export class Session {
 
   private async saveTo(path: string): Promise<boolean> {
     // The state being saved: later changes, during the save, stay unsaved.
-    const doc = documentFromEditor(this.editor, this.extensions, this.mode, this.grid);
-    const saved = savedStateOf(this.editor, this.mode, this.grid);
+    const doc = documentFromEditor(this.editor, this.extensions, this.grid);
+    const saved = savedStateOf(this.editor, this.grid);
     const name = fileName(path);
     return this.run(
       m.files_saving({ name }),
@@ -338,10 +314,9 @@ export class Session {
   }
 
   /** Replaces the open document with one read from a file or a copy. */
-  private load(doc: DocumentData, replacement: Omit<Replacement, "mode" | "grid" | "extensions">) {
+  private load(doc: DocumentData, replacement: Omit<Replacement, "grid" | "extensions">) {
     this.replace(editorFromDocument(doc), {
       ...replacement,
-      mode: doc.mode ?? DEFAULT_MODE,
       grid: doc.grid,
       extensions: doc.extensions,
     });
@@ -351,10 +326,9 @@ export class Session {
     this.setEditor(editor);
     this.path = replacement.path;
     this.name = replacement.name;
-    this.mode = replacement.mode;
     this.grid = replacement.grid ?? DEFAULT_TILE_GRID;
     this.extensions = replacement.extensions ?? {};
-    this.saved = savedStateOf(editor, replacement.mode, this.grid);
+    this.saved = savedStateOf(editor, this.grid);
     if (replacement.inNoFile) {
       this.saved = { ...this.saved, marker: {} };
     }
@@ -385,7 +359,7 @@ export class Session {
   }
 
   private async addRecent(path: string, thumbnail: Uint8Array) {
-    this.recent = withRecent(this.recent, recentFile(path, thumbnail, this.mode));
+    this.recent = withRecent(this.recent, recentFile(path, thumbnail));
     await saveRecent(this.recent);
   }
 }

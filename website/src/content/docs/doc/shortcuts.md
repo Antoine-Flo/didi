@@ -28,24 +28,19 @@ In the app, **Ctrl+/** shows this list, and the command palette (**Ctrl+K**) sho
 
 ## Tools
 
-Some keys depend on the [mode](/doc/modes/) of the document.
-
-| Key     | Pixel art                | Painting                 |
-| ------- | ------------------------ | ------------------------ |
-| B       | Pixel brush              | Brush                    |
-| E       | Pixel eraser             | Eraser                   |
-| P       | Pixel brush              | Pixel brush              |
-| I       | Color picker             | Color picker             |
-| G       | Paint bucket             |                          |
-| L       | Line                     |                          |
-| U       | Rectangle                |                          |
-| Shift+U | Ellipse                  |                          |
-| N       |                          | Pencil                   |
-| A       |                          | Airbrush                 |
-| S       |                          | Blend                    |
-| M       | Rectangle selection      | Rectangle selection      |
-| Q       | Lasso selection          | Lasso selection          |
-| ] and [ | Bigger and smaller brush | Bigger and smaller brush |
+| Key     | Tool or command          |
+| ------- | ------------------------ |
+| B or P  | Pixel brush              |
+| E       | Pixel eraser             |
+| G       | Paint bucket             |
+| L       | Line                     |
+| U       | Rectangle                |
+| Shift+U | Ellipse                  |
+| M       | Rectangle selection      |
+| Q       | Lasso selection          |
+| I       | Color picker             |
+| X       | Swap colors              |
+| ] and [ | Bigger and smaller brush |
 
 ## Selection and clipboard
 

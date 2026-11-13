@@ -2,9 +2,7 @@
 
 import { Graphics } from "pixi.js";
 import { pixelStamp } from "#lib/core/brush/raster.js";
-import type { Point } from "#lib/core/selection/placement.js";
 import { toScreen, type Camera } from "#lib/render/camera.js";
-import { CONTRAST_BLEND } from "#lib/render/contrast-blend.js";
 
 /**
  * A pipette (Lucide's), with a white halo to show on dark colors: 24 units wide, its tip at
@@ -20,19 +18,11 @@ const PIPETTE_SVG =
 const PIPETTE_TIP = { x: 2, y: 22 };
 const PIPETTE_SIZE = 18;
 
-/** Below this diameter on screen, a soft brush shows as the small cross. */
-const MIN_RING = 6;
-/** The small cross: its arms, from the center, in screen pixels. */
-const CROSS_GAP = 2;
-const CROSS_ARM = 7;
-
 /**
- * Brush outline at a canvas position: a circle (soft brushes), or the exact pixels of a
- * pixel-art tip, square or round: filled with `fill` (the color it would draw, 0xRRGGBB, and
- * its opacity), or outlined.
+ * Brush outline at a canvas position: the exact pixels of a pixel-art tip, square or round:
+ * filled with `fill` (the color it would draw, 0xRRGGBB, and its opacity), or outlined.
  */
 export type BrushCursorState =
-  | { kind: "circle"; size: number; x: number; y: number }
   | {
       kind: "square" | "pixel-round";
       size: number;
@@ -46,50 +36,31 @@ export type BrushCursorState =
 export class BrushCursor {
   /** A pixel-art tip's pixels under the pen, on the canvas. */
   readonly cursor = new Graphics();
-  /** The pointer, on the screen: a soft brush's circle, in contrast with what is under it. */
-  readonly pointerRing = new Graphics();
-  /** The pointer, on the screen: a small cross. */
-  readonly pointerCross = new Graphics();
   /** The pointer, on the screen: a pipette, its tip on the pixel picked. */
   readonly pointerPicker = new Graphics().svg(PIPETTE_SVG);
 
   constructor() {
-    this.pointerRing.blendMode = CONTRAST_BLEND;
     this.pointerPicker.pivot.set(PIPETTE_TIP.x, PIPETTE_TIP.y);
     this.pointerPicker.scale.set(PIPETTE_SIZE / 24);
     this.pointerPicker.visible = false;
   }
 
   /**
-   * The pointer, drawn rather than the system's (whose custom images are misplaced on scaled
-   * screens): a soft brush's circle as large as it paints at most, in a thin line that
-   * contrasts with what is under it (a small cross when tiny); a pixel-art tip's pixels in
-   * the color they would get (outlined for erasers), under the system pointer.
+   * A pixel-art tip's pixels in the color they would get (outlined for erasers), under the
+   * system pointer; or the pipette, drawn rather than the system's pointer (whose custom
+   * images are misplaced on scaled screens).
    */
   draw(c: BrushCursorState | null, camera: Camera) {
     const g = this.cursor;
     g.clear();
-    this.pointerRing.clear();
-    this.pointerCross.clear();
     this.pointerPicker.visible = false;
     if (!c || c.kind === "none") {
       return;
     }
-    const zoom = camera.zoom;
-    const screen = toScreen(camera, c);
     if (c.kind === "picker") {
+      const screen = toScreen(camera, c);
       this.pointerPicker.position.set(screen.x, screen.y);
       this.pointerPicker.visible = true;
-      return;
-    }
-    if (c.kind === "circle") {
-      const radius = (c.size / 2) * zoom;
-      if (radius * 2 < MIN_RING) {
-        return this.drawCross(screen);
-      }
-      this.pointerRing
-        .circle(screen.x, screen.y, radius)
-        .stroke({ width: 1, color: 0xffffff, pixelLine: true });
       return;
     }
     // Pixel-art tips: the system pointer shows where the pen is (see CanvasView).
@@ -115,7 +86,7 @@ export class BrushCursor {
       return;
     }
     // Two tones, one screen pixel apart, to stay visible on any background.
-    const px = 1 / zoom;
+    const px = 1 / camera.zoom;
     if (c.kind === "pixel-round") {
       this.drawStampOutline(x, y, c.size, px);
     } else {
@@ -129,32 +100,6 @@ export class BrushCursor {
       });
       g.rect(left, top, n, n).stroke({ width: 1, color: 0x000000, alpha: 0.8, pixelLine: true });
     }
-  }
-
-  /**
-   * A small cross at a screen point, open at its center: black, edged with white, each line
-   * one device pixel wide.
-   */
-  private drawCross(at: Point) {
-    const g = this.pointerCross;
-    const d = 1 / devicePixelRatio;
-    // The center of the device pixel under the point.
-    const cx = (Math.floor(at.x * devicePixelRatio) + 0.5) * d;
-    const cy = (Math.floor(at.y * devicePixelRatio) + 0.5) * d;
-    const arms = (grow: number) => {
-      for (const sign of [-1, 1]) {
-        const from = CROSS_GAP * sign;
-        const to = CROSS_ARM * sign;
-        const x0 = Math.min(cx + from, cx + to) - grow;
-        const length = Math.abs(to - from) + 2 * grow;
-        g.rect(x0, cy - d / 2 - grow, length, d + 2 * grow);
-        g.rect(cx - d / 2 - grow, Math.min(cy + from, cy + to) - grow, d + 2 * grow, length);
-      }
-    };
-    arms(d);
-    g.fill({ color: 0xffffff, alpha: 0.9 });
-    arms(0);
-    g.fill({ color: 0x000000 });
   }
 
   /** The outline of a round pixel-art tip at pixel (x, y): its pixels' outer edges. */

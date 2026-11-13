@@ -12,7 +12,6 @@ function setup() {
   const controller = new ViewController({
     canvas: () => ({ width: 100, height: 50 }),
     insets: () => undefined,
-    pixelZoom: () => false,
   });
   const seen: Camera[] = [];
   stop = $effect.root(() => {
@@ -59,7 +58,8 @@ describe("ViewController", () => {
     controller.zoomStep(1);
     controller.rotateBy(0.5);
     flushSync();
-    expect(controller.camera.zoom).toBeCloseTo(fitted * 1.25);
+    // The next zoom level up.
+    expect(controller.camera.zoom).toBeGreaterThan(fitted);
     expect(controller.camera.rotation).toBeCloseTo(0.5);
     expect(view.shown.at(-1)).toEqual(controller.camera);
     expect(seen.at(-1)).toEqual(controller.camera);
@@ -86,7 +86,7 @@ describe("ViewController", () => {
     const detachSecond = controller.attach(second);
     detachFirst();
     controller.zoomStep(1);
-    expect(second.shown.at(-1)?.zoom).toBeCloseTo(1.25);
+    expect(second.shown.at(-1)?.zoom).toBeGreaterThan(1);
     detachSecond();
     controller.zoomStep(1);
     controller.previewResize(null);

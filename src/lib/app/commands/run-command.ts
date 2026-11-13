@@ -9,19 +9,11 @@ import type { Editor } from "#lib/core/editor/editor.js";
 export function runCommand(
   commands: CommandRegistry<Editor>,
   editor: Editor,
-  painter: Pick<Painter, "active" | "finishing" | "drain">,
+  painter: Pick<Painter, "active">,
   id: string,
   params?: unknown,
 ): boolean {
-  if (painter.active) {
-    if (!painter.finishing) {
-      return false;
-    }
-    // The pen is up but the stroke is still being painted: finish it first, so that undo, for
-    // instance, applies to it.
-    painter.drain();
-  }
-  if (!commands.isEnabled(id, params)) {
+  if (painter.active || !commands.isEnabled(id, params)) {
     return false;
   }
   // Floating content belongs to a layer: lay it down before anything changes the layers.

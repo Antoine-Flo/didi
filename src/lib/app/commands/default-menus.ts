@@ -5,7 +5,7 @@ import type { Component } from "svelte";
 import { Settings } from "@lucide/svelte";
 import { m } from "#lib/paraglide/messages.js";
 
-/** A small icon before an item's name, e.g. a recent file's mode. */
+/** A small icon before an item's name. */
 export type MenuIcon = Component<{ class?: string }>;
 
 /** An item of a menu: a command, a submenu, or a separator line. */
@@ -33,10 +33,7 @@ export interface MenuDefinition {
 
 /** What changes in the menus: the recent files, the names of the undo and redo steps. */
 export interface MenuState {
-  /** With their mode, if known: its icon shows. */
-  recent: readonly { path: string; name: string; mode?: string }[];
-  /** The modes, to choose the document's. */
-  modes: readonly { id: string; title: string; icon: MenuIcon }[];
+  recent: readonly { path: string; name: string }[];
   /** E.g. "Brush" for "Undo Brush", null if there is nothing to undo. */
   undoLabel: string | null;
   redoLabel: string | null;
@@ -74,7 +71,7 @@ export function availableMenus(
   });
 }
 
-export function defaultMenus({ recent, modes, undoLabel, redoLabel }: MenuState): MenuDefinition[] {
+export function defaultMenus({ recent, undoLabel, redoLabel }: MenuState): MenuDefinition[] {
   return [
     {
       title: m.menu_file(),
@@ -88,7 +85,6 @@ export function defaultMenus({ recent, modes, undoLabel, redoLabel }: MenuState)
             command: "file.open",
             params: { path: f.path },
             label: f.name,
-            icon: modes.find((mode) => mode.id === f.mode)?.icon,
           })),
         },
         "separator",
@@ -151,11 +147,6 @@ export function defaultMenus({ recent, modes, undoLabel, redoLabel }: MenuState)
         { command: "image.rotate180" },
         { command: "image.flipHorizontal" },
         { command: "image.flipVertical" },
-        "separator",
-        {
-          label: m.menu_mode(),
-          items: modes.map((mode) => ({ command: `mode.${mode.id}`, label: mode.title })),
-        },
       ],
     },
     {

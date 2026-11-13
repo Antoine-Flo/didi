@@ -11,15 +11,13 @@ export const sameGrid = (a: TileGrid, b: TileGrid) =>
 export interface SavedState {
   /** See History.marker. */
   marker: unknown;
-  mode: string;
   grid: TileGrid;
   /** Visibility is saved, but is not in the history. */
   hidden: ReadonlySet<string>;
 }
 
-export const savedStateOf = (editor: Editor, mode: string, grid: TileGrid): SavedState => ({
+export const savedStateOf = (editor: Editor, grid: TileGrid): SavedState => ({
   marker: editor.history.marker,
-  mode,
   grid,
   hidden: new Set(editor.drawing.layers.filter((l) => !l.visible).map((l) => l.id)),
 });

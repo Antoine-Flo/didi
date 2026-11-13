@@ -11,7 +11,6 @@
     <li>
       <a href={resolve("lab/stress?layers=20&fill=1")}>Heavy stress: 20 full layers (1.3 GB)</a>
     </li>
-    <li><a href={resolve("lab/render")}>Rendering: PixiJS stamping, layers, frame time</a></li>
   </ul>
 </main>
 

@@ -216,31 +216,9 @@ describe("Session", () => {
     expect(save.session.editor.drawing.width).toBe(16);
   });
 
-  it("keeps the mode with the document: saved, reopened, unsaved when changed", async () => {
-    const { session } = setup("discard");
-    await session.newDocument(16, 16, "white", "pixel");
-    expect(session.mode).toBe("pixel");
-    expect(session.dirty).toBe(false);
-    session.setMode("painting");
-    expect(session.dirty).toBe(true);
-    session.setMode("pixel");
-    expect(session.dirty).toBe(false);
-    session.setMode("painting");
-    dialogs.save = "/m.didi";
-    await session.save();
-    expect(session.dirty).toBe(false);
-    expect(readDidi(disk.get("/m.didi")!).mode).toBe("painting");
-    expect(session.recent[0]).toMatchObject({ path: "/m.didi", mode: "painting" });
-
-    await session.newDocument(16, 16, "white", "pixel");
-    await session.open("/m.didi");
-    expect(session.mode).toBe("painting");
-    expect(session.dirty).toBe(false);
-  });
-
   it("keeps the tiles' grid with the document: saved, reopened, unsaved when changed", async () => {
     const { session } = setup("discard");
-    await session.newDocument(16, 16, "white", "pixel");
+    await session.newDocument(16, 16, "white");
     expect(session.grid).toEqual({ width: 16, height: 16, shown: false });
     session.setGrid({ width: 8, height: 8, shown: false });
     expect(session.dirty).toBe(true);
@@ -251,7 +229,7 @@ describe("Session", () => {
     await session.save();
     expect(session.dirty).toBe(false);
 
-    await session.newDocument(16, 16, "white", "pixel");
+    await session.newDocument(16, 16, "white");
     expect(session.grid.shown).toBe(false);
     await session.open("/g.didi");
     expect(session.grid).toEqual({ width: 8, height: 8, shown: true });
@@ -260,8 +238,7 @@ describe("Session", () => {
 
   it("tells whether the document is untouched, and can be replaced without loss", async () => {
     const host = { notify: vi.fn(), askUnsaved: vi.fn(async () => "cancel" as const) };
-    const session = new Session(host, undefined, "pixel");
-    expect(session.mode).toBe("pixel");
+    const session = new Session(host);
     expect(session.dirty).toBe(false);
     expect(session.untouched).toBe(true);
     paint(session);

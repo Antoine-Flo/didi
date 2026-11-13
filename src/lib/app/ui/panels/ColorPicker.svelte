@@ -1,8 +1,7 @@
 <script lang="ts">
   // HSV color picker. The selector is a square (saturation and value) with a hue bar under
-  // it, or a wheel: a hue ring around that square or around a triangle (like Krita's). Then
-  // what the parent adds (e.g. the shades), and the hex code unless the parent shows it
-  // elsewhere.
+  // it, or a wheel: a hue ring around that square. Then what the parent adds, and the hex code
+  // unless the parent shows it elsewhere.
 
   import type { Snippet } from "svelte";
   import {
@@ -16,7 +15,6 @@
   } from "#lib/core/color/color.js";
   import type { ColorSelector } from "#lib/app/prefs/layout-prefs.js";
   import { pointerDrag } from "#lib/app/shared/pointer-drag.js";
-  import { paintTriangle, triangleColor, trianglePoint } from "#lib/core/color/color-triangle.js";
   import { m } from "#lib/paraglide/messages.js";
 
   let {
@@ -39,7 +37,7 @@
     selector?: ColorSelector;
     /** The hex code and a swatch at the bottom. */
     hexRow?: boolean;
-    /** Shown after the selector (e.g. the shades and the recent colors). */
+    /** Shown after the selector. */
     children?: Snippet;
     onchange: (color: RGB) => void;
     /** A drag in the selector starts: the changes until its end go together. */
@@ -75,7 +73,7 @@
   const hue = drag((x) => set({ ...hsv, h: Math.min(x * 360, MAX_HUE) }));
 
   // The wheel, in fractions of its width: the ring from RING_INNER to the edge (0.5 from the
-  // center), the square or the triangle inside it, their corners against the ring.
+  // center), the square inside it, its corners against the ring.
   const RING_INNER = 0.43;
   const SQUARE_HALF = RING_INNER / Math.SQRT2;
   const RING_MIDDLE = (0.5 + RING_INNER) / 2;
@@ -91,8 +89,6 @@
       // 0° at the top, clockwise, like the ring's gradient.
       const degrees = (Math.atan2(dx, -dy) * 180) / Math.PI;
       set({ ...hsv, h: Math.min((degrees + 360) % 360, MAX_HUE) });
-    } else if (selector === "triangle") {
-      set({ h: hsv.h, ...triangleColor(RING_INNER, { x, y }, hsv.s) });
     } else {
       const s = clamp((dx + SQUARE_HALF) / (2 * SQUARE_HALF));
       const v = 1 - clamp((dy + SQUARE_HALF) / (2 * SQUARE_HALF));
@@ -100,35 +96,6 @@
     }
   }, false);
   const hueAngle = $derived((hsv.h * Math.PI) / 180);
-  const trianglePosition = $derived(trianglePoint(RING_INNER, hsv.s, hsv.v));
-
-  // The triangle is painted pixel by pixel (CSS gradients cannot mix three corners), at the
-  // wheel's size on screen, again when the hue changes.
-  let wheelElement = $state<HTMLElement>();
-  let triangleCanvas = $state<HTMLCanvasElement>();
-  let wheelSize = $state(0);
-  /** Only the hue changes the triangle: moving in it does not paint it again. */
-  const triangleHue = $derived(hsv.h);
-  $effect(() => {
-    if (!wheelElement) {
-      return;
-    }
-    const observer = new ResizeObserver(() => (wheelSize = wheelElement?.clientWidth ?? 0));
-    observer.observe(wheelElement);
-    return () => observer.disconnect();
-  });
-  $effect(() => {
-    const canvas = triangleCanvas;
-    const size = Math.round(wheelSize * Math.min(2, window.devicePixelRatio || 1));
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context || size === 0) {
-      return;
-    }
-    canvas.width = canvas.height = size;
-    const image = context.createImageData(size, size);
-    paintTriangle(image.data, size, RING_INNER, triangleHue);
-    context.putImageData(image, 0, 0);
-  });
 
   const hex = $derived(color ? toHex(color) : "");
 </script>
@@ -145,32 +112,19 @@
         aria-label={m.color_wheel()}
         aria-valuenow={Math.round(hsv.h)}
         tabindex="-1"
-        bind:this={wheelElement}
         {...wheel}
       >
         <span class="ring"></span>
-        {#if selector === "triangle"}
-          <canvas class="triangle" bind:this={triangleCanvas}></canvas>
+        <span class="inner sv">
           {#if color}
             <span
               class="marker"
-              style:left="{trianglePosition.x * 100}%"
-              style:top="{trianglePosition.y * 100}%"
+              style:left="{hsv.s * 100}%"
+              style:top="{(1 - hsv.v) * 100}%"
               style:background={hex}
             ></span>
           {/if}
-        {:else}
-          <span class="inner sv">
-            {#if color}
-              <span
-                class="marker"
-                style:left="{hsv.s * 100}%"
-                style:top="{(1 - hsv.v) * 100}%"
-                style:background={hex}
-              ></span>
-            {/if}
-          </span>
-        {/if}
+        </span>
         {#if color}
           <span
             class="marker"
@@ -307,15 +261,8 @@
   }
 
   .ring,
-  .inner,
-  .triangle {
+  .inner {
     position: absolute;
-  }
-
-  .triangle {
-    inset: 0;
-    width: 100%;
-    height: 100%;
   }
 
   /* The hue from red at the top, clockwise: a conic gradient with its middle cut out. */

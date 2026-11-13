@@ -32,7 +32,7 @@ function setup() {
       return dismissed;
     },
     mayStartAt: () => state.onCanvas,
-    sample: (e) => ({ x: e.x, y: e.y, pressure: e.pressure }),
+    sample: (e) => ({ x: e.x, y: e.y }),
   });
   return { input, calls, state };
 }
@@ -52,7 +52,7 @@ const event = (phase: PenEvent["phase"], changes: Partial<PenEvent> = {}): PenEv
   ...changes,
 });
 
-const sample = { x: 1, y: 1, pressure: 1 };
+const sample = { x: 1, y: 1 };
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

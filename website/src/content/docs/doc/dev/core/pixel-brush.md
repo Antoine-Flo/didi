@@ -7,7 +7,7 @@ sidebar:
 
 ## Purpose
 
-The Pixel art tools (pencil, eraser, shapes, bucket) do not use libmypaint. They paint whole pixels, without anti-aliasing, on the CPU. The `core/brush` module computes which pixels change and writes them into the tiles of the layer.
+The drawing tools (pencil, eraser, shapes, bucket) paint whole pixels, without anti-aliasing, on the CPU. The `core/brush` module computes which pixels change and writes them into the tiles of the layer.
 
 ## Files
 

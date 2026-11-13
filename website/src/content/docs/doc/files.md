@@ -5,7 +5,7 @@ description: The .didi format, export and recovery.
 
 ## The .didi format
 
-A `.didi` file keeps everything: the layers, the mode, the canvas size, the tile grid. It is a zip file: any zip tool opens it, and each layer is a standard PNG inside, so a layer can be edited in another app.
+A `.didi` file keeps everything: the layers, the canvas size, the tile grid. It is a zip file: any zip tool opens it, and each layer is a standard PNG inside, so a layer can be edited in another app.
 
 ## Export and import
 

@@ -74,12 +74,12 @@ root
 │   ├── grid, tileLines
 │   ├── selectionDraft, selection
 │   └── cursor          (pixel-art tip)
-├── pointerRing, pointerCross, pointerPicker   (in screen pixels)
+└── pointerPicker     (in screen pixels)
 ```
 
 The items in `canvasRoot` use canvas pixels. The camera sets the position, the scale and the rotation of `canvasRoot` only. Thus, one change moves all the canvas items together.
 
-The pointers are outside `canvasRoot`. They use screen pixels, so that their size on the screen does not change with the zoom.
+The pipette pointer is outside `canvasRoot`. It uses screen pixels, so that its size on the screen does not change with the zoom.
 
 ### From a change to the screen
 
@@ -102,14 +102,14 @@ Then, one time for each frame, the frame loop calls `flush`. `flush` applies all
 ```ts
 // src/lib/app/ui/canvas/CanvasView.svelte
 pixi.ticker.add((ticker) => {
-  showPointer(performance.now());
+  showPointer();
   painter?.flush();
   view?.flush();
   // ...
 });
 ```
 
-The painter paints first (see [Brush engine](../../painting/brush-engine/)), then the view shows the result. PixiJS then draws the frame.
+The painter puts the changes of the stroke in the drawing first (see [Painter](/doc/dev/app/painter/)), then the view shows the result. PixiJS then draws the frame.
 
 ### Update a tile
 
@@ -123,7 +123,7 @@ The painter paints first (see [Brush engine](../../painting/brush-engine/)), the
 
 ### One upload for each frame
 
-A brush stroke can change the same tile many times in one frame. The view records the tile one time only, and uploads it one time in `flush`. If the screen shows 60 frames each second, a tile has a maximum of 60 uploads each second, at any speed of the pen.
+A stroke can change the same tile many times in one frame. The view records the tile one time only, and uploads it one time in `flush`. If the screen shows 60 frames each second, a tile has a maximum of 60 uploads each second, at any speed of the pen.
 
 ### Partial uploads
 

@@ -77,13 +77,12 @@ describe("the image commands", () => {
     expect(image(editor)).toEqual(["rb", ".."]);
   });
 
-  it("scale with whole pixels, or mixed ones", () => {
+  it("scales with whole pixels", () => {
     const editor = setup("rb");
-    commandsOf(editor).execute("image.scale", { width: 4, height: 1, smooth: false });
+    commandsOf(editor).execute("image.scale", { width: 4, height: 1 });
     expect(image(editor)).toEqual(["rrbb"]);
-    commandsOf(editor).execute("image.scale", { width: 1, height: 1, smooth: true });
-    const pixel = editor.activeLayer!.tiles.readRegion({ x: 0, y: 0, width: 1, height: 1 });
-    expect([...pixel]).toEqual([128, 0, 128, 255]);
+    commandsOf(editor).execute("image.scale", { width: 2, height: 1 });
+    expect(image(editor)).toEqual(["rb"]);
   });
 
   it("keeps layers added later the canvas size", () => {

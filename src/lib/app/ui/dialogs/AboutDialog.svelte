@@ -24,7 +24,6 @@
       <Dialog.Title class="dialog-title">{m.about_title()}</Dialog.Title>
       <p class="dialog-text">{m.about_version({ version: __APP_VERSION__ })}</p>
       <p class="dialog-text">{m.about_description()}</p>
-      <p class="dialog-text">{m.about_brushes()}</p>
       <div class="actions">
         <span class="spacer"></span>
         <button class="primary" onclick={() => (open = false)}>{m.common_close()}</button>

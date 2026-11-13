@@ -2,15 +2,10 @@
 //
 // Samples are in canvas pixels. The input side (DOM or native events) calls `begin`,
 // `move` and `end`; the render loop calls `flush` once per frame. The painter checks the
-// layer, then hands the samples to the active tool's stroke (see $lib/app/tools). A stroke
-// may still be painting after `end` (libmypaint brushes paint from a queue): it becomes an
-// undo step once nothing is waiting.
+// layer, then hands the samples to the active tool's stroke (see $lib/app/tools). `end`
+// makes the stroke an undo step.
 
-import type { RGB } from "#lib/core/color/color.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import { bundledBrush } from "#lib/mypaint/brushes.js";
-import type { Brush } from "#lib/mypaint/brush.js";
-import type { MyPaint } from "#lib/mypaint/engine.js";
 import { pickerTool } from "#lib/app/tools/picker-tool.js";
 import type {
   Modifiers,
@@ -29,8 +24,6 @@ export interface PainterHost {
   options(): ToolOptions;
   /** Called with what was taken from the canvas, when using the picker. */
   onPick(picked: Picked): void;
-  /** Called with the color of a stroke done with a tool that draws in color. */
-  onPainted?(color: RGB): void;
   /** Called with a message for the user, when a stroke cannot start. */
   onMessage(message: string): void;
   /** The keys held now. None by default. */
@@ -40,19 +33,11 @@ export interface PainterHost {
 const NO_MODIFIERS: Modifiers = { shift: false, ctrl: false, alt: false };
 
 export class Painter {
-  private engine: MyPaint | null = null;
-  private readonly brushes = new Map<string, Brush>();
   private stroke: ToolStroke | null = null;
-  /** `end` was called: the stroke ends once nothing is waiting. */
-  private ending = false;
-  /** The color the stroke draws with, or null for tools without one (erasers, picker…). */
-  private strokeColor: RGB | null = null;
 
   constructor(
     private editor: Editor,
     private readonly host: PainterHost,
-    /** Clock for the frame budget, in milliseconds. */
-    private readonly now: () => number = () => performance.now(),
   ) {}
 
   /** Paints in another document from now on. A stroke in progress is abandoned. */
@@ -66,19 +51,9 @@ export class Painter {
     this.editor = editor;
   }
 
-  /** Provides the brush engine, once loaded. */
-  setEngine(engine: MyPaint) {
-    this.engine = engine;
-  }
-
-  /** Whether a stroke is in progress, or still being painted. */
+  /** Whether a stroke is in progress. */
   get active(): boolean {
     return this.stroke !== null;
-  }
-
-  /** The pen is up, but the stroke is still being painted from the queue. */
-  get finishing(): boolean {
-    return this.ending;
   }
 
   /**
@@ -88,7 +63,6 @@ export class Painter {
   begin(sample: Sample, eraser = false): boolean {
     if (this.active) {
       this.end();
-      this.drain();
     }
     const modifiers = () => this.host.modifiers?.() ?? NO_MODIFIERS;
     // Alt picks a color with any tool.
@@ -117,9 +91,6 @@ export class Painter {
       editor: this.editor,
       layer: layer ?? null,
       color: options.color ?? [0, 0, 0],
-      engine: this.engine,
-      brush: (preset) => this.brush(preset),
-      now: this.now,
       modifiers,
       pick: (picked) => this.host.onPick(picked),
       refuse: (message) => {
@@ -131,8 +102,6 @@ export class Painter {
     if (!this.stroke) {
       return false;
     }
-    this.ending = false;
-    this.strokeColor = tool.needsColor !== false ? context.color : null;
     this.stroke.move(sample);
     return true;
   }
@@ -143,25 +112,16 @@ export class Painter {
     }
   }
 
-  /** The pen is up. The stroke ends once it is fully painted (see `flush` and `drain`). */
+  /** The pen is up: the stroke becomes an undo step, if it changed anything. */
   end() {
-    if (!this.stroke) {
+    const stroke = this.stroke;
+    if (!stroke) {
       return;
     }
-    this.ending = true;
-    if (!this.stroke.busy) {
-      this.finish();
-    }
-  }
-
-  /** Paints every waiting sample now, and finishes the stroke if the pen is up. */
-  drain() {
-    if (!this.stroke) {
-      return;
-    }
-    this.stroke.drain();
-    if (this.ending) {
-      this.finish();
+    this.stroke = null;
+    const edit = stroke.finish();
+    if (edit) {
+      this.editor.history.push(edit);
     }
   }
 
@@ -169,48 +129,12 @@ export class Painter {
   cancel() {
     const stroke = this.stroke;
     this.stroke = null;
-    this.ending = false;
     stroke?.cancel();
   }
 
-  /**
-   * Paints waiting samples for about `budgetMs` (at least one), then shows the stroke's
-   * latest changes. Call once per frame.
-   */
-  flush(budgetMs = 8) {
-    if (!this.stroke) {
-      return;
-    }
-    this.stroke.flush(budgetMs);
-    if (this.ending && !this.stroke.busy) {
-      this.finish();
-    }
-  }
-
-  private finish() {
-    const stroke = this.stroke!;
-    this.stroke = null;
-    this.ending = false;
-    const edit = stroke.finish();
-    if (edit) {
-      this.editor.history.push(edit);
-      if (this.strokeColor) {
-        this.host.onPainted?.(this.strokeColor);
-      }
-    }
-  }
-
-  /** The libmypaint brush for a bundled preset, created on first use. */
-  private brush(preset: string): Brush {
-    if (!this.engine) {
-      throw new Error("The brush engine is not loaded");
-    }
-    let brush = this.brushes.get(preset);
-    if (!brush) {
-      brush = this.engine.createBrush(bundledBrush(preset).myb);
-      this.brushes.set(preset, brush);
-    }
-    return brush;
+  /** Shows the stroke's latest changes. Call once per frame. */
+  flush() {
+    this.stroke?.flush();
   }
 
   private refuse(message: string): false {

@@ -26,7 +26,7 @@ const TESTING = {
 /**
  * The folders of src/lib a layer may import, besides packages: one rule per layer, as a
  * second "no-restricted-imports" on the same files replaces the first instead of adding to it.
- * Dependencies go one way: core, then render, mypaint and platform, then app; lab only for
+ * Dependencies go one way: core, then render and platform, then app; lab only for
  * the lab pages. Tauri stays in platform.
  */
 function layer(
@@ -72,7 +72,6 @@ export default ts.config(
       ".svelte-kit/",
       "src-tauri/",
       "node_modules/",
-      "src/lib/mypaint/wasm/libmypaint.mjs",
       "src/lib/paraglide/",
     ],
   },
@@ -167,14 +166,13 @@ export default ts.config(
     rules: { "@typescript-eslint/no-floating-promises": "error" },
   },
   layer("render", ["core", "render"]),
-  layer("mypaint", ["core", "mypaint"]),
   layer("platform", ["core", "platform"], { tauri: true }),
   // Everything but the lab pages' code; outside ui/, no components.
-  layer("app", ["core", "render", "mypaint", "platform", "app"], {
+  layer("app", ["core", "render", "platform", "app"], {
     ignores: ["src/lib/app/ui/**"],
     extra: [UI],
   }),
-  layer("app", ["core", "render", "mypaint", "platform", "app"], {
+  layer("app", ["core", "render", "platform", "app"], {
     files: ["src/lib/app/ui/**"],
   }),
 );

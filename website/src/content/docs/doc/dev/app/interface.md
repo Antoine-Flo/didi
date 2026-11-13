@@ -11,16 +11,16 @@ sidebar:
 
 ## Files
 
-| Folder              | Content                                                                                                                                                                                                            |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `app/ui/editor/`    | `EditorApp` (the root of the editor) and the large parts it places: `SidePanels`, `EdgeTracks`, `MessageBar`, `EditorDialogs`, `CompactCorner`, `PanelsTab`.                                                       |
-| `app/ui/canvas/`    | `CanvasView`: the PixiJS canvas, the pointer events, the brush outline.                                                                                                                                            |
-| `app/ui/panels/`    | The content of the panels and columns: `ToolColumn`, `ToolButton`, `NavColumn`, `ColorPanel`, `ColorPicker`, `ShadeBars`, `PalettePanel`, `LayersPanel`, `LayerRow`, `LayerThumb`, `BrushBrowser`, `DocumentInfo`… |
-| `app/ui/dialogs/`   | The dialogs: start screen, preferences, command palette, image size, shortcuts, unsaved changes, about…                                                                                                            |
-| `app/ui/shell/`     | The window parts: `Titlebar`, `MenuBar`, `WindowButtons`, `LayoutMenu`.                                                                                                                                            |
-| `app/ui/widgets/`   | Small reusable controls: `Slider`, `Select`, `Segmented`, `Splitter`, `EdgeColumn`, `PanelMenu`.                                                                                                                   |
-| `app/ui/preview/`   | The preview of the whole drawing (see [Preview](/doc/dev/app/preview/)).                                                                                                                                           |
-| `app/styles/ui.css` | The base styles of the interface.                                                                                                                                                                                  |
+| Folder              | Content                                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/ui/editor/`    | `EditorApp` (the root of the editor) and the large parts it places: `SidePanels`, `EdgeTracks`, `MessageBar`, `EditorDialogs`, `CompactCorner`, `PanelsTab`.                                     |
+| `app/ui/canvas/`    | `CanvasView`: the PixiJS canvas, the pointer events, the brush outline.                                                                                                                          |
+| `app/ui/panels/`    | The content of the panels and columns: `ToolColumn`, `ToolButton`, `ToolBar`, `NavColumn`, `ColorPanel`, `ColorPicker`, `PalettePanel`, `LayersPanel`, `LayerRow`, `LayerThumb`, `DocumentInfo`… |
+| `app/ui/dialogs/`   | The dialogs: start screen, preferences, command palette, image size, shortcuts, unsaved changes, about…                                                                                          |
+| `app/ui/shell/`     | The window parts: `Titlebar`, `MenuBar`, `WindowButtons`, `LayoutMenu`.                                                                                                                          |
+| `app/ui/widgets/`   | Small reusable controls: `Slider`, `Select`, `Segmented`, `Splitter`, `EdgeColumn`, `PanelMenu`.                                                                                                 |
+| `app/ui/preview/`   | The preview of the whole drawing (see [Preview](/doc/dev/app/preview/)).                                                                                                                         |
+| `app/styles/ui.css` | The base styles of the interface.                                                                                                                                                                |
 
 ## Concepts
 
@@ -110,8 +110,8 @@ EditorApp
 2. It makes a `DrawingView` (see the Rendering section) and adds it to the stage.
 3. It makes a `CanvasInput` that receives the pointer events and gives them to the painter or to the view navigation.
 4. On each frame (`pixi.ticker`), it does three things in sequence:
-   - moves the brush outline (`showPointer`),
-   - paints the waiting pen samples (`painter.flush()`),
+   - takes the last pointer move from `CanvasInput` and moves the brush outline and the cursor position to it (`showPointer`),
+   - shows the latest changes of the stroke (`painter.flush()`),
    - sends the changed tiles to the GPU (`view.flush()`).
 5. At unmount, it destroys the view and the PixiJS application.
 
@@ -143,9 +143,9 @@ A stroke changes the pixels of a layer on each frame. If the thumbnail is drawn 
 
 `LayersPanel` notes the changed layers in a plain `Set`, not in reactive state. When the history changes (for example, at the end of the stroke), it increments a `stamp` for each noted layer. `LayerThumb` draws its thumbnail again only when its `stamp` changes. Thus, a thumbnail updates once for each stroke.
 
-### Color triangle
+### Color selector
 
-CSS gradients cannot mix three corners. Thus, `ColorPicker` paints the triangle pixel by pixel in a `<canvas>`. The paint runs again only when the hue or the size changes (`triangleHue` is a separate derived value). A movement inside the triangle does not paint it again.
+`ColorPicker` shows a square (saturation and value) with a hue bar, or a wheel: a hue ring around the square. CSS gradients draw all these parts: two linear gradients over the hue for the square, a conic gradient with a radial mask for the ring. There is no `<canvas>`, and a movement in the selector only moves its markers.
 
 ### Native controls under custom looks
 

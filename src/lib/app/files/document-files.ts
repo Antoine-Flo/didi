@@ -66,12 +66,11 @@ async function downloadPng(title: string): Promise<PngExport | null> {
 }
 
 /** The recent files' entry of a document saved or opened at `path`, now. */
-export function recentFile(path: string, thumbnail: Uint8Array, mode: string): RecentFile {
+export function recentFile(path: string, thumbnail: Uint8Array): RecentFile {
   return {
     path,
     name: documentName(path),
     thumbnail: pngDataUrl(thumbnail),
     time: Date.now(),
-    mode,
   };
 }

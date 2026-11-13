@@ -16,7 +16,7 @@ describe("layout preferences", () => {
       compact: "on",
       fingerDrawing: "off",
       penSeen: true,
-      colorPanels: { painting: { selector: "triangle", shades: true, recent: false } },
+      colorSelector: "wheel",
       sizes: { palette: 240 },
     });
     expect(parseLayoutPrefs(text)).toEqual({
@@ -31,7 +31,7 @@ describe("layout preferences", () => {
       compact: "on",
       fingerDrawing: "off",
       penSeen: true,
-      colorPanels: { painting: { selector: "triangle", shades: true, recent: false } },
+      colorSelector: "wheel",
       sizes: { palette: 240 },
     });
   });
@@ -47,10 +47,10 @@ describe("layout preferences", () => {
       compact: "maybe",
       fingerDrawing: "sometimes",
       penSeen: "yes",
-      colorPanels: { pixel: { selector: "circle", shades: "yes", recent: "yes" } },
+      colorSelector: "triangle",
       sizes: { a: "big", b: -5, c: null, d: 120 },
     });
-    expect(parseLayoutPrefs(text)).toEqual({ sizes: { d: 120 }, colorPanels: { pixel: {} } });
+    expect(parseLayoutPrefs(text)).toEqual({ sizes: { d: 120 } });
     expect(parseLayoutPrefs("[]")).toEqual({});
     expect(parseLayoutPrefs(JSON.stringify({ sizes: 3 }))).toEqual({});
     expect(() => parseLayoutPrefs("not json")).toThrow();

@@ -204,17 +204,13 @@ export function flipImage(editor: Editor, axis: "horizontal" | "vertical") {
   });
 }
 
-/**
- * Scales the whole image to a new size. `smooth` mixes pixels (averages when shrinking,
- * blends when enlarging), for painting; otherwise each pixel is taken whole, nearest, for
- * pixel art.
- */
-export function scaleImage(editor: Editor, width: number, height: number, smooth: boolean) {
+/** Scales the whole image to a new size: each pixel is taken whole, the nearest one. */
+export function scaleImage(editor: Editor, width: number, height: number) {
   if (!validSize(width) || !validSize(height)) {
     throw new RangeError("Invalid image size");
   }
   transformImage(editor, m.history_image_size(), width, height, (from) =>
-    smooth ? resampleSmooth(from, width, height) : resampleNearest(from, width, height),
+    resampleNearest(from, width, height),
   );
 }
 
@@ -228,74 +224,6 @@ function resampleNearest(from: Pixels, width: number, height: number): Uint8Clam
     for (let x = 0; x < width; x++) {
       const s = (row * from.width + columns[x]) * 4;
       out.set(from.data.subarray(s, s + 4), (y * width + x) * 4);
-    }
-  }
-  return out;
-}
-
-/** For each new pixel along an axis, the old pixels it takes from, and how much of each. */
-function weights(from: number, to: number): { index: number; weight: number }[][] {
-  const scale = from / to;
-  return Array.from({ length: to }, (_, i) => {
-    if (scale > 1) {
-      // Shrinking: the average of the old pixels it covers, partly at both ends.
-      const start = i * scale;
-      const end = start + scale;
-      const parts = [];
-      for (let j = Math.floor(start); j < Math.ceil(end) && j < from; j++) {
-        const weight = Math.min(end, j + 1) - Math.max(start, j);
-        if (weight > 0) {
-          parts.push({ index: j, weight: weight / scale });
-        }
-      }
-      return parts;
-    }
-    // Enlarging: between the two old pixels around its center.
-    const center = (i + 0.5) * scale - 0.5;
-    const left = Math.floor(center);
-    const f = center - left;
-    const clamp = (j: number) => Math.min(from - 1, Math.max(0, j));
-    return [
-      { index: clamp(left), weight: 1 - f },
-      { index: clamp(left + 1), weight: f },
-    ];
-  });
-}
-
-/** Premultiplied pixels mix correctly as they are. Two passes: across, then down. */
-function resampleSmooth(from: Pixels, width: number, height: number): Uint8ClampedArray {
-  const across = weights(from.width, width);
-  const down = weights(from.height, height);
-  const middle = new Float32Array(width * from.height * 4);
-  for (let y = 0; y < from.height; y++) {
-    for (let x = 0; x < width; x++) {
-      const d = (y * width + x) * 4;
-      for (const { index, weight } of across[x]) {
-        const s = (y * from.width + index) * 4;
-        for (let c = 0; c < 4; c++) {
-          middle[d + c] += from.data[s + c] * weight;
-        }
-      }
-    }
-  }
-  const out = new Uint8ClampedArray(width * height * 4);
-  const pixel = new Float32Array(4);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      pixel.fill(0);
-      for (const { index, weight } of down[y]) {
-        const s = (index * width + x) * 4;
-        for (let c = 0; c < 4; c++) {
-          pixel[c] += middle[s + c] * weight;
-        }
-      }
-      const d = (y * width + x) * 4;
-      const alpha = Math.round(pixel[3]);
-      out[d + 3] = alpha;
-      // Rounding must not leave a color above its alpha.
-      for (let c = 0; c < 3; c++) {
-        out[d + c] = Math.min(alpha, Math.round(pixel[c]));
-      }
     }
   }
   return out;

@@ -46,14 +46,6 @@ describe("ToolRegistry", () => {
   it("has the built-in tools, with fields matching their settings", () => {
     const registry = createToolRegistry();
     expect(registry.list().map((t) => t.id)).toEqual([
-      "pencil",
-      "ink",
-      "brush",
-      "watercolor",
-      "airbrush",
-      "blend",
-      "texture",
-      "eraser",
       "pixel",
       "pixelEraser",
       "fill",
@@ -61,7 +53,6 @@ describe("ToolRegistry", () => {
       "rectangle",
       "ellipse",
       "select",
-      "smoothSelect",
       "picker",
     ]);
     for (const tool of registry.list()) {

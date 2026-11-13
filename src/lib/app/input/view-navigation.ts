@@ -12,7 +12,7 @@ import {
 } from "#lib/render/camera.js";
 import { isFreeZoom, snapZoomDown, snapZoomNearest, stepZoom } from "#lib/render/pixel-zoom.js";
 
-/** Wheel movement, in pixels, for one zoom level in pixel art: about a mouse wheel's notch. */
+/** Wheel movement, in pixels, for one zoom level: about a mouse wheel's notch. */
 const WHEEL_NOTCH = 100;
 
 /** Space taken by panels over the view, in pixels, on each side. */
@@ -28,15 +28,13 @@ export interface ViewNavigationHost {
   size(): { width: number; height: number };
   /** Panels over the view: fitting and zooming use the area between them. */
   insets(): Insets | undefined;
-  /** Zoomed out, the zoom keeps to levels where every pixel is the same size (pixel art). */
-  pixelZoom(): boolean;
   /** The camera changed (or the view's size: the same camera is set again). */
   changed(camera: Camera): void;
 }
 
 export class ViewNavigation {
   camera: Camera = { x: 0, y: 0, zoom: 1, rotation: 0 };
-  /** In pixel art, wheel movement toward the next zoom level (see wheelZoom). */
+  /** Wheel movement toward the next zoom level (see wheelZoom). */
   private wheelRest = 0;
 
   constructor(private readonly host: ViewNavigationHost) {}
@@ -68,16 +66,17 @@ export class ViewNavigation {
     return { x: area.x + area.width / 2, y: area.y + area.height / 2 };
   }
 
-  /** Fits the canvas in the view, unturned; a mirrored view stays mirrored. */
+  /**
+   * Fits the canvas in the view, unturned, at a zoom level where every pixel is the same size;
+   * a mirrored view stays mirrored.
+   */
   fit(canvas: { width: number; height: number }) {
     const area = this.visibleArea();
     let fitted = fit(canvas, area);
-    if (this.host.pixelZoom()) {
-      // Around the middle of the area, where the canvas is centered.
-      const middle = { x: area.width / 2, y: area.height / 2 };
-      const zoom = snapZoomDown(fitted.zoom, devicePixelRatio);
-      fitted = zoomAt(fitted, middle, zoom / fitted.zoom);
-    }
+    // Around the middle of the area, where the canvas is centered.
+    const middle = { x: area.width / 2, y: area.height / 2 };
+    const zoom = snapZoomDown(fitted.zoom, devicePixelRatio);
+    fitted = zoomAt(fitted, middle, zoom / fitted.zoom);
     const next = { ...fitted, x: fitted.x + area.x, y: fitted.y + area.y };
     this.set(this.camera.mirrored ? mirrorAt(next, this.center()) : next);
   }
@@ -89,19 +88,12 @@ export class ViewNavigation {
 
   /** One step in (1) or out (-1), around the center of the view. */
   zoomStep(direction: 1 | -1) {
-    if (this.host.pixelZoom()) {
-      this.zoomAround(this.center(), stepZoom(this.camera.zoom, devicePixelRatio, direction));
-    } else {
-      this.set(zoomAt(this.camera, this.center(), direction > 0 ? 1.25 : 0.8));
-    }
+    this.zoomAround(this.center(), stepZoom(this.camera.zoom, devicePixelRatio, direction));
   }
 
-  /** Sets the zoom to an absolute value (the nearest level in pixel art), around the center. */
+  /** Sets the zoom to an absolute value (the nearest level), around the center. */
   zoomTo(zoom: number) {
-    this.zoomAround(
-      this.center(),
-      this.host.pixelZoom() ? snapZoomNearest(zoom, devicePixelRatio) : zoom,
-    );
+    this.zoomAround(this.center(), snapZoomNearest(zoom, devicePixelRatio));
   }
 
   zoomAround(at: Point, zoom: number) {
@@ -110,11 +102,9 @@ export class ViewNavigation {
     }
   }
 
-  /** Fingers stopped moving the view: in pixel art, the zoom goes to the nearest level. */
+  /** Fingers stopped moving the view: the zoom goes to the nearest level. */
   settleZoom(at: Point) {
-    if (this.host.pixelZoom()) {
-      this.zoomAround(at, snapZoomNearest(this.camera.zoom, devicePixelRatio));
-    }
+    this.zoomAround(at, snapZoomNearest(this.camera.zoom, devicePixelRatio));
   }
 
   rotateBy(angle: number) {
@@ -136,12 +126,9 @@ export class ViewNavigation {
     }
   }
 
-  /** Zooms with the wheel: smoothly, or in pixel art by levels when zoomed out. */
+  /** Zooms with the wheel: by levels when zoomed out, smoothly when zoomed in a lot. */
   private wheelZoom(at: Point, delta: number) {
     const factor = Math.exp(-delta * 0.0015);
-    if (!this.host.pixelZoom()) {
-      return this.set(zoomAt(this.camera, at, factor));
-    }
     const dpr = devicePixelRatio;
     const free = isFreeZoom(this.camera.zoom, dpr);
     const target = this.camera.zoom * factor;

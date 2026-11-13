@@ -9,9 +9,6 @@ node_modules
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Brush comparison output (npm run compare:brushes)
-tools/brush-compare/out/
-
 # Local-only notes
 /doc/
 

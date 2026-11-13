@@ -15,9 +15,7 @@ export const DOCS = "https://didipaint.com/doc/";
 export interface EditorFacts {
   /** The last pointer used: "pen", "touch", "mouse", or empty. */
   readonly input: string;
-  /** The document's mode, e.g. "pixel". */
-  readonly mode: string;
-  /** The current tool, e.g. "brush". */
+  /** The current tool, e.g. "pixel". */
   readonly tool: string;
   /** The document's size and layers, e.g. "64x64, 3 layers". */
   readonly doc: string;

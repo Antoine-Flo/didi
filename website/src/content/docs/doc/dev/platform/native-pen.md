@@ -1,13 +1,13 @@
 ---
 title: Native pen input
-description: How the desktop app reads the real pressure and tilt of a tablet on Linux.
+description: How the desktop app reads the real pen events of a tablet on Linux.
 sidebar:
   order: 3
 ---
 
 ## Purpose
 
-On Linux, the webview (WebKitGTK) gives the pen to JavaScript as a mouse. The pressure is always 0.5 and there is no tilt. A painting app cannot work with this. Thus, the Rust side reads the GTK events of the webview, which have the real pen values, and sends them to JavaScript.
+On Linux, the webview (WebKitGTK) gives the pen to JavaScript as a mouse. The pressure is always 0.5 and there is no tilt. The app also cannot know if the pen or the mouse moves, or if the tip or the eraser end touches the tablet. Thus, the Rust side reads the GTK events of the webview, which have the real pen values, and sends them to JavaScript.
 
 ## Files
 
@@ -58,7 +58,7 @@ When the pen moves above the tablet without contact, GTK sends many motion event
 
 ### Two times
 
-- `time`: the time of the windowing system, in ms. The brush engine uses the differences between samples.
+- `time`: the time of the windowing system, in ms. The differences give the time between two samples.
 - `sentAt`: the wall clock time when Rust handled the event. It lets you measure the delay from Rust to JavaScript.
 
 ## Limits

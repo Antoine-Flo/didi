@@ -13,7 +13,7 @@ sidebar:
 
 | File                | Purpose                                                                           |
 | ------------------- | --------------------------------------------------------------------------------- |
-| `registry.ts`       | A set of items by id, in registration order (tools, modes).                       |
+| `registry.ts`       | A set of items by id, in registration order (the tools).                          |
 | `watched.svelte.ts` | Makes one core object visible to Svelte.                                          |
 | `data-file.ts`      | A JSON file in the app data folder, saved a short time after a change.            |
 | `dismissal.ts`      | Ignores the click that closes a menu above the canvas.                            |
@@ -26,7 +26,7 @@ sidebar:
 
 ### Registry
 
-`Registry<T>` is a `Map` by id. `register(item)` returns a function that removes this item. It throws an error if the id already exists. `get(id)` throws if the id does not exist. `list()` gives the items in registration order. The built-in tools and modes use it as other items would: a plugin could add its own.
+`Registry<T>` is a `Map` by id. `register(item)` returns a function that removes this item. It throws an error if the id already exists. `get(id)` throws if the id does not exist. `list()` gives the items in registration order. `ToolRegistry` extends it. The built-in tools use it as other tools would: a plugin could add its own.
 
 ### Watched
 
@@ -56,4 +56,4 @@ When a menu above the canvas closes, the same click must not draw. Popups call `
 
 ### Feedback links
 
-The bug form gets some facts in its URL as hidden fields: the version, the system, and the state of the editor (last pointer, mode, tool, document size, screen, layout, last error). These facts help to find the bug. They do not identify the user.
+The bug form gets some facts in its URL as hidden fields: the version, the system, and the state of the editor (last pointer, tool, document size, screen, layout, last error). These facts help to find the bug. They do not identify the user.

@@ -16,7 +16,7 @@ The overlays are the items over the drawing that are not part of the drawing: th
 | `src/lib/render/contrast-blend.ts` | The `contrast` blend mode: a GPU shader.                                |
 | `src/lib/render/grid-view.ts`      | The pixel grid and the tile grid.                                       |
 | `src/lib/render/selection-view.ts` | The selection outline, its handles, and the preview of a new selection. |
-| `src/lib/render/brush-cursor.ts`   | The pointer: brush circle, pixel-art tip, cross, color picker.          |
+| `src/lib/render/brush-cursor.ts`   | The pointer: pixel-art tip, color picker.                               |
 
 ## Contrast blend
 
@@ -48,7 +48,7 @@ vec3 contrast(vec3 base, float amount) {
 
 Thus, a contrast line makes light pixels darker and dark pixels lighter. It is visible everywhere. The file has the same shader two times: GLSL for WebGL, and WGSL for WebGPU.
 
-The pixel grid, the brush circle and the selection preview use this blend mode.
+The pixel grid and the selection preview use this blend mode.
 
 ## Grids
 
@@ -87,40 +87,29 @@ The positions of the handles come from `selectionHandles` in `core/selection/han
 
 ### The selection preview
 
-While the user makes a selection (for example with the magic wand), the view shows the exact pixels that the selection will contain. The preview is a sprite with a mask texture: white where the mask is 1, transparent where it is 0. It uses the contrast blend mode.
+While the user makes a selection (for example with the lasso), the view shows the exact pixels that the selection will contain. The preview is a sprite with a mask texture: white where the mask is 1, transparent where it is 0. It uses the contrast blend mode.
 
 If the new mask has the same size as the last one, the view uploads the new pixels into the same texture. It does not make a new texture each time.
 
 ## Brush cursor
 
-The view draws the pointer itself. The custom pointer images of the system are at the wrong position on screens with a scale. `BrushCursor.draw` shows one of these items:
+`BrushCursor.draw` shows one of these items:
 
-| Kind                        | Image                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------- |
-| `circle`                    | A soft brush: a circle at the largest size that the brush paints. Contrast blend mode. |
-| `circle`, smaller than 6 px | A small cross, black with a white edge.                                                |
-| `square`, `pixel-round`     | A pixel-art tip: the exact pixels that the tool will paint.                            |
-| `picker`                    | A pipette. Its tip is on the pixel that the tool picks.                                |
+| Kind                    | Image                                                       |
+| ----------------------- | ----------------------------------------------------------- |
+| `square`, `pixel-round` | A pixel-art tip: the exact pixels that the tool will paint. |
+| `picker`                | A pipette. Its tip is on the pixel that the tool picks.     |
+| `none`                  | Nothing.                                                    |
 
-The circle and the cross are in screen pixels. The pixel-art tip is in canvas pixels, so it covers exactly the pixels under it.
+The pixel-art tip is in canvas pixels, so it covers exactly the pixels under it. The pointer of the system stays visible over the tip and shows where the pen is.
+
+The pipette is in screen pixels. The view draws it itself, because the custom pointer images of the system are at the wrong position on screens with a scale.
 
 ### Pixel-art tip
 
 With a color, the tip shows its pixels in the color and the opacity that they will get. A round tip comes from `pixelStamp` in `core/brush/raster.ts`: the list of its pixels, row by row. The cursor draws one rectangle for each row, not one rectangle for each pixel.
 
 Without a color (an eraser), the tip shows its outline. For a round tip, `drawStampOutline` finds the outer edges: for each pixel, an edge is outside if the pixel next to it is not in the tip. The outline is drawn two times: white, one screen pixel off, then black. Thus, it is visible on all colors.
-
-### The cross
-
-The cross is one device pixel wide. `drawCross` puts its center at the center of a device pixel:
-
-```ts
-// src/lib/render/brush-cursor.ts
-const d = 1 / devicePixelRatio;
-const cx = (Math.floor(at.x * devicePixelRatio) + 0.5) * d;
-```
-
-If not, a line of one device pixel cuts two device pixels, and it shows as a blurred gray line of two pixels.
 
 ## Limits
 

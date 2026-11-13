@@ -9,9 +9,7 @@ import { describe, expect, it } from "vitest";
 const SRC = join(import.meta.dirname, "..");
 const MAX_LINES = 400;
 /** Generated or data: not code written here. */
-const SKIPPED = ["lib/paraglide", "lib/mypaint/brushes"];
-/** Kept as they are: the compiled libmypaint, and its types beside it. */
-const NOT_CODE = ["lib/mypaint/wasm/libmypaint.mjs", "lib/mypaint/wasm/libmypaint.d.mts"];
+const SKIPPED = ["lib/paraglide"];
 
 /** Every file under src/, by folder (relative to src/). */
 function folders(): Map<string, string[]> {
@@ -36,12 +34,7 @@ function folders(): Map<string, string[]> {
 }
 
 /** A file's kind: its extension, a test or a runes module being TypeScript too. */
-function kind(name: string): string {
-  if (name.endsWith(".d.mts")) {
-    return ".mjs";
-  }
-  return extname(name);
-}
+const kind = (name: string) => extname(name);
 
 const all = folders();
 const files = [...all].flatMap(([folder, names]) => names.map((name) => join(folder, name)));
@@ -71,7 +64,6 @@ describe("the code's layout", () => {
   it(`has at most ${MAX_LINES} lines per source file, tests aside`, () => {
     const long = files
       .filter((file) => /\.(ts|svelte|js|mjs|css)$/.test(file) && !file.endsWith(".test.ts"))
-      .filter((file) => !NOT_CODE.includes(file))
       .map((file) => [file, readFileSync(join(SRC, file), "utf8").split("\n").length - 1] as const)
       .filter(([, lines]) => lines > MAX_LINES)
       .map(([file, lines]) => `${file}: ${lines}`);

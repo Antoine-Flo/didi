@@ -1,6 +1,6 @@
 ---
 title: Preferences and theme
-description: The layout preferences, the theme and its CSS variables, and the colors of each mode.
+description: The layout preferences, the theme and its CSS variables, and the saved colors.
 sidebar:
   order: 22
 ---
@@ -9,23 +9,22 @@ sidebar:
 
 The preferences keep the user's choices from one session to the next. There are three groups, in three files of the app data folder:
 
-| Group            | File          | Class         | Content                                                                                  |
-| ---------------- | ------------- | ------------- | ---------------------------------------------------------------------------------------- |
-| Layout           | `layout.json` | `LayoutPrefs` | Hand, columns, interface size, compact layout, finger drawing, panel sizes, color panel. |
-| Theme            | `theme.json`  | `ThemePrefs`  | Dark or light, tint, canvas background.                                                  |
-| Colors of a mode | `colors.json` | `ModeColors`  | Current color, second color, recent colors, for each mode.                               |
+| Group  | File          | Class         | Content                                                                                     |
+| ------ | ------------- | ------------- | ------------------------------------------------------------------------------------------- |
+| Layout | `layout.json` | `LayoutPrefs` | Hand, columns, interface size, compact layout, finger drawing, panel sizes, color selector. |
+| Theme  | `theme.json`  | `ThemePrefs`  | Dark or light, tint, canvas background.                                                     |
+| Colors | `colors.json` | `SavedColors` | Current color and second color.                                                             |
 
 ## Files
 
-| File                                           | Purpose                                                                            |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `src/lib/app/prefs/layout-prefs.ts`            | The layout types and `parseLayoutPrefs`. No runes.                                 |
-| `src/lib/app/prefs/layout-prefs.svelte.ts`     | `LayoutPrefs`: the reactive layout preferences.                                    |
-| `src/lib/app/prefs/theme.ts`                   | The tokens, the dark and light themes, `buildTheme`, `applyTheme`.                 |
-| `src/lib/app/prefs/theme-prefs.svelte.ts`      | `ThemePrefs`, and `themePrefs`, the one instance for the app.                      |
-| `src/lib/app/prefs/mode-colors.svelte.ts`      | `ModeColors`: the colors of each mode.                                             |
-| `src/lib/app/state/mode-colors-sync.svelte.ts` | Copies the colors between `ModeColors` and the tool options when the mode changes. |
-| `src/lib/app/shared/data-file.ts`              | `DataFile`: saves a JSON file after a short delay.                                 |
+| File                                       | Purpose                                                                     |
+| ------------------------------------------ | --------------------------------------------------------------------------- |
+| `src/lib/app/prefs/layout-prefs.ts`        | The layout types and `parseLayoutPrefs`. No runes.                          |
+| `src/lib/app/prefs/layout-prefs.svelte.ts` | `LayoutPrefs`: the reactive layout preferences.                             |
+| `src/lib/app/prefs/theme.ts`               | The tokens, the dark and light themes, `buildTheme`, `applyTheme`.          |
+| `src/lib/app/prefs/theme-prefs.svelte.ts`  | `ThemePrefs`, and `themePrefs`, the one instance for the app.               |
+| `src/lib/app/prefs/saved-colors.svelte.ts` | `SavedColors`: saves the current and second colors, and `parseSavedColors`. |
+| `src/lib/app/shared/data-file.ts`          | `DataFile`: saves a JSON file after a short delay.                          |
 
 ## Concepts
 
@@ -37,7 +36,7 @@ Runes work in `.svelte` components and in files that end with `.svelte.ts`. Thus
 
 ### Parse, do not trust
 
-A preferences file can be old, from another version, or edited by hand. Each parser (`parseLayoutPrefs`, `parseThemeChoice`, `parseModeColors`) reads the JSON and keeps only the values that are valid. It ignores the others. The result is `Partial<…>`: the missing values keep their defaults.
+A preferences file can be old, from another version, or edited by hand. Each parser (`parseLayoutPrefs`, `parseThemeChoice`, `parseSavedColors`) reads the JSON and keeps only the values that are valid. It ignores the others. For the layout and the theme, the result is `Partial<…>`: the missing values keep their defaults.
 
 ```ts
 // src/lib/app/prefs/layout-prefs.ts
@@ -67,10 +66,9 @@ The app starts before the file is read. The user can change a preference during 
 2. Notes the field as changed (if the load is not done).
 3. Asks the `DataFile` to save after 300 ms.
 
-Some values are by key:
+`sizes` is by key: the size of each resizable panel, by panel id, in pixels at 100 % interface size. Thus, a size stays correct when the user changes the interface size.
 
-- `sizes`: the size of each resizable panel, by panel id, in pixels at 100 % interface size. Thus, a size stays correct when the user changes the interface size.
-- `colorPanels`: what the color panel shows, by mode id. Only the user's changes are kept. `colorPanel(mode, defaults)` puts them over the defaults of the mode.
+`colorSelector` is the selector of the color panel: `"square"` (the default) or `"wheel"`.
 
 `fingerDraws` is calculated: with `"auto"`, one finger draws until a pen is used on this device (`penSeen`). Then one finger only moves the view.
 
@@ -117,16 +115,19 @@ applyTheme(themePrefs.theme); void themePrefs.load(); $effect(() => applyTheme(t
 
 The canvas reads its background from the theme at start. Thus, the theme must be there first.
 
-### Colors of each mode
+### Saved colors
 
-Pixel art and Painting do not share their colors. `ModeColors` keeps, for each mode id, the current color, the second color and the recent colors (a maximum of 12).
+`SavedColors` keeps the current color and the second color of the tool options (`options.color`, `options.secondary`) in `colors.json`:
 
-A color goes into the recent colors when a stroke with it ends (`onPainted`), not when the user selects it. Otherwise, all the colors between two clicks in the picker fill the list.
+```json
+{ "version": 2, "color": "#141414", "secondary": "#ffffff" }
+```
 
-`ModeColorsSync` connects `ModeColors` to the tool options (`options.color`, `options.secondary`):
+Each color is a hex code, or `null` for no color.
 
-- When the user changes a color, an effect writes it into `ModeColors` for the current mode.
-- When the mode changes, it puts the saved colors of the new mode into the tool options.
+- At start, `load()` reads the file. If the file has two valid colors, it puts them into the tool options. Else the default colors stay.
+- An effect reads the two colors. When one changes after the load, it asks the `DataFile` to save after 300 ms.
+- Before the app closes, `flush()` saves now.
 
 ## Limits
 

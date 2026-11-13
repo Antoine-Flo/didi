@@ -4,7 +4,6 @@
   import type { Session } from "#lib/app/files/session.svelte.js";
   import type { CommandRegistry } from "#lib/core/editor/commands.js";
   import type { KeymapIndex } from "#lib/app/commands/keymap.js";
-  import type { Mode, ModeRegistry } from "#lib/app/modes/mode.js";
   import type { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
   import type { ViewController } from "#lib/app/input/view-controller.svelte.js";
   import type { AppUpdate } from "#lib/app/state/app-update.svelte.js";
@@ -26,8 +25,6 @@
     session,
     keymap,
     prefs,
-    modes,
-    mode,
     touchScreen,
     canvasSize,
     view,
@@ -42,9 +39,6 @@
     session: Session;
     keymap: KeymapIndex;
     prefs: LayoutPrefs;
-    modes: ModeRegistry;
-    /** The document's mode. */
-    mode: Mode;
     touchScreen: boolean;
     canvasSize: { width: number; height: number };
     /** The canvas's view: the size dialog previews the new size in it. */
@@ -53,8 +47,8 @@
     side: "left" | "right";
     tip: (id: string) => string;
     run: (id: string, params?: unknown) => void;
-    /** A mode, a size or a background chosen in the start screen, before creating. */
-    onchoosenew: (width: number, height: number, background: Background, mode: string) => void;
+    /** A size or a background chosen in the start screen, before creating. */
+    onchoosenew: (width: number, height: number, background: Background) => void;
     /** A newer version of the app: offered in the start screen. */
     update: AppUpdate;
   } = $props();
@@ -68,7 +62,6 @@
   bind:kind={dialogs.size}
   width={canvasSize.width}
   height={canvasSize.height}
-  smoothByDefault={mode.smoothScaling}
   {side}
   {run}
   onpreview={(preview) => view.previewResize(preview)}
@@ -85,12 +78,9 @@
 
 <StartScreen
   bind:open={dialogs.start}
-  modes={modes.list()}
-  mode={mode.id}
   recent={session.recent}
   recovery={session.recovery}
-  oncreate={(width, height, background, mode) =>
-    session.newDocument(width, height, background, mode)}
+  oncreate={(width, height, background) => session.newDocument(width, height, background)}
   onchange={onchoosenew}
   onopen={(path) => session.open(path)}
   onrecover={() => session.recover()}

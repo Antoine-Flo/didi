@@ -1,8 +1,6 @@
-// Everything the editor's interface shows and acts on: the open document and its mode, the
-// tools and colors, the painter, the shortcuts and menus, the layout, the preview and the
-// dialogs. Created by EditorApp, while it initializes (its effects belong to it).
+// Everything the editor's interface shows and acts on: the open document, the tools and
+// colors, the painter, the shortcuts and menus, the layout, the preview and the dialogs. Created by EditorApp, while it initializes (its effects belong to it).
 
-import { untrack } from "svelte";
 import { registerAppCommands } from "#lib/app/commands/app-commands.js";
 import { BROWSER_BINDINGS, DEFAULT_KEYMAP } from "#lib/app/commands/default-keymap.js";
 import { availableMenus, defaultMenus } from "#lib/app/commands/default-menus.js";
@@ -10,6 +8,7 @@ import { isTyping, keyInput } from "#lib/app/commands/keyboard.js";
 import { formatChord, KeymapIndex } from "#lib/app/commands/keymap.js";
 import { runCommand } from "#lib/app/commands/run-command.js";
 import { importFiles, importPalette } from "#lib/app/files/import-image.js";
+import { NEW_DOCUMENT } from "#lib/app/files/new-document-choice.svelte.js";
 import { newEditor, type Background } from "#lib/app/files/new-drawing.js";
 import { flushPalettes, loadPalettes } from "#lib/app/files/palette-storage.js";
 import { Session } from "#lib/app/files/session.svelte.js";
@@ -19,10 +18,8 @@ import { Painter } from "#lib/app/input/painter.js";
 import { ViewController } from "#lib/app/input/view-controller.svelte.js";
 import { EditorLayout } from "#lib/app/layout/editor-layout.svelte.js";
 import { windowTitle } from "#lib/app/layout/window-title.svelte.js";
-import { createModeRegistry } from "#lib/app/modes/builtin.js";
-import { DEFAULT_MODE, START_MODE, type Mode } from "#lib/app/modes/mode.js";
 import { LayoutPrefs } from "#lib/app/prefs/layout-prefs.svelte.js";
-import { ModeColors } from "#lib/app/prefs/mode-colors.svelte.js";
+import { SavedColors } from "#lib/app/prefs/saved-colors.svelte.js";
 import { themePrefs } from "#lib/app/prefs/theme-prefs.svelte.js";
 import { PreviewState } from "#lib/app/preview/preview-state.svelte.js";
 import { errorMessage } from "#lib/app/shared/error-message.js";
@@ -32,7 +29,6 @@ import { EditorDialogs } from "#lib/app/state/dialogs.svelte.js";
 import { commandHost } from "#lib/app/state/command-host.js";
 import { EditorChanges } from "#lib/app/state/editor-changes.svelte.js";
 import { Messages, type MessageAction, type MessageLevel } from "#lib/app/state/messages.svelte.js";
-import { ModeColorsSync } from "#lib/app/state/mode-colors-sync.svelte.js";
 import { createToolRegistry } from "#lib/app/tools/builtin.js";
 import { pickerTool } from "#lib/app/tools/picker-tool.js";
 import { ToolState } from "#lib/app/tools/tool-state.svelte.js";
@@ -41,7 +37,6 @@ import type { PaletteLibrary } from "#lib/core/color/palette.js";
 import { CommandRegistry } from "#lib/core/editor/commands.js";
 import { registerEditorCommands } from "#lib/core/editor/editor-commands.js";
 import type { Editor } from "#lib/core/editor/editor.js";
-import { loadMyPaint } from "#lib/mypaint/engine.js";
 import { m } from "#lib/paraglide/messages.js";
 import { capabilities } from "#lib/platform/capabilities.js";
 import { closeStalePreview } from "#lib/platform/preview-window.js";
@@ -49,14 +44,7 @@ import { findUpdate, restartApp } from "#lib/platform/updater.js";
 import { appWindow, watchFullScreen } from "#lib/platform/window.js";
 import type { Point } from "#lib/render/camera.js";
 
-/** A new empty document in a mode, with its default size and background. */
-function blankEditor(mode: Mode): Editor {
-  const { size, background } = mode.newDocument;
-  return newEditor(size.width, size.height, background);
-}
-
 export class EditorState {
-  readonly modes = createModeRegistry();
   readonly dialogs: EditorDialogs;
   /** The open document, and its file. */
   readonly session: Session;
@@ -64,18 +52,15 @@ export class EditorState {
   /** Every command, registered once: they act on the open document, whichever it is. */
   readonly commands = new CommandRegistry<Editor>(() => this.editor);
   readonly changes: EditorChanges;
-  /** The document's mode: which tools and panels are shown. */
-  readonly mode: Mode;
   readonly tools: ToolState;
   readonly options: ToolOptions;
   /** The tool the panels show: Alt turns any tool into the picker while it is held. */
   readonly shownTool: Tool;
-  /** The colors of each mode (current, second, recent), kept from one session to the next. */
-  readonly modeColors = new ModeColors();
-  private readonly colorsSync: ModeColorsSync;
-  /** One painter for the whole session: it keeps the brushes it has loaded. */
+  /** The current and second colors, kept from one session to the next. */
+  private readonly savedColors: SavedColors;
+  /** One painter for the whole session. */
   readonly painter: Painter;
-  /** The common shortcuts, and the mode's own, which win. */
+  /** The shortcuts. */
   readonly keymap: KeymapIndex;
   /** The tool bar's swatch: what the tool would make of the color drawn with, at the cursor. */
   readonly toolPreview: ReturnType<NonNullable<Tool["preview"]>> | null;
@@ -121,28 +106,18 @@ export class EditorState {
         notify: (message, level) => this.notify(message, level),
         askUnsaved: (n) => this.dialogs.askUnsaved(n),
       },
-      initial ?? blankEditor(this.modes.get(START_MODE)),
-      initial ? DEFAULT_MODE : START_MODE,
+      initial ?? newEditor(NEW_DOCUMENT.width, NEW_DOCUMENT.height, NEW_DOCUMENT.background),
     );
     this.editor = $derived(this.session.editor);
     this.changes = new EditorChanges(() => this.editor);
-    this.mode = $derived(this.modes.resolve(this.session.mode));
-    this.tools = new ToolState(
-      createToolRegistry(),
-      untrack(() => this.mode),
-    );
+    this.tools = new ToolState(createToolRegistry());
     this.options = this.tools.options;
-    $effect.pre(() => {
-      const next = this.mode;
-      untrack(() => this.tools.setMode(next));
-    });
     this.shownTool = $derived(held.alt ? pickerTool : this.tools.active);
-    this.colorsSync = new ModeColorsSync(this.modeColors, this.options, () => this.mode.id);
+    this.savedColors = new SavedColors(this.options);
     this.painter = new Painter(this.session.editor, {
       tool: (eraser) => this.tools.forPen(eraser),
       options: () => $state.snapshot(this.options),
       onPick: (picked) => this.tools.pick(picked),
-      onPainted: (color) => this.modeColors.addRecent(this.mode.id, color),
       onMessage: (message) => this.notify(message, "info"),
       modifiers: heldModifiers,
     });
@@ -150,11 +125,7 @@ export class EditorState {
     this.keymap = $derived(
       new KeymapIndex({
         version: 1,
-        bindings: [
-          ...DEFAULT_KEYMAP.bindings,
-          ...(capabilities.userFiles ? [] : BROWSER_BINDINGS),
-          ...this.mode.bindings,
-        ],
+        bindings: [...DEFAULT_KEYMAP.bindings, ...(capabilities.userFiles ? [] : BROWSER_BINDINGS)],
       }),
     );
     $effect(() => watchFullScreen((on) => (this.fullScreen = on)));
@@ -163,14 +134,12 @@ export class EditorState {
     this.view = new ViewController({
       canvas: () => this.editor.drawing,
       insets: () => this.layout.insets(),
-      pixelZoom: () => this.mode.pixelZoom,
     });
     this.toolPreview = $derived.by(() => this.previewTool());
     this.menus = $derived.by(() => {
       const { history } = this.changes;
       const all = defaultMenus({
         recent: this.session.recent,
-        modes: this.modes.list(),
         undoLabel: history.undoLabel,
         redoLabel: history.redoLabel,
       });
@@ -226,15 +195,15 @@ export class EditorState {
   }
 
   /**
-   * A mode, a size or a background chosen in the start screen. While the document behind is
+   * A size or a background chosen in the start screen. While the document behind is
    * untouched, it becomes an empty one with that choice, so that what is behind matches it
    * (also when clicking outside). A document with any change or a file is never replaced.
    */
-  previewNew(width: number, height: number, background: Background, mode: string) {
+  previewNew(width: number, height: number, background: Background) {
     if (!this.session.untouched) {
       return;
     }
-    void this.session.newDocument(width, height, background, mode);
+    void this.session.newDocument(width, height, background);
   }
 
   /** Runs a command from the interface. */
@@ -276,11 +245,8 @@ export class EditorState {
     // Follows Shift and Ctrl from now on, for the shape tools, and the pointers for bug reports.
     heldModifiers();
     const stopPointers = watchLastPointer();
-    loadMyPaint()
-      .then((engine) => this.painter.setEngine(engine))
-      .catch((e) => this.notify(m.editor_brush_engine_unavailable({ error: errorMessage(e) })));
     void this.prefs.load(notify);
-    void this.colorsSync.load(notify);
+    void this.savedColors.load(notify);
     themePrefs.reportErrors(notify);
     loadPalettes(notify)
       .then((library) => this.palettes.set(library))
@@ -321,7 +287,7 @@ export class EditorState {
       this.session.closing(),
       flushPalettes(),
       this.prefs.flush(),
-      this.modeColors.flush(),
+      this.savedColors.flush(),
       themePrefs.flush(),
     ]);
     this.preview.closeWindow();

@@ -26,7 +26,7 @@ function pick(editor: Editor, source: string, channels: string, x: number, y: nu
     editor,
     pick: (p: Picked) => (picked = p),
   } as unknown as ToolContext;
-  pickerTool.begin(context, { source, channels }, { x, y, pressure: 1 });
+  pickerTool.begin(context, { source, channels }, { x, y });
   return picked as Picked | null;
 }
 

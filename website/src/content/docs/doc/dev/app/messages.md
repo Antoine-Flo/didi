@@ -70,7 +70,7 @@ The keys have a prefix for their part of the app. Some examples:
 | `cmd_`        | Titles of commands (menus, command palette).     |
 | `files_`      | File actions and their errors.                   |
 | `file_error_` | Errors when a `.didi` file is damaged.           |
-| `mode_`       | Names and descriptions of the modes.             |
+| `start_`      | The start screen, for example `start_sizes_*`.   |
 | `tool_`       | Names of the tools.                              |
 
 ### The locale
@@ -85,5 +85,4 @@ The core (`src/lib/core/`) cannot import the interface. But its errors are for t
 
 ## Limits
 
-- Messages are evaluated when the code calls them. A message in a constant at module level (for example, the `title` of a mode in `builtin.ts`) is evaluated once, at load. A change of locale while the app runs does not change it.
-- Brush names come from the brush files, not from the messages.
+- Messages are evaluated when the code calls them. A message in a constant at module level (for example, the group names of `SIZE_PRESETS` in `new-document-choice.svelte.ts`) is evaluated once, at load. A change of locale while the app runs does not change it.

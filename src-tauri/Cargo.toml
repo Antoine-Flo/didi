@@ -1,7 +1,7 @@
 [package]
 name = "didi"
 version = "0.1.0"
-description = "A drawing app for pixel art and painting, with lessons built in."
+description = "A modern pixel art editor, free and everywhere."
 authors = ["Antoine Flouzat"]
 license = "GPL-3.0-or-later"
 edition = "2024"

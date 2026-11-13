@@ -5,5 +5,4 @@ website/.astro/
 src-tauri/target/
 src-tauri/gen/
 package-lock.json
-src/lib/mypaint/wasm/libmypaint.mjs
 src/lib/paraglide/

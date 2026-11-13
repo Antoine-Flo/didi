@@ -10,8 +10,6 @@ vi.mock("#lib/platform/storage.js", () => ({
 const { LayoutPrefs } = await import("#lib/app/prefs/layout-prefs.svelte.js");
 const { SAVE_DELAY_MS } = await import("#lib/app/shared/data-file.js");
 
-const PANEL = { selector: "square", shades: true, recent: true } as const;
-
 beforeEach(() => {
   vi.useFakeTimers();
   files.clear();
@@ -25,7 +23,7 @@ beforeEach(() => {
       navPosition: 0.5,
       penSeen: true,
       sizes: { palette: 200, layers: 300 },
-      colorPanels: { pixel: { shades: false }, painting: { recent: false } },
+      colorSelector: "wheel",
     }),
   );
 });
@@ -42,7 +40,7 @@ describe("LayoutPrefs", () => {
     expect([prefs.navEdge, prefs.navPosition]).toEqual(["panels", 0.5]);
     expect(prefs.penSeen).toBe(true);
     expect(prefs.size("palette")).toBe(200);
-    expect(prefs.colorPanel("pixel", PANEL).shades).toBe(false);
+    expect(prefs.colorSelector).toBe("wheel");
     // The others keep their defaults.
     expect(prefs.compact).toBe("auto");
     expect(prefs.panelsOpen).toBe(true);
@@ -53,16 +51,13 @@ describe("LayoutPrefs", () => {
     prefs.uiScale = 200;
     prefs.placeColumn("nav", "opposite", 0.25);
     prefs.setSize("palette", 120);
-    prefs.setColorPanel("pixel", { shades: true });
     await prefs.load(() => {});
     expect(prefs.uiScale).toBe(200);
     expect([prefs.navEdge, prefs.navPosition]).toEqual(["opposite", 0.25]);
     expect(prefs.size("palette")).toBe(120);
-    expect(prefs.colorPanel("pixel", PANEL).shades).toBe(true);
     // What did not change is still read.
     expect(prefs.hand).toBe("left");
     expect(prefs.size("layers")).toBe(300);
-    expect(prefs.colorPanel("painting", PANEL).recent).toBe(false);
   });
 
   it("saves after a change, only once loaded", async () => {

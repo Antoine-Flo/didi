@@ -1,54 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { createModeRegistry } from "#lib/app/modes/builtin.js";
-import { createToolRegistry } from "#lib/app/tools/builtin.js";
+import { createToolRegistry, ERASER_TOOL, TOOL_BAR } from "#lib/app/tools/builtin.js";
 import { ToolState } from "#lib/app/tools/tool-state.svelte.js";
+import { defineTool } from "#lib/app/tools/tool.js";
 
-const modes = createModeRegistry();
-const pixel = modes.get("pixel");
-const painting = modes.get("painting");
-
-const setup = () => new ToolState(createToolRegistry(), pixel);
+const setup = () => new ToolState(createToolRegistry());
 
 describe("ToolState", () => {
-  it("starts on the mode's first tool, and shows the mode's tools", () => {
+  it("starts on the first tool of the tool column, and shows its tools", () => {
     const tools = setup();
-    expect(tools.id).toBe(pixel.tools[0]);
-    expect(tools.active.id).toBe(pixel.tools[0]);
-    expect(tools.inBar.map((t) => t.id)).toEqual(pixel.tools);
+    expect(tools.id).toBe(TOOL_BAR[0]);
+    expect(tools.active.id).toBe(TOOL_BAR[0]);
+    expect(tools.inBar.map((t) => t.id)).toEqual(TOOL_BAR);
   });
 
-  it("also shows the active tool when it comes from another mode", () => {
-    const tools = setup();
-    tools.id = painting.tools[0];
-    expect(pixel.tools).not.toContain(tools.id);
-    expect(tools.inBar.map((t) => t.id)).toEqual([...pixel.tools, painting.tools[0]]);
+  it("also shows the active tool when it is not in the tool column", () => {
+    const registry = createToolRegistry();
+    const extra = defineTool({
+      id: "extra",
+      title: "Extra",
+      icon: registry.get("pixel").icon,
+      defaults: {},
+      cursor: () => ({ kind: "none" }),
+      begin: () => null,
+    });
+    registry.register(extra);
+    const tools = new ToolState(registry);
+    tools.id = "extra";
+    expect(tools.inBar.map((t) => t.id)).toEqual([...TOOL_BAR, "extra"]);
   });
 
-  it("finds each mode's last tool again when switching back", () => {
+  it("gives the pen's eraser end the pixel eraser", () => {
     const tools = setup();
-    tools.id = "fill";
-    tools.setMode(painting);
-    expect(tools.id).toBe(painting.tools[0]);
-    tools.id = painting.tools[1];
-    tools.setMode(pixel);
-    expect(tools.id).toBe("fill");
-    tools.setMode(painting);
-    expect(tools.id).toBe(painting.tools[1]);
-  });
-
-  it("keeps the tool when the mode does not change", () => {
-    const tools = setup();
-    tools.id = "fill";
-    tools.setMode(pixel);
-    expect(tools.id).toBe("fill");
-  });
-
-  it("gives the pen's eraser end the mode's eraser", () => {
-    const tools = setup();
-    expect(tools.forPen(false).id).toBe(pixel.tools[0]);
-    expect(tools.forPen(true).id).toBe(pixel.eraserTool);
-    tools.setMode(painting);
-    expect(tools.forPen(true).id).toBe(painting.eraserTool);
+    expect(tools.forPen(false).id).toBe(TOOL_BAR[0]);
+    expect(tools.forPen(true).id).toBe(ERASER_TOOL);
   });
 
   it("picks for the tool drawn with, also once the picker is active", () => {

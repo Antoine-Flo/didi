@@ -7,7 +7,7 @@ sidebar:
 
 ## Purpose
 
-The pixel art tools change whole pixels, with no anti-aliasing. They paint on the CPU, not with the brush engine. These tools are the pixel brush, the pixel eraser, the line, the rectangle, the ellipse and the paint bucket.
+The pixel art tools change whole pixels, with no anti-aliasing. They paint on the CPU. These tools are the pixel brush, the pixel eraser, the line, the rectangle, the ellipse and the paint bucket.
 
 ## Files
 
@@ -42,7 +42,7 @@ This page tells how the tools use these algorithms during a stroke.
 
 The stamp (`pixelStamp(size, shape)`) is the list of pixel offsets of the tip: a square, or a round shape. For a round tip, a pixel is in the stamp if its center is in the circle. A small tolerance (0.25) keeps small round tips full on their axes.
 
-The pixel stroke is never busy: it paints at once in `move`. This is fast because it changes few pixels.
+The pixel stroke paints at once in `move`. This is fast because it changes few pixels. `flush` only shows the changes.
 
 ### Shapes
 

@@ -21,19 +21,16 @@
     unsaved: boolean;
     width: number;
     height: number;
-    /** Position on the drawing, in pixels: "0, 0" when the pointer is elsewhere. Not shown if
-     *  undefined. */
-    cursor?: Point | null;
+    /** Position on the drawing, in pixels: "0, 0" when the pointer is elsewhere. */
+    cursor: Point | null;
     /** The corner it is in: the size is on that side. */
     corner: "left" | "right";
   } = $props();
 </script>
 
 <div class="panel document-info" class:left={corner === "left"}>
-  {#if cursor !== undefined}
-    <span>{m.info_cursor({ x: cursor?.x ?? 0, y: cursor?.y ?? 0 })}</span>
-    <span class="line"></span>
-  {/if}
+  <span>{m.info_cursor({ x: cursor?.x ?? 0, y: cursor?.y ?? 0 })}</span>
+  <span class="line"></span>
   <span class="document">
     <span
       class="dirty"

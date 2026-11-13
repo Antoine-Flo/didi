@@ -31,9 +31,8 @@
 
   // svelte-ignore state_referenced_locally
   const app = new EditorState(initial);
-  const { session, layout, prefs, preview, dialogs, changes, tools, options, modeColors } = app;
+  const { session, layout, prefs, preview, dialogs, changes, tools, options } = app;
   const editor = $derived(app.editor);
-  const mode = $derived(app.mode);
   const shownTool = $derived(app.shownTool);
   const tip = (id: string) => app.tip(id);
   const run = (id: string, params?: unknown) => app.run(id, params);
@@ -102,7 +101,6 @@
         selectionHandles={isSelectTool(tools.active)}
         pixelGrid={prefs.pixelGrid}
         tileGrid={session.grid.shown ? session.grid : null}
-        touchRotation={mode.touchRotation}
         fingerDraws={prefs.fingerDraws}
         onpen={() => prefs.notePen()}
         oncursor={(p) => (app.cursor = p)}
@@ -121,8 +119,6 @@
     commands={app.commands}
     color={options.color}
     secondary={options.secondary}
-    recentColors={modeColors.recent(mode.id)}
-    {mode}
     oncolor={(c) => {
       options.color = c;
     }}
@@ -170,7 +166,7 @@
         unsaved={session.unsaved}
         width={changes.canvasSize.width}
         height={changes.canvasSize.height}
-        cursor={mode.showsCursorPixel ? app.cursor : undefined}
+        cursor={app.cursor}
         corner={layout.panelsOnLeft ? "right" : "left"}
       />
     </div>
@@ -262,12 +258,9 @@
 
 {#snippet layoutMenu(side: "left" | "right")}
   <LayoutMenu
-    modes={app.modes.list()}
-    mode={mode.id}
     {side}
     disabled={dialogs.anyOpen}
     {tip}
-    {run}
     preview={preview.place !== "off"}
     onPreview={(open) => (preview.place = open ? "in" : "off")}
     fullScreen={app.fullScreen}
@@ -297,8 +290,6 @@
   {session}
   keymap={app.keymap}
   {prefs}
-  modes={app.modes}
-  {mode}
   touchScreen={layout.touchScreen}
   canvasSize={changes.canvasSize}
   view={app.view}

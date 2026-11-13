@@ -142,20 +142,7 @@ The largest side of a canvas is 8192 pixels (`MAX_CANVAS_SIZE`).
 
 ### Scale an image
 
-There are two methods:
-
-**Nearest** (`resampleNearest`), for pixel art. Each new pixel takes the old pixel under its center. There are no new colors. The function calculates the old column of each new column one time, before the loop.
-
-**Smooth** (`resampleSmooth`), for painting. It is a **separable** filter: it scales across first, then down. Two passes of one dimension are much faster than one pass of two dimensions.
-
-For each new pixel on one axis, `weights` gives the old pixels it uses and their weights:
-
-- **When it shrinks**, a new pixel covers more than one old pixel. It takes the average of all the old pixels it covers. At the two ends, an old pixel counts only for the part that the new pixel covers. This is a "box filter". It prevents the noise (aliasing) of a simple sample.
-- **When it enlarges**, a new pixel is between two old pixels. It mixes them by distance (linear interpolation).
-
-The pixels are premultiplied. Thus, the code can mix them directly. With straight alpha, transparent pixels would add their hidden color to the mix.
-
-The first pass writes into a `Float32Array`, not into 8-bit values. Thus, the second pass does not get rounding errors from the first pass. At the end, the function rounds each value and clamps the colors to the alpha.
+`scaleImage` uses `resampleNearest`. Each new pixel takes the old pixel under its center. There are no new colors. The function calculates the old column of each new column one time, before the loop.
 
 ## Limits
 

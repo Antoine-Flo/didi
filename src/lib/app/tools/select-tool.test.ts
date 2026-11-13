@@ -30,8 +30,8 @@ function setup() {
     modifiers: () => ({ shift: state.shift, ctrl: false, alt: false }),
   });
   const drag = (x0: number, y0: number, x1: number, y1: number) => {
-    const started = painter.begin({ x: x0, y: y0, pressure: 1, viewZoom: ZOOM });
-    painter.move([{ x: x1, y: y1, pressure: 1, viewZoom: ZOOM }]);
+    const started = painter.begin({ x: x0, y: y0, viewZoom: ZOOM });
+    painter.move([{ x: x1, y: y1, viewZoom: ZOOM }]);
     painter.end();
     return started;
   };
@@ -156,8 +156,8 @@ describe("the selection tool", () => {
   it("cancels a gesture in progress", () => {
     const { editor, painter } = selected();
     const before = capture(editor.drawing);
-    painter.begin({ x: 13, y: 13, pressure: 1, viewZoom: ZOOM });
-    painter.move([{ x: 30, y: 30, pressure: 1, viewZoom: ZOOM }]);
+    painter.begin({ x: 13, y: 13, viewZoom: ZOOM });
+    painter.move([{ x: 30, y: 30, viewZoom: ZOOM }]);
     painter.flush();
     expect(editor.selection.floating).not.toBeNull();
     painter.cancel();
@@ -318,7 +318,7 @@ describe("mirroring with a content handle", () => {
 
   it("mirrors in the same gesture, back and forth", () => {
     const { editor, painter, pixel } = marked();
-    const at = (x: number) => ({ x, y: 15, pressure: 1, viewZoom: ZOOM });
+    const at = (x: number) => ({ x, y: 15, viewZoom: ZOOM });
     painter.begin(at(8.75));
     painter.move([at(28.75)]);
     painter.flush();
@@ -360,7 +360,7 @@ describe("mirroring with a content handle", () => {
 });
 
 describe("a rectangle being dragged", () => {
-  const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+  const at = (x: number, y: number) => ({ x, y, viewZoom: ZOOM });
 
   it("only shows a preview until the pen is lifted", () => {
     const { editor, painter } = setup();
@@ -398,7 +398,7 @@ describe("the lasso", () => {
     editor.drawing.writePixels(editor.activeLayer!.id, BLOCK, fill(BLOCK, [255, 0, 0, 255]));
     editor.history.clear();
     context.options.tools.select.shape = "lasso";
-    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    const at = (x: number, y: number) => ({ x, y, viewZoom: ZOOM });
     painter.begin(at(10.5, 10.5));
     painter.move([at(20.5, 10.5), at(30.5, 10.5), at(20.5, 20.5), at(10.5, 30.5)]);
     painter.end();
@@ -409,7 +409,7 @@ describe("the lasso", () => {
   it("only shows a preview until the pen is lifted", () => {
     const { editor, painter, options } = setup();
     options.tools.select.shape = "lasso";
-    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    const at = (x: number, y: number) => ({ x, y, viewZoom: ZOOM });
     painter.begin(at(10.5, 10.5));
     painter.move([at(20.5, 10.5), at(20.5, 20.5)]);
     painter.flush();
@@ -423,7 +423,7 @@ describe("the lasso", () => {
   it("previews exactly what it will select, closing line included", () => {
     const { editor, painter, options } = setup();
     options.tools.select.shape = "lasso";
-    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    const at = (x: number, y: number) => ({ x, y, viewZoom: ZOOM });
     painter.begin(at(10.5, 10.5));
     // Two sides of a triangle: the third one, from the end to the start, is not drawn.
     painter.move([at(20.5, 10.5), at(20.5, 20.5)]);
@@ -443,7 +443,7 @@ describe("the lasso", () => {
   it("previews nothing before a second pixel", () => {
     const { editor, painter, options } = setup();
     options.tools.select.shape = "lasso";
-    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    const at = (x: number, y: number) => ({ x, y, viewZoom: ZOOM });
     painter.begin(at(10.5, 10.5));
     painter.flush();
     expect(editor.selection.draft).toBeNull();
@@ -453,7 +453,7 @@ describe("the lasso", () => {
   it("leaves nothing when cancelled", () => {
     const { editor, painter, options } = setup();
     options.tools.select.shape = "lasso";
-    const at = (x: number, y: number) => ({ x, y, pressure: 1, viewZoom: ZOOM });
+    const at = (x: number, y: number) => ({ x, y, viewZoom: ZOOM });
     painter.begin(at(10.5, 10.5));
     painter.move([at(20.5, 10.5)]);
     painter.flush();
@@ -524,43 +524,6 @@ describe("the lasso", () => {
     const mask = shapeMask(rect!, shape!);
     expect(mask[20 * 21 + 20]).toBe(1);
     expect(mask[0]).toBe(0);
-  });
-});
-
-describe("the smooth selection tool", () => {
-  function smooth() {
-    const context = setup();
-    context.state.tool = "smoothSelect";
-    context.drag(10.5, 10.5, 19.5, 19.5);
-    return context;
-  }
-
-  it("selects and moves like the other one, pixels unchanged", () => {
-    const { editor, drag, pixel } = smooth();
-    expect(editor.selection.rect).toEqual(SQUARE);
-    drag(13, 13, 23, 13);
-    expect(pixel(20, 15)).toEqual(RED);
-    expect(pixel(29, 15)).toEqual(RED);
-    expect(pixel(30, 15)).toEqual(EMPTY);
-    expect(pixel(19, 15)).toEqual(EMPTY);
-  });
-
-  it("mixes pixels when content is scaled", () => {
-    const { editor, drag, pixel } = smooth();
-    // The east handle, ten pixels further: twice as wide. The edge fades, the middle stays.
-    drag(21.25, 15, 31.25, 15);
-    expect(editor.selection.rect?.width).toBe(20);
-    expect(pixel(20, 15)).toEqual(RED);
-    const edge = pixel(29, 15);
-    expect(edge[3]).toBeGreaterThan(0);
-    expect(edge[3]).toBeLessThan(255);
-  });
-
-  it("keeps pixels exact with the pixel art tool", () => {
-    const { editor, drag, pixel } = selected();
-    drag(21.25, 15, 31.25, 15);
-    expect(editor.selection.rect?.width).toBe(20);
-    expect(pixel(29, 15)).toEqual(RED);
   });
 });
 
